@@ -1,0 +1,723 @@
+/* styles.css（ダークテーマ＋レスポンシブ対応） */
+
+:root {
+  --bg-color: #121212;
+  --surface-color: #1e1e1e;
+  --text-color: #e0e0e0;
+  --muted-text-color: #a0a0a0;
+  --border-color: #333333;
+  --accent-color: #4f94d4;
+  --button-hover-color: #3e8ccb;
+  --input-bg-color: #2a2a2a;
+  --input-text-color: #f0f0f0;
+  --small-text-color: #b0b0b0;
+  --thumb-percent: 0%; /* ガイドライン */
+}
+
+/* ── App 全体ラッパー ── */
+.app-container {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ── ページ見出し ── */
+.app-title {
+  color: var(--text-color);
+  font-size: 1.75rem;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  line-height: 1.6;
+}
+
+/* エディタ全体ラッパー */
+.editor-container {
+  font-family: Arial, sans-serif;
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  /* background-color: var(--surface-color);  //背景がない方が見やすいのでコメントアウト
+  border: 1px solid var(--border-color);
+  border-radius: 8px; */
+}
+
+/* small タグ */
+small {
+  color: var(--small-text-color);
+  font-size: 0.9rem;
+}
+
+/* ファイル入力セクション */
+.file-input {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-input__control {
+  display: inline-block;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--input-bg-color);
+  color: var(--input-text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.file-input__control::-webkit-file-upload-button {
+  background-color: var(--surface-color);
+  color: var(--text-color);
+  border: none;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.file-input__control::-moz-file-upload-button {
+  background-color: var(--surface-color);
+  color: var(--text-color);
+  border: none;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.file-input__hint {
+  margin-top: 4px;
+  color: var(--muted-text-color);
+}
+
+/* ボタン群 */
+.button-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn {
+  background-color: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  flex: 1 1 auto;
+  min-width: 60px;
+  text-align: center;
+}
+
+.btn:hover {
+  background-color: var(--button-hover-color);
+  border-color: var(--accent-color);
+}
+
+.btn:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* 選択中サイズ表示 */
+.selected-size {
+  margin-bottom: 16px;
+  font-size: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.selected-size__value {
+  margin-left: 8px;
+  color: var(--accent-color);
+}
+
+/* キャンバスを包むラッパー */
+.canvas-wrapper {
+  background-color: var(--surface-color);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  margin-bottom: 16px;
+  width: 100%;
+  height: 60vh;
+  /* aspect-ratio: 600 / 400; */
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* 操作説明テキスト */
+.instructions {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.instructions__text {
+  font-size: 0.9rem;
+  color: var(--muted-text-color);
+}
+
+/* ガイドラインの太さ調整スライダー */
+.slider-group {
+  margin-bottom: 16px; /* 他のセクションと合わせる */
+  display: flex; /* 要素を横並びにする */
+  align-items: center; /* 垂直方向の中央揃え */
+  gap: 12px; /* 要素間のスペース */
+  flex-wrap: wrap; /* 小さい画面で折り返す */
+}
+
+.slider-group label {
+  color: var(--text-color);
+  white-space: nowrap; /* テキストの折り返しを防ぐ */
+  font-size: 1rem;
+}
+
+.slider-group input[type="range"] {
+  flex-grow: 1; /* 利用可能なスペースを埋める */
+  -webkit-appearance: none; /* デフォルトのスタイルを無効化 (WebKit/Blink) */
+  appearance: none; /* デフォルトのスタイルを無効化 */
+  width: auto; /* 親要素に合わせて幅を自動調整 */
+  height: 8px; /* トラックの高さ */
+  background: linear-gradient(to right, var(--accent-color) var(--thumb-percent), var(--input-bg-color) var(--thumb-percent)); /* ★修正箇所 */
+  border-radius: 5px; /* トラックの角を丸くする */
+  outline: none; /* フォーカス時のアウトラインをなくす */
+  transition: background 0.2s ease;
+}
+
+/* WebKit/Blink (Chrome, Safari, Edge) のトラック */
+.slider-group input[type="range"]::-webkit-slider-runnable-track {
+  width: auto;
+  height: 8px;
+  background: linear-gradient(to right, var(--accent-color) var(--thumb-percent), var(--input-bg-color) var(--thumb-percent)); /* ★修正箇所 */
+  border-radius: 5px;
+  border: 1px solid var(--border-color); /* 境界線を追加 */
+  cursor: pointer;
+}
+
+/* Mozilla (Firefox) のトラック */
+.slider-group input[type="range"]::-moz-range-track {
+  width: auto;
+  height: 8px;
+  background: linear-gradient(to right, var(--accent-color) var(--thumb-percent), var(--input-bg-color) var(--thumb-percent)); /* ★修正箇所 */
+  border-radius: 5px;
+  border: 1px solid var(--border-color); /* 境界線を追加 */
+  cursor: pointer;
+}
+
+/* WebKit/Blink (Chrome, Safari, Edge) のつまみ */
+.slider-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; /* デフォルトのスタイルを無効化 */
+  appearance: none;
+  width: 20px; /* つまみの幅 */
+  height: 20px; /* つまみの高さ */
+  background: var(--accent-color); /* つまみの色 */
+  border: 1px solid var(--accent-color);
+  border-radius: 50%; /* 完全な丸 */
+  cursor: grab; /* カーソルをグラブに */
+  margin-top: -7px; /* トラックの中央に配置 */
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4); /* 影を追加 */
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+/* Mozilla (Firefox) のつまみ */
+.slider-group input[type="range"]::-moz-range-thumb {
+  width: 20px; /* つまみの幅 */
+  height: 20px; /* つまみの高さ */
+  background: var(--accent-color); /* つまみの色 */
+  border: 1px solid var(--accent-color);
+  border-radius: 50%; /* 完全な丸 */
+  cursor: grab; /* カーソルをグラブに */
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4); /* 影を追加 */
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+/* つまみのホバーとアクティブ状態 */
+.slider-group input[type="range"]::-webkit-slider-thumb:hover,
+.slider-group input[type="range"]::-moz-range-thumb:hover {
+  background: var(--button-hover-color);
+  border-color: var(--button-hover-color);
+  cursor: grabbing; /* ホバー時にカーソルをグラビングに */
+}
+
+.slider-group input[type="range"]:focus::-webkit-slider-thumb,
+.slider-group input[type="range"]:focus::-moz-range-thumb {
+  outline: 2px solid var(--accent-color); /* フォーカス時のアウトライン */
+  outline-offset: 2px;
+}
+
+/* スライダーの現在の値の表示 */
+.slider-group span {
+  color: var(--accent-color);
+  font-weight: bold;
+  min-width: 25px; /* 値の表示幅を確保 */
+  text-align: right; /* 右寄せ */
+}
+
+/* 画像一覧 */
+.image-list {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  max-height: 400px;    /* 好きな高さに調整してください */
+  overflow-y: auto;     /* 縦方向のスクロールを有効化 */
+  border: 1px solid var(--border-color); /*見やすいように枠線を付けてもOK*/
+  padding: 8px;         /* 内側の余白もお好みで */
+}
+/* スクロールバーの見た目をもう少しカスタムしたい場合（Webkit系ブラウザ向け） */
+.image-list::-webkit-scrollbar {
+  width: 6px;
+}
+.image-list::-webkit-scrollbar-thumb {
+  background-color: var(--accent-color);
+  border-radius: 4px;
+}
+.image-list__container {
+  margin: 0.5rem;
+  text-align: center;
+}
+.image-list__item {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  cursor: pointer;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+}
+.image-list__filename {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+/* 拡大率を表示する部分 */
+.selected-size__zoom {
+  margin-left: auto;
+  color: var(--accent-color);
+}
+
+/* モバイル／レスポンシブ */
+@media (max-width: 600px) {
+  html, body {
+    font-size: 14px;
+  }
+  .file-input__control {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.6rem;
+  }
+  .btn {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+    min-width: 100%;
+  }
+  .button-group {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .editor-container {
+    padding: 16px 12px;
+  }
+  .slider-group {
+    flex-direction: column; /* モバイルでは縦並びにする */
+    align-items: flex-start; /* 左寄せ */
+    gap: 8px;
+  }
+  .slider-group label {
+    margin-bottom: 0; /* ラベルの下マージンをリセット */
+  }
+  .slider-group input[type="range"] {
+    width: 100%; /* 幅を100%にする */
+  }
+  .slider-group span {
+    align-self: flex-end; /* 値を右寄せにする */
+  }
+
+  /* トリミング枠調整グループの修正 */
+  .adjustment-group {
+    flex-direction: row; /* 横並びにする */
+    flex-wrap: wrap;     /* 画面幅が足りない場合は折り返す */
+    justify-content: center; /* 中央寄せ */
+    gap: 8px; /* 各調整ボックス間のギャップ */
+  }
+
+  .adjustment-box h4 {
+    margin: 0;
+    white-space: nowrap;
+    font-size: 1.1em;
+    color: var(--text-color); /* PC用のスタイルから継承 */
+  }
+
+  /* ★★★ ここが重要: -1 と +1 ボタンを横並びにするためのスタイル ★★★ */
+  /* -1 ボタンと +1 ボタンをまとめてFlexコンテナのように扱う */
+  .adjustment-box button:first-of-type + button { /* 最初のbuttonの直後のbutton (+1ボタン) */
+    margin-left: 8px; /* -1ボタンと+1ボタンの間の横マージン */
+  }
+
+  .adjustment-box button {
+    flex: 1 1 45%;
+    width: 60px;
+    min-width: unset;
+    height: 35px;
+    padding: 0.3rem 0.5rem;
+    font-size: 1.2em;
+  }
+}
+
+/* src/styles.css */
+
+/* アプリケーション全体のレイアウト */
+.app-layout {
+  display: flex;
+  flex-direction: column; /* 縦方向に要素を並べる */
+  min-height: 100vh; /* 画面いっぱいに広がるように */
+}
+
+/* ヘッダー */
+.app-header {
+  background-color: #282c34;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+}
+
+/* メインコンテンツとサイドバーのコンテナ */
+.content-area {
+  flex: 10; /* 残りのスペースを埋める */
+}
+
+/* フッター */
+.app-footer {
+  background-color: #282c34;
+  color: white;
+  text-align: center;
+  padding: 10px 20px;
+  font-size: 0.8em;
+}
+
+/* その他のスタイル（以前のナビゲーションやページコンテナのスタイルなど）は適宜調整 */
+.main-nav ul { /* ヘッダー内のナビゲーションも修正 */
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.main-nav li {
+  margin: 0 15px;
+}
+.main-nav a {
+  color: white;
+  text-decoration: none;
+}
+/* ... ページ固有のスタイルなども続ける */
+
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn--success {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+.btn--danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+.adjustment-controls {
+  margin-bottom: 20px;
+  text-align: center;
+}
+.adjustment-controls h3 {
+  margin-bottom: 12px;
+  color: var(--text-color);
+}
+.adjustment-group {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.adjustment-box {
+  border: 1px solid var(--border-color);
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+}
+/* .adjustment-box 内の隣接するボタンに左マージンを追加 */
+.adjustment-box button + button {
+  margin-left: 8px;
+}
+.adjustment-box h4 {
+  margin: 0 0 8px;
+  color: var(--text-color);
+}
+.result-container {
+  margin-top: 30px;
+  text-align: center;
+}
+.result-title {
+  margin-bottom: 15px;
+  color: var(--text-color);
+}
+#croppedResult {
+  max-width: 100%;
+  height: auto;
+  border: 2px solid var(--accent-color);
+  border-radius: 4px;
+}
+.download-btn {
+  display: inline-block;
+  margin-top: 15px;
+  background-color: var(--accent-color);
+  color: var(--text-color);
+  text-decoration: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+}
+
+/* ここからPDFコンポーネント専用のスタイルを追加・調整 */
+
+/* .file-input__control の調整 (PDFコンポーネント用) */
+.file-input__control {
+  width: 100%; /* フル幅に調整 */
+  box-sizing: border-box; /* paddingとborderをwidthに含める */
+}
+
+/* ファイル選択ボタンの見た目を調整 (PDFコンポーネント用) */
+.file-input__control::-webkit-file-upload-button {
+  border: 1px solid var(--border-color); /* ボタンに枠線を追加 */
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.file-input__control::-webkit-file-upload-button:hover {
+  background-color: var(--button-hover-color);
+  border-color: var(--accent-color);
+}
+
+.file-input__control::-moz-file-upload-button {
+  border: 1px solid var(--border-color); /* ボタンに枠線を追加 */
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.file-input__control::-moz-file-upload-button:hover {
+  background-color: var(--button-hover-color);
+  border-color: var(--accent-color);
+}
+
+/* .btn の調整 (PDFコンポーネント用) */
+.btn:hover:not(:disabled) { /* 無効化されたボタンにはホバーエフェクトを適用しない */
+  background-color: var(--button-hover-color);
+  border-color: var(--accent-color);
+}
+
+.btn--success {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+.btn--success:hover:not(:disabled) {
+  background-color: #218838; /* より濃い緑 */
+  border-color: #1e7e34;
+}
+
+.btn--danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+.btn--danger:hover:not(:disabled) {
+  background-color: #c82333; /* より濃い赤 */
+  border-color: #bd2130;
+}
+
+/* 画像一覧コンテナ (PDFコンポーネント専用) */
+.image-list-container {
+  border: 1px dashed var(--border-color); /* 破線に変更 */
+  border-radius: 8px;
+  padding: 4px; /* パディングをさらに減らす */
+  margin-top: 16px;
+  background-color: var(--input-bg-color); /* 入力フィールドの背景色に合わせる */
+  min-height: 400px;
+  display: flex;
+  justify-content: flex-start; /* 中央寄せに戻す (プレースホルダー用) */
+  align-items: flex-start; /* 中央寄せに戻す (プレースホルダー用) */
+  flex-direction: column; /* テキストとリストを縦に並べるため */
+}
+
+/* 画像リスト (PDFコンポーネント専用に上書き) */
+/* 既存の.image-listはCombinerComponentなどで使われているため、
+   PdfComponent内で使用する.image-listはより詳細なセレクタで指定するか、
+   別のクラス名を検討してください。今回はcontainer内部の.image-listとして定義します。
+*/
+.image-list-container .image-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); /* アイテムの最小幅を大きく調整 (サムネイルサイズ+パディング+ボーダー) */
+  gap: 7px; /* アイテム間のギャップを適度に戻す */
+  width: 100%;
+  max-height: 600px; /* スクロール可能にする */
+  overflow-y: auto;
+  padding-right: 4px; /* スクロールバーのための余白を調整 */
+  border: none; /* 親のimage-list-containerが枠線を持つので、ここでは不要 */
+  margin-top: 0; /* 親コンテナがマージンを持つため */
+  padding: 0; /* 親コンテナがパディングを持つため */
+}
+
+/* スクロールバーの見た目をカスタム (PDFコンポーネント専用) */
+.image-list-container .image-list::-webkit-scrollbar {
+  width: 6px; /* 元の幅に戻す */
+}
+.image-list-container .image-list::-webkit-scrollbar-thumb {
+  background-color: var(--accent-color);
+  border-radius: 4px;
+}
+.image-list-container .image-list::-webkit-scrollbar-track { /* スクロールトラックの背景色を追加 */
+  background-color: var(--surface-color);
+  border-radius: 4px;
+}
+
+/* 個々の画像プレビューアイテム (PDFコンポーネント専用) */
+/* 既存の.image-list__containerと.image-list__itemと競合しないよう、新しいクラス名を使用 */
+.image-preview-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--surface-color); /* テーマに合わせた背景色 */
+  border: 1px solid var(--border-color);
+  border-radius: 4px; /* 角を小さく丸める */
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* 影を控えめに復活させる */
+  cursor: grab;
+  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, border-color 0.1s ease;
+  padding: 4px; /* アイテム全体のパディングを減らし、画像を大きく表示できるスペースを増やす */
+  font-size: 0.85em; /* テキストサイズを微調整 */
+}
+
+.image-preview-item.selected {
+  border-color: var(--accent-color); /* 選択時の色をアクセントカラーに */
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3); /* 選択時の影のサイズを適度に戻す */
+  transform: translateY(-1px); /* 選択時にわずかに浮き上がらせる */
+}
+
+.image-preview-item:active {
+  cursor: grabbing;
+}
+
+.image-preview-item .thumbnail { /* JSでインライン指定しているのでここでの直接的な width/height の変更は不要ですが、fall-backとして */
+  /* width: 80px; */ /* JSで制御 */
+  /* height: 80px; */ /* JSで制御 */ /* JSで130pxに指定 */
+  object-fit: contain; /* アスペクト比を維持して収める */
+  display: block;
+  background-color: var(--input-bg-color); /* 統一感のある背景色 */
+  border-radius: 2px; /* サムネイルの角を小さく丸める */
+}
+
+.image-info { /* マージンはJS側でインラインスタイルで指定するため、ここでは不要 */
+  text-align: center;
+  font-size: 0.85em; /* テキストサイズを微調整 */
+  width: 100%; /* 親要素の幅いっぱいに */
+}
+
+.image-info .file-name { /* ファイル名のスタイル */
+  font-weight: bold;
+  font-size: 1.1em;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.1; /* 行の高さをさらに詰める */
+  margin: 4px; /* ファイル名の隙間を完全に除去 */
+}
+
+.image-info .page-number { /* ページ番号のスタイル */
+  color: var(--muted-text-color);
+  font-size: 0.92em; /* 微調整 */
+  line-height: 1.1; /* 行の高さをさらに詰める */
+  margin: 1px; /* ページ番号の隙間を完全に除去 */
+}
+
+/* Loading Overlay Styles (PDFコンポーネント専用 - 元のスタイルに戻す) */
+/* 進捗表示は元のスタイルにリセット */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* 元の透明度に戻す */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.loading-content {
+  background-color: #333; /* 元の背景色に戻す */
+  padding: 20px; /* 元のパディングに戻す */
+  border-radius: 5px; /* 元の角丸に戻す */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* 元の影に戻す */
+  text-align: center;
+  color: white; /* 元のテキスト色に戻す */
+  font-size: 1em; /* 元のフォントサイズに戻す */
+  font-weight: normal; /* 元のフォントウェイトに戻す */
+}
+
+.progress-bar-container {
+  width: 100%; /* 元の幅に戻す */
+  height: 10px; /* 元の高さに戻す */
+  background-color: #555; /* 元の背景色に戻す */
+  border-radius: 5px; /* 元の角丸に戻す */
+  margin: 10px 0; /* 元のマージンに戻す */
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #007bff; /* 元のプログレスバーの色に戻す */
+  border-radius: 5px; /* 元の角丸に戻す */
+  transition: width 0.3s ease; /* 元のトランジションに戻す */
+}
+
+/* モバイル／レスポンシブ (PDFコンポーネント専用部分の調整) */
+@media (max-width: 600px) {
+  .image-list-container .image-list {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* モバイル向けにアイテムの最小幅を調整 */
+    gap: 5px; /* モバイルでのギャップを調整 */
+  }
+  .image-preview-item .thumbnail {
+    width: 110px; /* モバイル時のサムネイルサイズを大きく調整 */
+    height: 110px; /* モバイル時のサムネイルサイズを大きく調整 */
+  }
+  .image-preview-item {
+    padding: 3px; /* モバイル時のアイテムパディングを調整 */
+  }
+  .image-info .file-name {
+    font-size: 1.1em; /* モバイル時のファイル名を調整 */
+    margin: 4px;
+  }
+  .image-info .page-number {
+    font-size: 0.92em; /* モバイル時のページ番号を調整 */
+    margin: 1px;
+  }
+  .loading-content {
+    padding: 15px; /* モバイル時のローディング表示パディングを調整 */
+    font-size: 0.9em;
+  }
+  .progress-bar-container {
+    width: 150px; /* モバイル時のプログレスバーの幅を調整 */
+  }
+}
