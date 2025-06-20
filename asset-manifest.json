@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/image-combine-app/static/css/main.a06bd8ff.css",
-    "main.js": "/image-combine-app/static/js/main.b6f1287b.js",
+    "main.js": "/image-combine-app/static/js/main.c3105fa7.js",
     "index.html": "/image-combine-app/index.html",
     "main.a06bd8ff.css.map": "/image-combine-app/static/css/main.a06bd8ff.css.map",
-    "main.b6f1287b.js.map": "/image-combine-app/static/js/main.b6f1287b.js.map"
+    "main.c3105fa7.js.map": "/image-combine-app/static/js/main.c3105fa7.js.map"
   },
   "entrypoints": [
     "static/css/main.a06bd8ff.css",
-    "static/js/main.b6f1287b.js"
+    "static/js/main.c3105fa7.js"
   ]
 }
