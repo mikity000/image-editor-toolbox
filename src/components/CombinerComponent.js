@@ -279,8 +279,24 @@ export default function CombinerComponent() {
     // ─────────────────────────────────────
     const onObjectMoving = e => {
       const obj = e.target;
-      snapToPixelPosition(obj); // 座標をピクセル単位で丸める
 
+      snapToPixelPosition(obj); // 座標をピクセル単位で丸める
+      snapDuringMoving(obj) // 移動中に吸着させる
+      updateGuides(obj);          // ガイドラインを更新
+
+      // 移動中にサイズ表示も更新するため、ActiveObject を再取得
+      const active = fabricCanvas.getActiveObject();
+      // 複数選択移動中 (ActiveSelection) のときはバウンディングボックスを再計算
+      if (active instanceof ActiveSelection && active === obj) {
+        const rect = active.getBoundingRect();
+        setSelectedSize({ width: rect.width, height: rect.height });
+      } else {
+        // 単一オブジェクト移動中
+        setSelectedSize({ width: obj.getScaledWidth(), height: obj.getScaledHeight() });
+      }
+    };
+
+    function snapDuringMoving(obj) {
       // 他のすべての画像オブジェクトを取得し、自分自身は除外
       const others = fabricCanvas
         .getObjects()
@@ -314,18 +330,6 @@ export default function CombinerComponent() {
           top = sv;
 
       obj.set({ left, top }); // 座標を更新
-      updateGuides(obj);          // ガイドラインを更新
-
-      // 移動中にサイズ表示も更新するため、ActiveObject を再取得
-      const active = fabricCanvas.getActiveObject();
-      // 複数選択移動中 (ActiveSelection) のときはバウンディングボックスを再計算
-      if (active instanceof ActiveSelection && active === obj) {
-        const rect = active.getBoundingRect();
-        setSelectedSize({ width: rect.width, height: rect.height });
-      } else {
-        // 単一オブジェクト移動中
-        setSelectedSize({ width: obj.getScaledWidth(), height: obj.getScaledHeight() });
-      }
     };
 
     // ────────────────────────────────────────────
@@ -333,6 +337,8 @@ export default function CombinerComponent() {
     // ────────────────────────────────────────────
     const onObjectScaling = e => {
       const obj = e.target;
+
+      snapDuringScaling(obj, e); // スケーリング中に吸着させる
       snapToPixelPosition(obj); // 座標をピクセル単位で丸める
       snapToPixelScale(obj); //スケールをピクセル単位で丸める
       updateGuides(obj); // リサイズ中にガイドを逐次更新
@@ -346,6 +352,131 @@ export default function CombinerComponent() {
       } else {
         // 単一オブジェクトリサイズ中
         setSelectedSize({ width: obj.getScaledWidth(), height: obj.getScaledHeight() });
+      }
+    };
+
+    function snapDuringScaling(obj, e) {
+      const transform = e.transform;
+      const corner = transform.corner;
+
+      // 他のすべての画像オブジェクトを取得し、自分自身は除外
+      const others = fabricCanvas
+        .getObjects()
+        .filter(o => o instanceof FabricImage && o !== obj);
+
+      // スナップ許容範囲（ピクセル）
+      const SNAP_TOLERANCE = guideThickness * 5;
+
+      // 変形中のオブジェクトのバウンディングボックスを取得
+      obj.setCoords();
+      const objBoundingRect = obj.getBoundingRect();
+
+      // オブジェクトの原点(obj.left/top)とバウンディングボックス左上隅とのオフセットを計算
+      // これにより、座標系の違いを吸収し、正確な位置計算が可能になる
+      const offsetX = obj.left - objBoundingRect.left;
+      const offsetY = obj.top - objBoundingRect.top;
+
+      // スナップ候補となる他のオブジェクトの辺の座標リストを作成
+      const candidateXs = [];
+      const candidateYs = [];
+      others.forEach(o => {
+        o.setCoords();
+        const otherBoundingRect = o.getBoundingRect();
+        candidateXs.push(otherBoundingRect.left, otherBoundingRect.left + otherBoundingRect.width);
+        candidateYs.push(otherBoundingRect.top, otherBoundingRect.top + otherBoundingRect.height);
+      });
+
+      const newAttrs = {};
+      let newScaleX = null;
+      let newScaleY = null;
+
+      // X軸のスナップ判定
+      if (corner.includes('l')) { // 左側のハンドル(tl, ml, bl)を操作中
+        for (const x of candidateXs) {
+          if (Math.abs(objBoundingRect.left - x) <= SNAP_TOLERANCE) {
+            const right = objBoundingRect.left + objBoundingRect.width;
+            const newWidth = right - x;
+            if (newWidth > 0) {
+              newScaleX = newWidth / obj.width; // 新しいスケールを計算
+              newAttrs.left = x + offsetX; // 新しいleft位置をオフセットを考慮して設定
+            }
+            break;
+          }
+        }
+      } else if (corner.includes('r')) { // 右側のハンドル(tr, mr, br)を操作中
+        for (const x of candidateXs) {
+          if (Math.abs((objBoundingRect.left + objBoundingRect.width) - x) <= SNAP_TOLERANCE) {
+            const newWidth = x - objBoundingRect.left;
+            if (newWidth > 0) {
+              newScaleX = newWidth / obj.width;
+            }
+            break;
+          }
+        }
+      }
+
+      // Y軸のスナップ判定
+      if (corner.includes('t')) { // 上側のハンドル(tl, mt, tr)を操作中
+        for (const y of candidateYs) {
+          if (Math.abs(objBoundingRect.top - y) <= SNAP_TOLERANCE) {
+            const bottom = objBoundingRect.top + objBoundingRect.height;
+            const newHeight = bottom - y;
+            if (newHeight > 0) {
+              newScaleY = newHeight / obj.height;
+              newAttrs.top = y + offsetY;
+            }
+            break;
+          }
+        }
+      } else if (corner.includes('b')) { // 下側のハンドル(bl, mb, br)を操作中
+        for (const y of candidateYs) {
+          if (Math.abs((objBoundingRect.top + objBoundingRect.height) - y) <= SNAP_TOLERANCE) {
+            const newHeight = y - objBoundingRect.top;
+            if (newHeight > 0) {
+              newScaleY = newHeight / obj.height;
+            }
+            break;
+          }
+        }
+      }
+
+      const snappedX = newScaleX !== null;
+      const snappedY = newScaleY !== null;
+
+      // --- アスペクト比の維持（コーナーハンドルの場合） ---
+      if (corner.length === 2) {
+        const scaleRatio = transform.original.scaleX / transform.original.scaleY;
+        if (snappedX && !snappedY) {
+          newScaleY = newScaleX / scaleRatio;
+        } else if (snappedY && !snappedX) {
+          newScaleX = newScaleY * scaleRatio;
+        }
+      }
+
+      // 計算された新しいスケールがあれば適用
+      if (newScaleX !== null) newAttrs.scaleX = newScaleX;
+      if (newScaleY !== null) newAttrs.scaleY = newScaleY;
+
+      // --- アスペクト比維持に伴う位置の補正 ---
+      if (corner.length === 2) {
+        // Y軸にスナップし、Xスケールが自動計算された場合 -> left位置を補正
+        if (snappedY && !snappedX && corner.includes('l')) {
+          const newWidth = obj.width * newScaleX;
+          const right = objBoundingRect.left + objBoundingRect.width;
+          newAttrs.left = right - newWidth + offsetX;
+        }
+        // X軸にスナップし、Yスケールが自動計算された場合 -> top位置を補正
+        if (snappedX && !snappedY && corner.includes('t')) {
+          const newHeight = obj.height * newScaleY;
+          const bottom = objBoundingRect.top + objBoundingRect.height;
+          newAttrs.top = bottom - newHeight + offsetY;
+        }
+      }
+
+      // 計算された新しい属性があればオブジェクトに適用
+      if (Object.keys(newAttrs).length > 0) {
+        obj.set(newAttrs);
+        obj.setCoords();
       }
     };
 
@@ -384,7 +515,7 @@ export default function CombinerComponent() {
   //   - FileReader で読み込み、FabricImage を作成してキャンバスに追加
   //   - 追加後にガイド更新と状態保存 (Undo 用)
   // ─────────────────────────────────────
-  const changeFile = e => {
+  const uploadImage = e => {
     if (!fabricCanvas) return;
 
     // ビューポート左上の実際の位置を取得（逆変換）
@@ -681,7 +812,7 @@ export default function CombinerComponent() {
       {/* 画像ファイル選択インプット（複数選択可） */}
       <div className="file-input">
         <input type="file" accept="image/*" multiple className="file-input__control"
-          onClick={e => (e.target.value = null)} onChange={changeFile}
+          onClick={e => (e.target.value = null)} onChange={uploadImage}
         />
         <small className="file-input__hint">
           （PNG/JPEG などの画像を複数選択できます）
