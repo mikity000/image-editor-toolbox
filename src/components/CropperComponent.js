@@ -17,26 +17,37 @@ export default function CropperComponent() {
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
 
   // === 背景画像外に出ないように制限 ===
-  const clampToImageBounds = (obj) => {
+  const clampToImageBounds = (obj, action) => {
     const canvas = fabricCanvasRef.current;
     const bg = canvas.backgroundImage;
-    if (!bg) return;
+
     // 背景画像の表示領域
     const bgLeft = bg.left;
     const bgTop = bg.top;
-    const bgRight = bgLeft + bg.getScaledWidth();
-    const bgBottom = bgTop + bg.getScaledHeight();
+    const bgWidth = bg.getScaledWidth();
+    const bgHeight = bg.getScaledHeight();
+    const bgRight = bgLeft + bgWidth;
+    const bgBottom = bgTop + bgHeight;
 
-    // オブジェクトのスケール後サイズを取得
+    // ——— スケールのクランプ ———
+    if (action === 'scaling') {
+      const maxScaleX = bgWidth / obj.width;
+      const maxScaleY = bgHeight / obj.height;
+      // 現在の scaleX/Y を上限で制限
+      const clampedScaleX = Math.min(obj.scaleX, maxScaleX);
+      const clampedScaleY = Math.min(obj.scaleY, maxScaleY);
+      obj.set({ scaleX: clampedScaleX, scaleY: clampedScaleY });
+    }
+
+    // スケール後サイズを再計算
     const objWidth = obj.getScaledWidth();
     const objHeight = obj.getScaledHeight();
 
-    // クランプ範囲
+    // ——— 位置のクランプ ———
     const minLeft = bgLeft;
     const maxLeft = bgRight - objWidth;
     const minTop = bgTop;
     const maxTop = bgBottom - objHeight;
-
     // left/top を制限
     const clampedLeft = Math.min(Math.max(obj.left, minLeft), maxLeft);
     const clampedTop = Math.min(Math.max(obj.top, minTop), maxTop);
@@ -167,8 +178,8 @@ export default function CropperComponent() {
       currentShape.setControlsVisibility({ mtr: false });
       canvas.add(currentShape);
       // トリミング枠移動・リサイズ時に背景画像外に出ないよう制限
-      canvas.on('object:moving', ({ target }) => clampToImageBounds(target));
-      canvas.on('object:scaling', ({ target }) => clampToImageBounds(target));
+      canvas.on('object:moving', ({ target }) => clampToImageBounds(target, 'moving'));
+      canvas.on('object:scaling', ({ target }) => clampToImageBounds(target, 'scaling'));
       setDrawingObject(currentShape);
     });
 
