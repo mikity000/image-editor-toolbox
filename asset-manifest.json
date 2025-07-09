@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/image-editor-toolbox/static/css/main.a06bd8ff.css",
-    "main.js": "/image-editor-toolbox/static/js/main.47f3ef38.js",
+    "main.js": "/image-editor-toolbox/static/js/main.131cf4b2.js",
     "index.html": "/image-editor-toolbox/index.html",
     "main.a06bd8ff.css.map": "/image-editor-toolbox/static/css/main.a06bd8ff.css.map",
-    "main.47f3ef38.js.map": "/image-editor-toolbox/static/js/main.47f3ef38.js.map"
+    "main.131cf4b2.js.map": "/image-editor-toolbox/static/js/main.131cf4b2.js.map"
   },
   "entrypoints": [
     "static/css/main.a06bd8ff.css",
-    "static/js/main.47f3ef38.js"
+    "static/js/main.131cf4b2.js"
   ]
 }
