@@ -67,17 +67,31 @@ export default function PdfComponent() {
 
   const dragEnd = (event) => {
     const { active, over } = event;
-    if (active.id !== over.id) {
-      setImages((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        const newList = arrayMove(items, oldIndex, newIndex);
-        // ドラッグ順序変更を同期
-        //emitListRef.current?.(newList);
-        return newList;
-      });
-    }
+    if (!over || active.id === over.id || selectedImages.has(over.id)) return;
+    setImages((items) => {
+      // 通常の「単一ドラッグ」での並び替えインデックスを計算
+      const oldIndex = items.findIndex((item) => item.id === active.id);
+      const newIndex = items.findIndex((item) => item.id === over.id);
+      // active が選択中に含まれるかチェック
+      const newList = selectedImages.has(active.id) ? arrayMoveMultiple(items, selectedImages, over.id, oldIndex, newIndex)
+                                                     : arrayMove(items, oldIndex, newIndex);
+      // ドラッグ順序変更を同期
+      //emitListRef.current?.(newList);
+      return newList;
+    });
   };
+
+  // 複数アイテムをまとめて移動するヘルパー
+  function arrayMoveMultiple(items, selectedIds, overId, oldIndex, newIndex) {
+    // 選択中以外のアイテムを先に残す
+    const others = items.filter(item => !selectedIds.has(item.id));
+    // 選択中アイテムだけを取り出す
+    const selectedItems = items.filter(item => selectedIds.has(item.id));
+    // others 上で overId の位置を探し、移動方向に応じて挿入位置を調整
+    const overIndexInOthers = others.findIndex(item => item.id === overId);
+    const insertionIndex = oldIndex < newIndex ? overIndexInOthers + 1 : overIndexInOthers;
+    return others.toSpliced(insertionIndex, 0, ...selectedItems);
+  }
 
   const selectImage = useCallback((id) => {
     setSelectedImages((prevSelected) => {
