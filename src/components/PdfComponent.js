@@ -201,7 +201,7 @@ export default function PdfComponent() {
         </button>
       </div>
 
-      {/* 画像リスト DND コンテナ */}
+      {/* サムネイルリスト DND コンテナ */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
         <SortableContext items={images.map(img => img.id)}>
           <div className="image-list-container">
@@ -218,7 +218,7 @@ export default function PdfComponent() {
         </SortableContext>
       </DndContext>
 
-      {/* 画像の順番入れ替えの操作説明 */}
+      {/* サムネイルの順番入れ替えの操作説明 */}
       <div className="instructions">
         <small className="instructions__text">
           {isMobile ? "長押しで順番を入れ替えられます。" : "ドラッグで順番を入れ替えられます。"}
