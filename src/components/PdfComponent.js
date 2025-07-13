@@ -11,10 +11,10 @@ import { compressImage } from '../utils';
 export default function PdfComponent() {
   const [images, setImages] = useState([]);
   const [selectedImages, setSelectedImages] = useState(new Set());
+  const [activeId, setActiveId] = useState(null); // ドラッグ中のアイテムIDを管理
   const [isProcessing, setIsProcessing] = useState(false); // PDF生成中
   const [isUploading, setIsUploading] = useState(false); // 画像アップロード中
-  const [uploadProgress, setUploadProgress] = useState(0); // アップロード進捗
-  const [pdfProgress, setPdfProgress] = useState(0); // PDF生成進捗
+  const [progress, setProgress] = useState(0); // 進捗
   // モバイル判定を navigator.userAgent とメディアクエリで判定
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
   const socketRef = useRef(null);
@@ -53,7 +53,7 @@ export default function PdfComponent() {
       })).finally(() => {
         completed++;
         // 完了ファイル数 ÷ 総ファイル数 で％を算出
-        setUploadProgress(Math.round((completed / totalFiles) * 100));
+        setProgress(Math.round((completed / totalFiles) * 100));
       })
     );
 
@@ -62,11 +62,18 @@ export default function PdfComponent() {
     setImages(updated);
     //emitListRef.current?.(updated);
     setIsUploading(false);
-    setUploadProgress(0); // 完了後に進捗をリセット
+    setProgress(0); // 完了後に進捗をリセット
   };
 
-  const dragEnd = (event) => {
-    const { active, over } = event;
+  // ドラッグ開始時の処理
+  const dragStart = useCallback((e) => setActiveId(e.active.id), []);
+
+  // ドラッグ終了/キャンセル時の処理
+  const dragCancel = useCallback(() => setActiveId(null), []);
+
+  const dragEnd = (e) => {
+    setActiveId(null); // ドラッグ終了時にactiveIdをリセット
+    const { active, over } = e;
     if (!over || active.id === over.id || selectedImages.has(over.id)) return;
     setImages((items) => {
       // 通常の「単一ドラッグ」での並び替えインデックスを計算
@@ -115,7 +122,6 @@ export default function PdfComponent() {
 
   const generatePdf = async () => {
     setIsProcessing(true);
-    setPdfProgress(0); // 進捗をリセット
     const pdfDoc = await PDFDocument.create();
     const desiredWidth = 595.28; // A4幅 (約210mm) のPDFポイント
     const totalImages = images.length;
@@ -141,7 +147,7 @@ export default function PdfComponent() {
         });
 
         embeddedCount++;
-        setPdfProgress(Math.round((embeddedCount / totalImages) * 100)); // 進捗を更新
+        setProgress(Math.round((embeddedCount / totalImages) * 100)); // 進捗を更新
 
         // 小分け処理（プログレスバーの更新を滑らかにするため）
         if (embeddedCount % 3 === 0 || embeddedCount === totalImages) // 例: 3枚ごとに、または最後にレンダリング機会を与える
@@ -150,7 +156,7 @@ export default function PdfComponent() {
       } catch (error) {
         console.error(`Error embedding image ${imageItem.name}:`, error);
         embeddedCount++; // エラーが発生してもカウントを進める
-        setPdfProgress(Math.round((embeddedCount / totalImages) * 100));
+        setProgress(Math.round((embeddedCount / totalImages) * 100));
         // 小分け処理（エラー時にもレンダリング機会を与える）
         await new Promise(resolve => setTimeout(resolve, 0));
       }
@@ -160,7 +166,7 @@ export default function PdfComponent() {
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     saveAs(blob, 'images.pdf');
     setIsProcessing(false);
-    setPdfProgress(0); // 完了後に進捗をリセット
+    setProgress(0); // 完了後に進捗をリセット
   };
 
   return (
@@ -171,9 +177,9 @@ export default function PdfComponent() {
           <div className="loading-content">
             <p>{isUploading ? '画像をアップロード中...' : 'PDFを生成中...'}</p>
             <div className="progress-bar-container">
-              <div className="progress-bar" style={{ width: `${isUploading ? uploadProgress : pdfProgress}%` }}></div>
+              <div className="progress-bar" style={{ width: `${progress}%` }}></div>
             </div>
-            <p>{isUploading ? uploadProgress : pdfProgress}%</p>
+            <p>{progress}%</p>
           </div>
         </div>
       )}
@@ -197,19 +203,21 @@ export default function PdfComponent() {
           リセット
         </button>
         <button onClick={generatePdf} disabled={images.length === 0 || isProcessing || isUploading} className="btn btn--success">
-          {isProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
+          {isProcessing ? `PDF生成中... (${progress}%)` : 'PDFを生成'}
         </button>
       </div>
 
       {/* サムネイルリスト DND コンテナ */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart}
+        onDragEnd={dragEnd} onDragCancel={dragCancel} modifiers={[restrictToFirstScrollableAncestor]}>
         <SortableContext items={images.map(img => img.id)}>
           <div className="image-list-container">
             {images.length > 0 && (
               <div className="image-list">
                 {images.map((image, index) => (
-                  <SortableImagePreview key={image.id} id={image.id} image={image} index={index}
+                  <SortableImagePreview key={image.id} image={image} images={images} index={index}
                     isSelected={selectedImages.has(image.id)} onSelect={selectImage}
+                    activeId={activeId} selectedImages={selectedImages}
                   />
                 ))}
               </div>
@@ -228,17 +236,24 @@ export default function PdfComponent() {
   );
 }
 
-function SortableImagePreview({ id, image, index, isSelected, onSelect }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: id });
-
+function SortableImagePreview({ image, images, index, isSelected, onSelect, activeId, selectedImages }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: image.id });
+  // グループドラッグ（選択アイテムが複数あり、そのうちの1つがドラッグされている）がアクティブか
+  const isGroupDragActive = selectedImages.has(activeId) && selectedImages.size > 1;
+  // このアイテムが、ドラッグされているグループの一員だが、activeなアイテムではない場合
+  const isPassiveFollower = isGroupDragActive && isSelected && !isDragging;
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isPassiveFollower ? 0 : 1, // グループドラッグ中の、ドラッグされていない選択済みアイテムは非表示にする
+    zIndex: isDragging ? 10 : 'auto', // ドラッグ中のアイテムは最前面に表示
   };
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <ImagePreview image={image} index={index} isSelected={isSelected} onSelect={onSelect} />
+      <DraggedItemStack isDragging={isDragging} isGroupDragActive={isGroupDragActive} selectedImages={selectedImages} id={image.id} images={images} />
+      {isDragging && isGroupDragActive && <span className="count-badge">{selectedImages.size}</span>}
     </div>
   );
 }
@@ -246,7 +261,7 @@ function SortableImagePreview({ id, image, index, isSelected, onSelect }) {
 function ImagePreview({ image, index, isSelected, onSelect }) {
   return (
     <div className={`image-preview-item ${isSelected ? 'selected' : ''}`} onClick={() => onSelect(image.id)}>
-      <img src={image.dataUrl} alt={image.name} className="thumbnail" style={{ width: '130px', height: '130px', marginBottom: '0px' }} /> {/* サムネイルサイズをブロックに合わせて最大化し、下マージンを詰める */}
+      <img src={image.dataUrl} alt={image.name} className="thumbnail" /> {/* サムネイルサイズをブロックに合わせて最大化し、下マージンを詰める */}
       <div className="image-info" style={{ marginTop: '0px' }}> {/* 情報とサムネイル間の隙間を詰める */}
         <p className="file-name">{image.name}</p>
         <p className="page-number">{index + 1} ページ</p>
@@ -254,3 +269,21 @@ function ImagePreview({ image, index, isSelected, onSelect }) {
     </div>
   );
 }
+
+// 自分がドラッグされていて、かつそれがグループドラッグの場合に、他の選択アイテムの幻影を表示するコンポーネント
+function DraggedItemStack ({ isDragging, isGroupDragActive, selectedImages, id, images }) {
+  if (!isDragging || !isGroupDragActive) return null;
+  // 自分以外の選択済みアイテムIDを最大2つまで取得して幻影として表示
+  const otherSelectedIds = [...selectedImages].filter(selId => selId !== id).slice(0, 2);
+  return otherSelectedIds.map((selId, i) => {
+    const url = images.find(img => img.id == selId).dataUrl;
+    return (
+      <div key={i} className="image-preview-item selected stack"
+        // 背後に表示、少しずらす
+        style={{ zIndex: -(i + 1), transform: `translate(${(i + 1) * 5}px, ${(i + 1) * 5}px)` }}>
+        {/* 見た目だけをクローン */}
+        <img src={url} alt="" className="thumbnail" />
+      </div>
+    );
+  });
+};
