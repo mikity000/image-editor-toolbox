@@ -68,13 +68,10 @@ export default function PdfComponent() {
   // ドラッグ開始時の処理
   const dragStart = useCallback((e) => setActiveId(e.active.id), []);
 
-  // ドラッグ終了/キャンセル時の処理
-  const dragCancel = useCallback(() => setActiveId(null), []);
-
   const dragEnd = (e) => {
     setActiveId(null); // ドラッグ終了時にactiveIdをリセット
     const { active, over } = e;
-    if (!over || active.id === over.id || selectedImages.has(over.id)) return;
+    if (active.id === over.id || selectedImages.has(over.id)) return;
     setImages((items) => {
       // 通常の「単一ドラッグ」での並び替えインデックスを計算
       const oldIndex = items.findIndex((item) => item.id === active.id);
@@ -209,7 +206,7 @@ export default function PdfComponent() {
 
       {/* サムネイルリスト DND コンテナ */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart}
-        onDragEnd={dragEnd} onDragCancel={dragCancel} modifiers={[restrictToFirstScrollableAncestor]}>
+        onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
         <SortableContext items={images.map(img => img.id)}>
           <div className="image-list-container">
             {images.length > 0 && (

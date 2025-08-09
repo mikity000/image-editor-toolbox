@@ -16,8 +16,8 @@ export default function CropperComponent() {
   // モバイル判定を navigator.userAgent とメディアクエリで判定
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
 
-  // === 背景画像外に出ないように制限 ===
-  const clampToImageBounds = (obj, action) => {
+  // 移動時のクランプ（単純）
+  const clampMoveToImageBounds = (obj) => {
     const canvas = fabricCanvasRef.current;
     const bg = canvas.backgroundImage;
 
@@ -29,17 +29,6 @@ export default function CropperComponent() {
     const bgRight = bgLeft + bgWidth;
     const bgBottom = bgTop + bgHeight;
 
-    // ——— スケールのクランプ ———
-    if (action === 'scaling') {
-      const maxScaleX = bgWidth / obj.width;
-      const maxScaleY = bgHeight / obj.height;
-      // 現在の scaleX/Y を上限で制限
-      const clampedScaleX = Math.min(obj.scaleX, maxScaleX);
-      const clampedScaleY = Math.min(obj.scaleY, maxScaleY);
-      obj.set({ scaleX: clampedScaleX, scaleY: clampedScaleY });
-    }
-
-    // スケール後サイズを再計算
     const objWidth = obj.getScaledWidth();
     const objHeight = obj.getScaledHeight();
 
@@ -55,6 +44,101 @@ export default function CropperComponent() {
     obj.set({ left: clampedLeft, top: clampedTop });
     obj.setCoords();
   };
+
+  // 拡大時のクランプ（origin を考慮して反対辺を固定する）
+  const clampScaleToImageBounds = (obj) => {
+    const canvas = fabricCanvasRef.current;
+    const bg = canvas.backgroundImage;
+
+    // 背景画像の表示領域
+    const bgLeft = bg.left;
+    const bgTop = bg.top;
+    const bgWidth = bg.getScaledWidth();
+    const bgHeight = bg.getScaledHeight();
+    const bgRight = bgLeft + bgWidth;
+    const bgBottom = bgTop + bgHeight;
+
+    // 拡大開始時の情報を保存
+    if (!obj._orig) {
+      obj._orig = {
+        left: obj.left,
+        top: obj.top,
+        scaleX: obj.scaleX,
+        scaleY: obj.scaleY,
+        width: obj.width,
+        height: obj.height,
+        originX: obj.originX,
+        originY: obj.originY,
+        corner: obj.__corner || canvas._currentTransform.corner
+      };
+    }
+    const orig = obj._orig;
+    const corner = orig.corner;
+
+    // 全体的な最大スケール（背景内に収める絶対上限）
+    let maxScaleX = bgWidth / orig.width;
+    let maxScaleY = bgHeight / orig.height;
+
+    // どの辺を動かしているかに応じた更なる上限（反対辺を固定するため）
+    if (corner.includes('b')) {
+      const maxY_when_bottom = (bgBottom - orig.top) / orig.height;
+      maxScaleY = Math.min(maxScaleY, maxY_when_bottom);
+    }
+    if (corner.includes('t')) {
+      const origBottom = orig.top + orig.height * orig.scaleY;
+      const maxY_when_top = (origBottom - bgTop) / orig.height;
+      maxScaleY = Math.min(maxScaleY, maxY_when_top);
+    }
+    if (corner.includes('r')) {
+      const maxX_when_right = (bgRight - orig.left) / orig.width;
+      maxScaleX = Math.min(maxScaleX, maxX_when_right);
+    }
+    if (corner.includes('l')) {
+      const origRight = orig.left + orig.width * orig.scaleX;
+      const maxX_when_left = (origRight - bgLeft) / orig.width;
+      maxScaleX = Math.min(maxScaleX, maxX_when_left);
+    }
+
+    // スケールをクランプ
+    const clampedScaleX = Math.min(obj.scaleX, maxScaleX);
+    const clampedScaleY = Math.min(obj.scaleY, maxScaleY);
+    obj.set({ scaleX: clampedScaleX, scaleY: clampedScaleY });
+
+    // 固定したい辺を実際に固定する（反対辺を動かさないように top/left を補正）
+    // bottom を動かしているなら top=orig.top を保持
+    if (corner.includes('b') && !corner.includes('t')) {
+      obj.top = orig.top;
+    }
+    // top を動かしているなら bottom を固定 -> top = origBottom - newHeight
+    if (corner.includes('t') && !corner.includes('b')) {
+      const newHeight = obj.getScaledHeight();
+      const origBottom = orig.top + orig.height * orig.scaleY;
+      obj.top = origBottom - newHeight;
+    }
+    // right を動かしているなら left を固定
+    if (corner.includes('r') && !corner.includes('l')) {
+      obj.left = orig.left;
+    }
+    // left を動かしているなら right を固定 -> left = origRight - newWidth
+    if (corner.includes('l') && !corner.includes('r')) {
+      const newWidth = obj.getScaledWidth();
+      const origRight = orig.left + orig.width * orig.scaleX;
+      obj.left = origRight - newWidth;
+    }
+
+    // 最終安全クランプ（丸めや極端なケース対策）
+    const finalW = obj.getScaledWidth();
+    const finalH = obj.getScaledHeight();
+    const minLeft = bgLeft;
+    const maxLeft = bgRight - finalW;
+    const minTop = bgTop;
+    const maxTop = bgBottom - finalH;
+    const clampedLeft = Math.min(Math.max(obj.left, minLeft), maxLeft);
+    const clampedTop = Math.min(Math.max(obj.top, minTop), maxTop);
+    obj.set({ left: clampedLeft, top: clampedTop });
+    obj.setCoords();
+  };
+
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -178,8 +262,9 @@ export default function CropperComponent() {
       currentShape.setControlsVisibility({ mtr: false });
       canvas.add(currentShape);
       // トリミング枠移動・リサイズ時に背景画像外に出ないよう制限
-      canvas.on('object:moving', ({ target }) => clampToImageBounds(target, 'moving'));
-      canvas.on('object:scaling', ({ target }) => clampToImageBounds(target, 'scaling'));
+      canvas.on('object:moving', ({ target }) => clampMoveToImageBounds(target));
+      canvas.on('object:scaling', ({ target }) => clampScaleToImageBounds(target));
+      canvas.on('object:modified', ({ target }) => delete target._orig);
       setDrawingObject(currentShape);
     });
 
