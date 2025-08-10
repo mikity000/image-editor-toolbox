@@ -99,43 +99,55 @@ export default function CropperComponent() {
       maxScaleX = Math.min(maxScaleX, maxX_when_left);
     }
 
-    // スケールをクランプ
-    const clampedScaleX = Math.min(obj.scaleX, maxScaleX);
-    const clampedScaleY = Math.min(obj.scaleY, maxScaleY);
-    obj.set({ scaleX: clampedScaleX, scaleY: clampedScaleY });
+    // スケールをクランプ（丸め誤差対策付き）し、origin を考慮して反対辺を厳密に固定
+    const EPS = 1e-8;
+    // clamp + snap
+    let clampedScaleX = Math.min(obj.scaleX, maxScaleX);
+    let clampedScaleY = Math.min(obj.scaleY, maxScaleY);
+    if (Math.abs(clampedScaleX - maxScaleX) < EPS) clampedScaleX = maxScaleX;
+    if (Math.abs(clampedScaleY - maxScaleY) < EPS) clampedScaleY = maxScaleY;
+    // 新しい幅／高さは元のサイズ × スナップしたスケール（orig の scale は開始時の scale）
+    const newWidth = orig.width * clampedScaleX;
+    const newHeight = orig.height * clampedScaleY;
+    // origin の係数（left=0 center=0.5 right=1）
+    const ox = (orig.originX === 'center' ? 0.5 : (orig.originX === 'right' ? 1 : 0));
+    const oy = (orig.originY === 'center' ? 0.5 : (orig.originY === 'bottom' ? 1 : 0));
+    // 開始時の実際の辺位置（絶対座標）
+    const startScaledW = orig.width * orig.scaleX;
+    const startScaledH = orig.height * orig.scaleY;
+    const origLeftEdge = orig.left - ox * startScaledW;
+    const origTopEdge = orig.top - oy * startScaledH;
+    const origRightEdge = origLeftEdge + startScaledW;
+    const origBottomEdge = origTopEdge + startScaledH;
+    // 新しい左上の絶対位置（固定したい辺に応じて決める）
+    let newLeftEdge = origLeftEdge;
+    let newTopEdge = origTopEdge;
+                  // 右を動かす -> 左は origLeftEdge に固定
+    newLeftEdge = corner.includes('r') && !corner.includes('l') ? origLeftEdge :
+                  // 左を動かす -> 右を固定 -> newLeft = origRight - newWidth
+                  corner.includes('l') && !corner.includes('r') ? origRightEdge - newWidth :
+                  // コーナー両方や中央スケール等: 保守的に現在の中心比を維持（ここは必要なら更に調整）
+                  origLeftEdge;
+                  // 下を動かす -> 上は origTopEdge に固定
+    newTopEdge = corner.includes('b') && !corner.includes('t') ? origTopEdge :
+                  // 上を動かす -> 下を固定 -> newTop = origBottom - newHeight
+                  corner.includes('t') && !corner.includes('b') ? origBottomEdge - newHeight :
+                  // コーナー両方や中央スケール等: 保守的に現在の中心比を維持（ここは必要なら更に調整）
+                  origTopEdge;
 
-    // 固定したい辺を実際に固定する（反対辺を動かさないように top/left を補正）
-    // bottom を動かしているなら top=orig.top を保持
-    if (corner.includes('b') && !corner.includes('t')) {
-      obj.top = orig.top;
-    }
-    // top を動かしているなら bottom を固定 -> top = origBottom - newHeight
-    if (corner.includes('t') && !corner.includes('b')) {
-      const newHeight = obj.getScaledHeight();
-      const origBottom = orig.top + orig.height * orig.scaleY;
-      obj.top = origBottom - newHeight;
-    }
-    // right を動かしているなら left を固定
-    if (corner.includes('r') && !corner.includes('l')) {
-      obj.left = orig.left;
-    }
-    // left を動かしているなら right を固定 -> left = origRight - newWidth
-    if (corner.includes('l') && !corner.includes('r')) {
-      const newWidth = obj.getScaledWidth();
-      const origRight = orig.left + orig.width * orig.scaleX;
-      obj.left = origRight - newWidth;
-    }
-
-    // 最終安全クランプ（丸めや極端なケース対策）
-    const finalW = obj.getScaledWidth();
-    const finalH = obj.getScaledHeight();
-    const minLeft = bgLeft;
-    const maxLeft = bgRight - finalW;
-    const minTop = bgTop;
-    const maxTop = bgBottom - finalH;
-    const clampedLeft = Math.min(Math.max(obj.left, minLeft), maxLeft);
-    const clampedTop = Math.min(Math.max(obj.top, minTop), maxTop);
-    obj.set({ left: clampedLeft, top: clampedTop });
+    // --- 置換: 最終安全クランプ（辺単位で厳密にクランプ） ---
+    // newLeftEdge / newTopEdge は上で決めた「左上の絶対座標（辺単位）」です
+    const minLeftEdge = bgLeft;
+    const maxLeftEdge = bgRight - newWidth;
+    const minTopEdge = bgTop;
+    const maxTopEdge = bgBottom - newHeight;
+    // 辺を直接クランプ（これで最終補正が left/top をズラすことを防ぐ）
+    newLeftEdge = Math.min(Math.max(newLeftEdge, minLeftEdge), maxLeftEdge);
+    newTopEdge = Math.min(Math.max(newTopEdge, minTopEdge), maxTopEdge);
+    // origin を考慮して最終的な left/top を再計算してセット
+    const finalLeft = newLeftEdge + ox * newWidth;
+    const finalTop = newTopEdge + oy * newHeight;
+    obj.set({ scaleX: clampedScaleX, scaleY: clampedScaleY, left: finalLeft, top: finalTop });
     obj.setCoords();
   };
 
