@@ -101,14 +101,13 @@ export default function CropperComponent() {
 
     // スケールをクランプ（丸め誤差対策付き）し、origin を考慮して反対辺を厳密に固定
     const EPS = 1e-8;
-    // clamp + snap
     let clampedScaleX = Math.min(obj.scaleX, maxScaleX);
     let clampedScaleY = Math.min(obj.scaleY, maxScaleY);
     if (Math.abs(clampedScaleX - maxScaleX) < EPS) clampedScaleX = maxScaleX;
     if (Math.abs(clampedScaleY - maxScaleY) < EPS) clampedScaleY = maxScaleY;
-    // 新しい幅／高さは元のサイズ × スナップしたスケール（orig の scale は開始時の scale）
-    const newWidth = orig.width * clampedScaleX;
-    const newHeight = orig.height * clampedScaleY;
+    obj.set({ scaleX: clampedScaleX, scaleY: clampedScaleY });
+    const newWidth = obj.getScaledWidth();
+    const newHeight = obj.getScaledHeight();
     // origin の係数（left=0 center=0.5 right=1）
     const ox = (orig.originX === 'center' ? 0.5 : (orig.originX === 'right' ? 1 : 0));
     const oy = (orig.originY === 'center' ? 0.5 : (orig.originY === 'bottom' ? 1 : 0));
@@ -147,7 +146,7 @@ export default function CropperComponent() {
     // origin を考慮して最終的な left/top を再計算してセット
     const finalLeft = newLeftEdge + ox * newWidth;
     const finalTop = newTopEdge + oy * newHeight;
-    obj.set({ scaleX: clampedScaleX, scaleY: clampedScaleY, left: finalLeft, top: finalTop });
+    obj.set({ left: finalLeft, top: finalTop });
     obj.setCoords();
   };
 
