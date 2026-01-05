@@ -584,13 +584,13 @@ export default function CropperComponent() {
 
       {/* トリミング枠調整ボタン */}
       <div className="adjustment-controls">
-        <h3>トリミング枠の調整 (1px単位)</h3>
+        <h3>トリミング枠の調整</h3>
         <div className="adjustment-group">
           {['top', 'left', 'right', 'bottom'].map((side) => (
             <div key={side} className="adjustment-box">
               <h4>{{ 'top': '上辺', 'left': '左辺', 'right': '右辺', 'bottom': '下辺' }[side]}</h4>
-              <button onClick={() => adjustCroppingShape(side, -1)} className="btn">-1</button>
-              <button onClick={() => adjustCroppingShape(side, 1)} className="btn">+1</button>
+              <button onClick={() => adjustCroppingShape(side, -0.5)} className="btn">-</button>
+              <button onClick={() => adjustCroppingShape(side, 0.5)} className="btn">+</button>
             </div>
           ))}
         </div>

@@ -108,6 +108,7 @@ export default function PdfComponent() {
   const deleteSelected = () => {
     const updated = images.filter((i) => !selectedImages.has(i.id));
     setImages(updated);
+    setSelectedImages(new Set());
     //emitListRef.current?.(updated);
   };
 
