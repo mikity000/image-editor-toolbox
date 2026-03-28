@@ -1,7 +1,7 @@
 import { /*BrowserRouter*/ HashRouter as Router, Routes, Route, Link, Navigate  } from 'react-router-dom';
-import ImageTrimming from './hooks/ImageCrop'; // クロップページ
-import ImageCombine from './hooks/ImageCombine';   // 結合ページ
-import ImagePdf from './hooks/ImagePdf';   // PDF化ページ
+import ImageTrimming from './pages/ImageCrop'; // クロップページ
+import ImageCombine from './pages/ImageCombine';   // 結合ページ
+import ImagePdf from './pages/ImagePdf';   // PDF化ページ
 import './styles.css';
 
 export default function App() {

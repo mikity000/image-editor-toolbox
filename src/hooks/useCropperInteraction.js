@@ -1,85 +1,18 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Rect, Circle, Ellipse, Polygon, Line, Point, util, PencilBrush } from 'fabric';
+import { clampMoveToImageBounds, clampScaleToImageBounds } from '../utils/fabricBounds';
 
 export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedImageUrl, pathSmoothing = 8) {
   const [croppingMode, setCroppingMode] = useState(null);
   const [drawingObject, setDrawingObject] = useState(null);
-  const [polygonPoints, setPolygonPoints] = useState([]);
+  const polygonPointsRef = useRef([]);
   const [isDrawingPolygon, setIsDrawingPolygon] = useState(false);
   const [adjustmentAmount] = useState(1); // 調整量（固定）
-
-  const clampMoveToImageBounds = useCallback((obj) => {
-    const canvas = fabricCanvasRef.current;
-    if (!canvas || !canvas.backgroundImage) return;
-    const bg = canvas.backgroundImage;
-    const bgLeft = bg.left, bgTop = bg.top;
-    const bgRight = bgLeft + bg.getScaledWidth(), bgBottom = bgTop + bg.getScaledHeight();
-    const objWidth = obj.getScaledWidth(), objHeight = obj.getScaledHeight();
-    
-    const clampedLeft = Math.min(Math.max(obj.left, bgLeft), bgRight - objWidth);
-    const clampedTop = Math.min(Math.max(obj.top, bgTop), bgBottom - objHeight);
-    
-    obj.set({ left: clampedLeft, top: clampedTop });
-    obj.setCoords();
-  }, [fabricCanvasRef]);
-
-  const clampScaleToImageBounds = useCallback((obj) => {
-    const canvas = fabricCanvasRef.current;
-    if (!canvas || !canvas.backgroundImage) return;
-    const bg = canvas.backgroundImage;
-    const bgLeft = bg.left, bgTop = bg.top;
-    const bgWidth = bg.getScaledWidth(), bgHeight = bg.getScaledHeight();
-    const bgRight = bgLeft + bgWidth, bgBottom = bgTop + bgHeight;
-
-    if (!obj._orig) {
-      obj._orig = {
-        left: obj.left, top: obj.top, scaleX: obj.scaleX, scaleY: obj.scaleY,
-        width: obj.width, height: obj.height, originX: obj.originX, originY: obj.originY,
-        corner: obj.__corner || canvas._currentTransform.corner
-      };
-    }
-    const orig = obj._orig;
-    const corner = orig.corner;
-
-    let maxScaleX = bgWidth / orig.width;
-    let maxScaleY = bgHeight / orig.height;
-
-    if (corner.includes('b')) maxScaleY = Math.min(maxScaleY, (bgBottom - orig.top) / orig.height);
-    if (corner.includes('t')) maxScaleY = Math.min(maxScaleY, (orig.top + orig.height * orig.scaleY - bgTop) / orig.height);
-    if (corner.includes('r')) maxScaleX = Math.min(maxScaleX, (bgRight - orig.left) / orig.width);
-    if (corner.includes('l')) maxScaleX = Math.min(maxScaleX, (orig.left + orig.width * orig.scaleX - bgLeft) / orig.width);
-
-    const EPS = 1e-8;
-    let clampedScaleX = Math.min(obj.scaleX, maxScaleX);
-    let clampedScaleY = Math.min(obj.scaleY, maxScaleY);
-    if (Math.abs(clampedScaleX - maxScaleX) < EPS) clampedScaleX = maxScaleX;
-    if (Math.abs(clampedScaleY - maxScaleY) < EPS) clampedScaleY = maxScaleY;
-    
-    obj.set({ scaleX: clampedScaleX, scaleY: clampedScaleY });
-    const newWidth = obj.getScaledWidth(), newHeight = obj.getScaledHeight();
-    const ox = (orig.originX === 'center' ? 0.5 : (orig.originX === 'right' ? 1 : 0));
-    const oy = (orig.originY === 'center' ? 0.5 : (orig.originY === 'bottom' ? 1 : 0));
-    const origLeftEdge = orig.left - ox * orig.width * orig.scaleX;
-    const origTopEdge = orig.top - oy * orig.height * orig.scaleY;
-    const origRightEdge = origLeftEdge + orig.width * orig.scaleX;
-    const origBottomEdge = origTopEdge + orig.height * orig.scaleY;
-
-    let newLeftEdge = corner.includes('r') && !corner.includes('l') ? origLeftEdge :
-                      corner.includes('l') && !corner.includes('r') ? origRightEdge - newWidth : origLeftEdge;
-    let newTopEdge = corner.includes('b') && !corner.includes('t') ? origTopEdge :
-                     corner.includes('t') && !corner.includes('b') ? origBottomEdge - newHeight : origTopEdge;
-
-    newLeftEdge = Math.min(Math.max(newLeftEdge, bgLeft), bgRight - newWidth);
-    newTopEdge = Math.min(Math.max(newTopEdge, bgTop), bgBottom - newHeight);
-    
-    obj.set({ left: newLeftEdge + ox * newWidth, top: newTopEdge + oy * newHeight });
-    obj.setCoords();
-  }, [fabricCanvasRef]);
 
   const startCropping = useCallback((mode, initialPolygonPoints = []) => {
     setCroppingMode(mode);
     setDrawingObject(null);
-    setPolygonPoints(initialPolygonPoints);
+    polygonPointsRef.current = initialPolygonPoints;
     setIsDrawingPolygon(mode === 'polygon');
 
     const canvas = fabricCanvasRef.current;
@@ -162,14 +95,14 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
          pt.y = target.top  + target.radius;
          if (pt.lineIn) pt.lineIn.set({ x2: pt.x, y2: pt.y });
          if (pt.lineOut) pt.lineOut.set({ x1: pt.x, y1: pt.y });
-         setPolygonPoints(tempPoints.map(p => ({ x: p.x, y: p.y })));
+         polygonPointsRef.current = tempPoints.map(p => ({ x: p.x, y: p.y }));
          canvas.renderAll();
       } else if (target.isCroppingShape) {
-         clampMoveToImageBounds(target);
+         clampMoveToImageBounds(target, canvas);
       }
     });
 
-    canvas.on('object:scaling', ({ target }) => { if (target && target.isCroppingShape) clampScaleToImageBounds(target); });
+    canvas.on('object:scaling', ({ target }) => { if (target && target.isCroppingShape) clampScaleToImageBounds(target, canvas); });
     canvas.on('object:modified', ({ target }) => { if (target) delete target._orig; });
 
     canvas.on('mouse:down', (options) => {
@@ -202,7 +135,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
         ptObj.circle = circle;
         canvas.add(circle);
         
-        setPolygonPoints(tempPoints.map(p => ({ x: p.x, y: p.y })));
+        polygonPointsRef.current = tempPoints.map(p => ({ x: p.x, y: p.y }));
         return;
       }
 
@@ -244,7 +177,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
 
   const finishPolygonDrawing = useCallback(() => {
     const canvas = fabricCanvasRef.current;
-    if (!canvas || polygonPoints.length < 3) {
+    if (!canvas || polygonPointsRef.current.length < 3) {
       alert('多角形を描くには最低3つの頂点が必要です。');
       return;
     }
@@ -252,7 +185,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     const objects = canvas.getObjects();
     objects.forEach(obj => { if (obj.isDrawingTemp) canvas.remove(obj); });
 
-    const polygon = new Polygon(polygonPoints, {
+    const polygon = new Polygon(polygonPointsRef.current, {
       fill: 'transparent', stroke: 'red', strokeWidth: 1, strokeUniform: true,
       borderColor: 'red', cornerColor: 'green', cornerSize: 10, transparentCorners: false,
       hasControls: true, hasBorders: true, isCroppingShape: true, objectCaching: false
@@ -263,7 +196,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     canvas.setActiveObject(polygon);
     setDrawingObject(polygon);
     setIsDrawingPolygon(false);
-  }, [polygonPoints, fabricCanvasRef]);
+  }, [fabricCanvasRef]);
 
   const editPolygonVertices = useCallback(() => {
     if (!drawingObject || drawingObject.type !== 'polygon') return;
@@ -283,57 +216,48 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     const canvas = fabricCanvasRef.current;
     const amount = adjustmentAmount * direction;
 
-    if (drawingObject.type === 'rect') {
-      let newLeft = drawingObject.left, newTop = drawingObject.top;
-      let newWidth = drawingObject.width, newHeight = drawingObject.height;
+    let scaleX = drawingObject.scaleX || 1;
+    let scaleY = drawingObject.scaleY || 1;
+    let left = drawingObject.left;
+    let top = drawingObject.top;
 
-      switch (side) {
-        case 'top': newTop -= amount; newHeight += amount; break;
-        case 'right': newWidth += amount; break;
-        case 'bottom': newHeight += amount; break;
-        case 'left': newLeft -= amount; newWidth += amount; break;
-        default: return;
-      }
+    // オブジェクトのベースとなる幅と高さを取得（スケール前の純粋なサイズ）
+    const baseW = drawingObject.width || (drawingObject.rx ? drawingObject.rx * 2 : drawingObject.radius * 2);
+    const baseH = drawingObject.height || (drawingObject.ry ? drawingObject.ry * 2 : drawingObject.radius * 2);
 
-      if (newWidth < 10) newWidth = 10;
-      if (newHeight < 10) newHeight = 10;
-      drawingObject.set({ left: newLeft, top: newTop, width: newWidth, height: newHeight });
-    } else if (drawingObject.type === 'circle' || drawingObject.type === 'ellipse') {
-      let currentRx = drawingObject.rx || drawingObject.radius;
-      let currentRy = drawingObject.ry || drawingObject.radius;
-      let currentLeft = drawingObject.left, currentTop = drawingObject.top;
-      const currentScaleX = drawingObject.scaleX || 1, currentScaleY = drawingObject.scaleY || 1;
-      const adjustedAmountX = amount / currentScaleX, adjustedAmountY = amount / currentScaleY;
+    if (!baseW || !baseH) return;
 
-      switch (side) {
-        case 'top': currentRy += adjustedAmountY / 2; currentTop -= drawingObject.type === 'circle' ? adjustedAmountY : amount; break;
-        case 'right': currentRx += adjustedAmountX / 2; break;
-        case 'bottom': currentRy += adjustedAmountY / 2; break;
-        case 'left': currentRx += adjustedAmountX / 2; currentLeft -= drawingObject.type === 'circle' ? adjustedAmountX : amount; break;
-        default: return;
-      }
+    // amountピクセル変化させるために必要なスケールの変化量
+    const deltaScaleX = amount / baseW;
+    const deltaScaleY = amount / baseH;
 
-      currentRx = Math.max(currentRx, 5 / currentScaleX);
-      currentRy = Math.max(currentRy, 5 / currentScaleY);
-
-      if (drawingObject.type === 'circle') {
-        canvas.getObjects().forEach(obj => canvas.remove(obj));
-        const newEllipse = new Ellipse({
-          left: currentLeft, top: currentTop, rx: currentRx, ry: currentRy,
-          fill: 'transparent', stroke: 'red', strokeWidth: 1, strokeUniform: true,
-          borderColor: 'red', cornerColor: 'green', cornerSize: 10, transparentCorners: false,
-          hasControls: true, hasBorders: true, isCroppingShape: true,
-          scaleX: currentScaleX, scaleY: currentScaleY,
-        });
-        newEllipse.setControlsVisibility({ mtr: false });
-        canvas.add(newEllipse);
-        setDrawingObject(newEllipse);
-        canvas.setActiveObject(newEllipse);
-      } else {
-        drawingObject.set({ left: currentLeft, top: currentTop, rx: currentRx, ry: currentRy });
-      }
+    switch (side) {
+      case 'top': 
+        top -= amount; 
+        scaleY += deltaScaleY; 
+        break;
+      case 'bottom': 
+        scaleY += deltaScaleY; 
+        break;
+      case 'left': 
+        left -= amount; 
+        scaleX += deltaScaleX; 
+        break;
+      case 'right': 
+        scaleX += deltaScaleX; 
+        break;
+      default: return;
     }
-    drawingObject.setCoords();
+
+    // 新しいスケールが極端に小さくならないようにする（例: 最小サイズ10pxを維持）
+    if (baseW * scaleX < 10) scaleX = 10 / baseW;
+    if (baseH * scaleY < 10) scaleY = 10 / baseH;
+
+    drawingObject.set({ left, top, scaleX, scaleY });
+    
+    // setActiveObjectやsetの後にCoordsを更新させる
+    const activeObj = canvas.getActiveObject() || drawingObject;
+    if (activeObj) activeObj.setCoords();
     canvas.renderAll();
   }, [drawingObject, adjustmentAmount, fabricCanvasRef]);
 
@@ -350,12 +274,12 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     setCroppedImageUrl(null);
     setCroppingMode(null);
     setDrawingObject(null);
-    setPolygonPoints([]);
+    polygonPointsRef.current = [];
     setIsDrawingPolygon(false);
   }, [fabricCanvasRef, setCroppedImageUrl]);
 
   return {
-    croppingMode, drawingObject, polygonPoints, isDrawingPolygon,
+    croppingMode, drawingObject, isDrawingPolygon,
     startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, reset
   };
 }
