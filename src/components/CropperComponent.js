@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Canvas, FabricImage, Rect, Circle, Ellipse } from 'fabric';
+import { Canvas, FabricImage, Rect, Circle, Ellipse, Polygon, Line, util, Point } from 'fabric';
 import { setupSync, restoreImages } from '../syncService';
 
 export default function CropperComponent() {
@@ -10,6 +10,8 @@ export default function CropperComponent() {
   const [croppedImageUrl, setCroppedImageUrl] = useState(null);
   const [drawingObject, setDrawingObject] = useState(null); // 現在描画中のトリミングオブジェクト
   const [adjustmentAmount, setAdjustmentAmount] = useState(1); // 調整量（デフォルト1px）
+  const [polygonPoints, setPolygonPoints] = useState([]); // 多角形の頂点
+  const [isDrawingPolygon, setIsDrawingPolygon] = useState(false); // 多角形描画中フラグ
   // 同期用の Socket.IO インスタンス
   const socketRef = useRef(null);
   const emitSyncRef = useRef(null);
@@ -234,9 +236,11 @@ export default function CropperComponent() {
   };
 
   // トリミングモードの選択
-  const startCropping = useCallback((mode) => {
+  const startCropping = useCallback((mode, initialPolygonPoints = []) => {
     setCroppingMode(mode);
     setDrawingObject(null); // 前の描画オブジェクトをクリア
+    setPolygonPoints(initialPolygonPoints);
+    setIsDrawingPolygon(mode === 'polygon');
 
     const canvas = fabricCanvasRef.current;
     if (!canvas) return; // Canvasがnullやundefined(未初期化)だったらreturn
@@ -247,40 +251,127 @@ export default function CropperComponent() {
     canvas.off('mouse:down');
     canvas.off('mouse:move');
     canvas.off('mouse:up');
+    canvas.off('object:moving');
+    canvas.off('object:scaling');
+    canvas.off('object:modified');
 
     let startPoint;
     let currentShape;
+    let tempPoints = [];
+
+    // ポリゴン初期ポイントが渡された場合（再編集時など）の復元
+    if (mode === 'polygon' && initialPolygonPoints.length > 0) {
+       initialPolygonPoints.forEach((p, index) => {
+          const ptObj = { x: p.x, y: p.y };
+          tempPoints.push(ptObj);
+          
+          if (index > 0) {
+             const prev = tempPoints[index - 1];
+             const line = new Line([prev.x, prev.y, p.x, p.y], {
+                 stroke: 'red', strokeWidth: 2, selectable: false, evented: false, isDrawingTemp: true
+             });
+             prev.lineOut = line;
+             ptObj.lineIn = line;
+             canvas.add(line);
+          }
+          
+          const circle = new Circle({
+              radius: 5, fill: 'red', left: p.x - 5, top: p.y - 5,
+              selectable: true, evented: true, hasControls: false, hasBorders: false, hoverCursor: 'pointer',
+              isDrawingTemp: true, isDrawingTempCircle: true, pointIndex: index
+          });
+          ptObj.circle = circle;
+          canvas.add(circle);
+       });
+    }
+
+    // オブジェクトの全体イベントリスナー
+    canvas.on('object:moving', (e) => {
+      const target = e.target;
+      if (!target) return;
+      if (target.isDrawingTempCircle) {
+         const idx = target.pointIndex;
+         const pt = tempPoints[idx];
+         if (!pt) return;
+         
+         pt.x = target.left + target.radius;
+         pt.y = target.top  + target.radius;
+         
+         if (pt.lineIn) pt.lineIn.set({ x2: pt.x, y2: pt.y });
+         if (pt.lineOut) pt.lineOut.set({ x1: pt.x, y1: pt.y });
+         
+         setPolygonPoints(tempPoints.map(p => ({ x: p.x, y: p.y })));
+         canvas.renderAll();
+      } else if (target.isCroppingShape) {
+         clampMoveToImageBounds(target);
+      }
+    });
+
+    canvas.on('object:scaling', ({ target }) => { if (target && target.isCroppingShape) clampScaleToImageBounds(target); });
+    canvas.on('object:modified', ({ target }) => { if (target) delete target._orig; });
 
     canvas.on('mouse:down', (options) => {
-      if (!imageLoaded || drawingObject) return; // 画像が読み込まれていない、またはすでに描画中の場合は何もしない
-      if (canvas.getObjects().some(o => o.isCroppingShape)) return; // 既にトリミング枠があるなら新しく作らない
-      startPoint = canvas.getPointer(options.e);
+      if (!imageLoaded) return;
+      
+      const hasCroppingShape = canvas.getObjects().some(o => o.isCroppingShape);
+      if (hasCroppingShape) return; // 既にトリミング枠完成状態なら新しく描画しない
 
-      currentShape = mode == 'rect' ? new Rect({ width: 0, height: 0 }) : new Circle({ radius: 0 });
+      const pointer = canvas.getPointer(options.e);
+
+      if (mode === 'polygon') {
+        const target = options.target;
+        // マーカーをクリックした場合は新しく点を追加しない (ドラッグのための操作を優先)
+        if (target && target.isDrawingTempCircle) return;
+
+        const ptObj = { x: pointer.x, y: pointer.y };
+        tempPoints.push(ptObj);
+        const index = tempPoints.length - 1;
+        
+        if (index > 0) {
+            const prevPoint = tempPoints[index - 1];
+            const line = new Line([prevPoint.x, prevPoint.y, ptObj.x, ptObj.y], {
+                stroke: 'red', strokeWidth: 2, selectable: false, evented: false, isDrawingTemp: true
+            });
+            prevPoint.lineOut = line;
+            ptObj.lineIn = line;
+            canvas.add(line);
+        }
+
+        const circle = new Circle({
+            radius: 5, fill: 'red', left: pointer.x - 5, top: pointer.y - 5,
+            selectable: true, evented: true, hasControls: false, hasBorders: false, hoverCursor: 'pointer',
+            isDrawingTemp: true, isDrawingTempCircle: true, pointIndex: index
+        });
+        ptObj.circle = circle;
+        canvas.add(circle);
+        
+        setPolygonPoints(tempPoints.map(p => ({ x: p.x, y: p.y })));
+        return;
+      }
+
+      startPoint = pointer;
+
+      currentShape = mode === 'rect' ? new Rect({ width: 0, height: 0 }) : new Circle({ radius: 0 });
       currentShape.left = startPoint.x;
       currentShape.top = startPoint.y;
-      currentShape.fill = 'transparent'; // 半透明のオーバーレイ
+      currentShape.fill = 'transparent';
       currentShape.stroke = 'red';
       currentShape.strokeWidth = 1;
       currentShape.strokeUniform = true;
       currentShape.borderColor = 'red';
-      currentShape.cornerColor = 'green'; // つまみの部分
+      currentShape.cornerColor = 'green';
       currentShape.cornerSize = 10;
       currentShape.transparentCorners = false;
       currentShape.hasControls = true;
       currentShape.hasBorders = true;
-      currentShape.isCroppingShape = true; // トリミング形状であることを示すカスタムプロパティ
+      currentShape.isCroppingShape = true;
       currentShape.setControlsVisibility({ mtr: false });
       canvas.add(currentShape);
-      // トリミング枠移動・リサイズ時に背景画像外に出ないよう制限
-      canvas.on('object:moving', ({ target }) => clampMoveToImageBounds(target));
-      canvas.on('object:scaling', ({ target }) => clampScaleToImageBounds(target));
-      canvas.on('object:modified', ({ target }) => delete target._orig);
       setDrawingObject(currentShape);
     });
 
     canvas.on('mouse:move', (options) => {
-      if (!currentShape) return;
+      if (!currentShape || mode === 'polygon') return;
       const pointer = canvas.getPointer(options.e);
 
       if (mode === 'rect') {
@@ -302,13 +393,71 @@ export default function CropperComponent() {
     });
 
     canvas.on('mouse:up', () => {
-      if (currentShape) {
-        currentShape.setCoords(); // リサイズハンドルの位置を更新
+      if (currentShape && mode !== 'polygon') {
+        currentShape.setCoords();
         setDrawingObject(currentShape);
         currentShape = null;
       }
     });
-  }, [imageLoaded]); // imageLoaded を依存配列に追加
+  }, [imageLoaded]);
+
+  const finishPolygonDrawing = useCallback(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas || polygonPoints.length < 3) {
+      alert('多角形を描くには最低3つの頂点が必要です。');
+      return;
+    }
+
+    // キャンバス上の不要な仮線や点を削除
+    const objects = canvas.getObjects();
+    objects.forEach(obj => {
+      if (obj.isDrawingTemp) {
+        canvas.remove(obj);
+      }
+    });
+
+    const polygon = new Polygon(polygonPoints, {
+      fill: 'transparent',
+      stroke: 'red',
+      strokeWidth: 1,
+      strokeUniform: true,
+      borderColor: 'red',
+      cornerColor: 'green',
+      cornerSize: 10,
+      transparentCorners: false,
+      hasControls: true,
+      hasBorders: true,
+      isCroppingShape: true,
+      objectCaching: false // ポリゴンはキャッシュ無効にする方が拡縮時に安全
+    });
+    
+    polygon.setControlsVisibility({ mtr: false });
+
+    canvas.add(polygon);
+    canvas.setActiveObject(polygon);
+    setDrawingObject(polygon);
+    setIsDrawingPolygon(false); // 描画モード終了
+  }, [polygonPoints]);
+
+  const editPolygonVertices = useCallback(() => {
+    if (!drawingObject || drawingObject.type !== 'polygon') return;
+    
+    const canvas = fabricCanvasRef.current;
+    const matrix = drawingObject.calcTransformMatrix();
+    
+    // 現在の表示上の絶対座標を計算
+    const absolutePoints = drawingObject.points.map(p => {
+        const pathOffsetX = drawingObject.pathOffset ? drawingObject.pathOffset.x : 0;
+        const pathOffsetY = drawingObject.pathOffset ? drawingObject.pathOffset.y : 0;
+        
+        const localPoint = new Point(p.x - pathOffsetX, p.y - pathOffsetY);
+        const absPoint = util.transformPoint(localPoint, matrix);
+        return { x: absPoint.x, y: absPoint.y };
+    });
+
+    // 既存のポリゴンを削除して、再編集モードとして開始
+    startCropping('polygon', absolutePoints);
+  }, [drawingObject, startCropping]);
 
   // ↓↓↓ 追加箇所: トリミング枠を調整する関数 ↓↓↓
   const adjustCroppingShape = useCallback((side, direction) => {
@@ -524,6 +673,20 @@ export default function CropperComponent() {
           absolutePositioned: true,
         });
       }
+    } else if (croppingMode === 'polygon') {
+      const matrix = drawingObject.calcTransformMatrix();
+      const pointsInOriginalSpace = drawingObject.points.map(p => {
+        const pathOffsetX = drawingObject.pathOffset ? drawingObject.pathOffset.x : 0;
+        const pathOffsetY = drawingObject.pathOffset ? drawingObject.pathOffset.y : 0;
+        
+        const localPoint = new Point(p.x - pathOffsetX, p.y - pathOffsetY);
+        const absolutePoint = util.transformPoint(localPoint, matrix);
+        
+        const origX = (absolutePoint.x - imageDisplayLeft) * scaleFactorX;
+        const origY = (absolutePoint.y - imageDisplayTop) * scaleFactorY;
+        return { x: origX, y: origY };
+      });
+      clipPathObject = new Polygon(pointsInOriginalSpace, { absolutePositioned: true });
     }
 
     fullResImage.clipPath = clipPathObject;
@@ -565,6 +728,8 @@ export default function CropperComponent() {
     setCroppedImageUrl(null);
     setCroppingMode(null);
     setDrawingObject(null);
+    setPolygonPoints([]);
+    setIsDrawingPolygon(false);
   }, []);
 
   return (
@@ -578,23 +743,35 @@ export default function CropperComponent() {
       <div className="button-group">
         <button onClick={() => startCropping('rect')} className="btn">四角形</button>
         <button onClick={() => startCropping('circle')} className="btn">円</button>
+        <button onClick={() => startCropping('polygon')} className="btn">多角形</button>
+        
+        {isDrawingPolygon && !drawingObject && (
+          <button onClick={finishPolygonDrawing} className="btn btn--warning">描画完了</button>
+        )}
+        
+        {drawingObject && croppingMode === 'polygon' && (
+          <button onClick={editPolygonVertices} className="btn btn--warning">頂点を再編集</button>
+        )}
+        
         <button onClick={crop} className="btn btn--success" disabled={!drawingObject}>トリミング実行</button>
         <button onClick={reset} className="btn btn--danger">リセット</button>
       </div>
 
-      {/* トリミング枠調整ボタン */}
-      <div className="adjustment-controls">
-        <h3>トリミング枠の調整</h3>
-        <div className="adjustment-group">
-          {['top', 'left', 'right', 'bottom'].map((side) => (
-            <div key={side} className="adjustment-box">
-              <h4>{{ 'top': '上辺', 'left': '左辺', 'right': '右辺', 'bottom': '下辺' }[side]}</h4>
-              <button onClick={() => adjustCroppingShape(side, -0.5)} className="btn">-</button>
-              <button onClick={() => adjustCroppingShape(side, 0.5)} className="btn">+</button>
-            </div>
-          ))}
+      {/* トリミング枠調整ボタン (ポリゴン以外で表示) */}
+      {croppingMode !== 'polygon' && (
+        <div className="adjustment-controls">
+          <h3>トリミング枠の調整</h3>
+          <div className="adjustment-group">
+            {['top', 'left', 'right', 'bottom'].map((side) => (
+              <div key={side} className="adjustment-box">
+                <h4>{{ 'top': '上辺', 'left': '左辺', 'right': '右辺', 'bottom': '下辺' }[side]}</h4>
+                <button onClick={() => adjustCroppingShape(side, -0.5)} className="btn">-</button>
+                <button onClick={() => adjustCroppingShape(side, 0.5)} className="btn">+</button>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Canvas */}
       <div className="canvas-wrapper" style={{ height: isMobile ? '600px' : '800px' }}>
