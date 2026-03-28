@@ -4,17 +4,17 @@ import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSe
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
 import { SortableContext, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { PDFDocument } from 'pdf-lib';
-import { saveAs } from 'file-saver';
 import { compressImage } from '../utils';
+import { usePdfGenerator } from '../hooks/usePdfGenerator';
 
 export default function PdfComponent() {
   const [images, setImages] = useState([]);
   const [selectedImages, setSelectedImages] = useState(new Set());
   const [activeId, setActiveId] = useState(null); // ドラッグ中のアイテムIDを管理
-  const [isProcessing, setIsProcessing] = useState(false); // PDF生成中
   const [isUploading, setIsUploading] = useState(false); // 画像アップロード中
-  const [progress, setProgress] = useState(0); // 進捗
+  const [uploadProgress, setUploadProgress] = useState(0); // アップロード進捗
+
+  const { generatePdf, isProcessing, progress: pdfProgress } = usePdfGenerator();
   // モバイル判定を navigator.userAgent とメディアクエリで判定
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
   const socketRef = useRef(null);
@@ -52,8 +52,8 @@ export default function PdfComponent() {
         dataUrl,
       })).finally(() => {
         completed++;
-        // 完了ファイル数 ÷ 総ファイル数 で％を算出
-        setProgress(Math.round((completed / totalFiles) * 100));
+        const progressValue = Math.round((completed / totalFiles) * 100); // 一時的な進捗
+        setUploadProgress(progressValue);
       })
     );
 
@@ -62,7 +62,7 @@ export default function PdfComponent() {
     setImages(updated);
     //emitListRef.current?.(updated);
     setIsUploading(false);
-    setProgress(0); // 完了後に進捗をリセット
+    setUploadProgress(0); // 完了後に進捗をリセット
   };
 
   // ドラッグ開始時の処理
@@ -118,54 +118,11 @@ export default function PdfComponent() {
     setSelectedImages(new Set());
   };
 
-  const generatePdf = async () => {
-    setIsProcessing(true);
-    const pdfDoc = await PDFDocument.create();
-    const desiredWidth = 595.28; // A4幅 (約210mm) のPDFポイント
-    const totalImages = images.length;
-    let embeddedCount = 0;
-
-    for (const imageItem of images) {
-      try {
-        const imageBytes = await fetch(imageItem.dataUrl).then(res => res.arrayBuffer());
-        const image = await pdfDoc.embedJpg(imageBytes);
-
-        const originalWidth = image.width;
-        const originalHeight = image.height;
-        const scaleFactor = desiredWidth / originalWidth;
-        const scaledHeight = originalHeight * scaleFactor;
-
-        // 各画像に対して新しいページを追加し、画像を埋め込む
-        const page = pdfDoc.addPage([desiredWidth, scaledHeight]); // 画像の高さに合わせてページを追加
-        page.drawImage(image, {
-          x: 0,
-          y: 0,
-          width: desiredWidth,
-          height: scaledHeight,
-        });
-
-        embeddedCount++;
-        setProgress(Math.round((embeddedCount / totalImages) * 100)); // 進捗を更新
-
-        // 小分け処理（プログレスバーの更新を滑らかにするため）
-        if (embeddedCount % 3 === 0 || embeddedCount === totalImages) // 例: 3枚ごとに、または最後にレンダリング機会を与える
-          await new Promise(resolve => setTimeout(resolve, 0));
-
-      } catch (error) {
-        console.error(`Error embedding image ${imageItem.name}:`, error);
-        embeddedCount++; // エラーが発生してもカウントを進める
-        setProgress(Math.round((embeddedCount / totalImages) * 100));
-        // 小分け処理（エラー時にもレンダリング機会を与える）
-        await new Promise(resolve => setTimeout(resolve, 0));
-      }
-    }
-
-    const pdfBytes = await pdfDoc.save();
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    saveAs(blob, 'images.pdf');
-    setIsProcessing(false);
-    setProgress(0); // 完了後に進捗をリセット
+  const handleGeneratePdf = () => {
+    generatePdf(images);
   };
+
+  const currentProgress = isUploading ? uploadProgress : pdfProgress;
 
   return (
     <div className="editor-container">
@@ -175,9 +132,9 @@ export default function PdfComponent() {
           <div className="loading-content">
             <p>{isUploading ? '画像をアップロード中...' : 'PDFを生成中...'}</p>
             <div className="progress-bar-container">
-              <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+              <div className="progress-bar" style={{ width: `${currentProgress}%` }}></div>
             </div>
-            <p>{progress}%</p>
+            <p>{currentProgress}%</p>
           </div>
         </div>
       )}
@@ -200,8 +157,8 @@ export default function PdfComponent() {
         <button onClick={resetImages} disabled={images.length === 0 || isProcessing || isUploading} className="btn">
           リセット
         </button>
-        <button onClick={generatePdf} disabled={images.length === 0 || isProcessing || isUploading} className="btn btn--success">
-          {isProcessing ? `PDF生成中... (${progress}%)` : 'PDFを生成'}
+        <button onClick={handleGeneratePdf} disabled={images.length === 0 || isProcessing || isUploading} className="btn btn--success">
+          {isProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
         </button>
       </div>
 

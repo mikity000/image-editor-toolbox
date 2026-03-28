@@ -1,749 +1,91 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
-import { Canvas, FabricImage, Rect, Circle, Ellipse, Polygon, Line, util, Point } from 'fabric';
-import { setupSync, restoreImages } from '../syncService';
+import { useRef, useEffect, useState } from 'react';
+import { Canvas, Image as FabricImage } from 'fabric';
+import { useCropperInteraction } from '../hooks/useCropperInteraction';
+import { useImageCrop } from '../hooks/useImageCrop';
 
 export default function CropperComponent() {
   const canvasRef = useRef(null);
   const fabricCanvasRef = useRef(null);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [croppingMode, setCroppingMode] = useState(null); // 'rect', 'circle'
   const [croppedImageUrl, setCroppedImageUrl] = useState(null);
-  const [drawingObject, setDrawingObject] = useState(null); // 現在描画中のトリミングオブジェクト
-  const [adjustmentAmount, setAdjustmentAmount] = useState(1); // 調整量（デフォルト1px）
-  const [polygonPoints, setPolygonPoints] = useState([]); // 多角形の頂点
-  const [isDrawingPolygon, setIsDrawingPolygon] = useState(false); // 多角形描画中フラグ
-  // 同期用の Socket.IO インスタンス
-  const socketRef = useRef(null);
-  const emitSyncRef = useRef(null);
-  // モバイル判定を navigator.userAgent とメディアクエリで判定
+  const [pathSmoothing, setPathSmoothing] = useState(100);
+  
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
 
-  // 移動時のクランプ（単純）
-  const clampMoveToImageBounds = (obj) => {
-    const canvas = fabricCanvasRef.current;
-    const bg = canvas.backgroundImage;
+  const {
+    croppingMode, drawingObject, isDrawingPolygon,
+    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, reset
+  } = useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedImageUrl, pathSmoothing);
 
-    // 背景画像の表示領域
-    const bgLeft = bg.left;
-    const bgTop = bg.top;
-    const bgWidth = bg.getScaledWidth();
-    const bgHeight = bg.getScaledHeight();
-    const bgRight = bgLeft + bgWidth;
-    const bgBottom = bgTop + bgHeight;
-
-    const objWidth = obj.getScaledWidth();
-    const objHeight = obj.getScaledHeight();
-
-    // ——— 位置のクランプ ———
-    const minLeft = bgLeft;
-    const maxLeft = bgRight - objWidth;
-    const minTop = bgTop;
-    const maxTop = bgBottom - objHeight;
-    // left/top を制限
-    const clampedLeft = Math.min(Math.max(obj.left, minLeft), maxLeft);
-    const clampedTop = Math.min(Math.max(obj.top, minTop), maxTop);
-
-    obj.set({ left: clampedLeft, top: clampedTop });
-    obj.setCoords();
-  };
-
-  // 拡大時のクランプ（origin を考慮して反対辺を固定する）
-  const clampScaleToImageBounds = (obj) => {
-    const canvas = fabricCanvasRef.current;
-    const bg = canvas.backgroundImage;
-
-    // 背景画像の表示領域
-    const bgLeft = bg.left;
-    const bgTop = bg.top;
-    const bgWidth = bg.getScaledWidth();
-    const bgHeight = bg.getScaledHeight();
-    const bgRight = bgLeft + bgWidth;
-    const bgBottom = bgTop + bgHeight;
-
-    // 拡大開始時の情報を保存
-    if (!obj._orig) {
-      obj._orig = {
-        left: obj.left,
-        top: obj.top,
-        scaleX: obj.scaleX,
-        scaleY: obj.scaleY,
-        width: obj.width,
-        height: obj.height,
-        originX: obj.originX,
-        originY: obj.originY,
-        corner: obj.__corner || canvas._currentTransform.corner
-      };
-    }
-    const orig = obj._orig;
-    const corner = orig.corner;
-
-    // 全体的な最大スケール（背景内に収める絶対上限）
-    let maxScaleX = bgWidth / orig.width;
-    let maxScaleY = bgHeight / orig.height;
-
-    // どの辺を動かしているかに応じた更なる上限（反対辺を固定するため）
-    if (corner.includes('b')) {
-      const maxY_when_bottom = (bgBottom - orig.top) / orig.height;
-      maxScaleY = Math.min(maxScaleY, maxY_when_bottom);
-    }
-    if (corner.includes('t')) {
-      const origBottom = orig.top + orig.height * orig.scaleY;
-      const maxY_when_top = (origBottom - bgTop) / orig.height;
-      maxScaleY = Math.min(maxScaleY, maxY_when_top);
-    }
-    if (corner.includes('r')) {
-      const maxX_when_right = (bgRight - orig.left) / orig.width;
-      maxScaleX = Math.min(maxScaleX, maxX_when_right);
-    }
-    if (corner.includes('l')) {
-      const origRight = orig.left + orig.width * orig.scaleX;
-      const maxX_when_left = (origRight - bgLeft) / orig.width;
-      maxScaleX = Math.min(maxScaleX, maxX_when_left);
-    }
-
-    // スケールをクランプ（丸め誤差対策付き）し、origin を考慮して反対辺を厳密に固定
-    const EPS = 1e-8;
-    let clampedScaleX = Math.min(obj.scaleX, maxScaleX);
-    let clampedScaleY = Math.min(obj.scaleY, maxScaleY);
-    if (Math.abs(clampedScaleX - maxScaleX) < EPS) clampedScaleX = maxScaleX;
-    if (Math.abs(clampedScaleY - maxScaleY) < EPS) clampedScaleY = maxScaleY;
-    obj.set({ scaleX: clampedScaleX, scaleY: clampedScaleY });
-    const newWidth = obj.getScaledWidth();
-    const newHeight = obj.getScaledHeight();
-    // origin の係数（left=0 center=0.5 right=1）
-    const ox = (orig.originX === 'center' ? 0.5 : (orig.originX === 'right' ? 1 : 0));
-    const oy = (orig.originY === 'center' ? 0.5 : (orig.originY === 'bottom' ? 1 : 0));
-    // 開始時の実際の辺位置（絶対座標）
-    const startScaledW = orig.width * orig.scaleX;
-    const startScaledH = orig.height * orig.scaleY;
-    const origLeftEdge = orig.left - ox * startScaledW;
-    const origTopEdge = orig.top - oy * startScaledH;
-    const origRightEdge = origLeftEdge + startScaledW;
-    const origBottomEdge = origTopEdge + startScaledH;
-    // 新しい左上の絶対位置（固定したい辺に応じて決める）
-    let newLeftEdge = origLeftEdge;
-    let newTopEdge = origTopEdge;
-                  // 右を動かす -> 左は origLeftEdge に固定
-    newLeftEdge = corner.includes('r') && !corner.includes('l') ? origLeftEdge :
-                  // 左を動かす -> 右を固定 -> newLeft = origRight - newWidth
-                  corner.includes('l') && !corner.includes('r') ? origRightEdge - newWidth :
-                  // コーナー両方や中央スケール等: 保守的に現在の中心比を維持（ここは必要なら更に調整）
-                  origLeftEdge;
-                  // 下を動かす -> 上は origTopEdge に固定
-    newTopEdge = corner.includes('b') && !corner.includes('t') ? origTopEdge :
-                  // 上を動かす -> 下を固定 -> newTop = origBottom - newHeight
-                  corner.includes('t') && !corner.includes('b') ? origBottomEdge - newHeight :
-                  // コーナー両方や中央スケール等: 保守的に現在の中心比を維持（ここは必要なら更に調整）
-                  origTopEdge;
-
-    // --- 置換: 最終安全クランプ（辺単位で厳密にクランプ） ---
-    // newLeftEdge / newTopEdge は上で決めた「左上の絶対座標（辺単位）」です
-    const minLeftEdge = bgLeft;
-    const maxLeftEdge = bgRight - newWidth;
-    const minTopEdge = bgTop;
-    const maxTopEdge = bgBottom - newHeight;
-    // 辺を直接クランプ（これで最終補正が left/top をズラすことを防ぐ）
-    newLeftEdge = Math.min(Math.max(newLeftEdge, minLeftEdge), maxLeftEdge);
-    newTopEdge = Math.min(Math.max(newTopEdge, minTopEdge), maxTopEdge);
-    // origin を考慮して最終的な left/top を再計算してセット
-    const finalLeft = newLeftEdge + ox * newWidth;
-    const finalTop = newTopEdge + oy * newHeight;
-    obj.set({ left: finalLeft, top: finalTop });
-    obj.setCoords();
-  };
-
+  const { crop } = useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCroppedImageUrl);
 
   useEffect(() => {
     if (!canvasRef.current) return;
-
     const wrapperEl = canvasRef.current.parentElement;
     const canvas = new Canvas(canvasRef.current, {
-      selection: false, // オブジェクトの選択を無効にする
+      selection: false,
       hoverCursor: 'default',
       width: wrapperEl.clientWidth,
       height: wrapperEl.clientHeight,
     });
     fabricCanvasRef.current = canvas;
 
-    // 汎用同期サービスをセットアップ
-    // const { socket, emitSync } = setupSync(canvas, {
-    //   url: 'http://192.000.0.0:3000',
-    //   onReceive: states => restoreImages(canvas, states).then(() => setImageLoaded(true)),
-    //   autoSync: false,    // 同期先でトリミング枠を消さないため自動同期をオフ
-    // });
-    // socketRef.current = socket;
-    // emitSyncRef.current = emitSync;
-
-    // イベントリスナーのクリーンアップ
     return () => {
-      //socket.disconnect();
       canvas.dispose();
     };
   }, []);
 
-  // 画像ファイルの読み込み
   const uploadImage = (e) => {
     const file = e.target.files[0];
+    if (!file) return;
     const reader = new FileReader();
 
     reader.onload = (event) => {
       const dataURL = event.target.result;
       const canvas = fabricCanvasRef.current;
-
-      // 既存オブジェクトをクリア
       canvas.clear();
       setCroppedImageUrl(null);
 
-      // HTMLImage を作って読み込む
       const imgEl = new Image();
       imgEl.crossOrigin = 'anonymous';
       imgEl.src = dataURL;
       imgEl.onload = () => {
-        // Fabric 側のキャンバスサイズ
         const canvasW = canvas.getWidth();
         const canvasH = canvas.getHeight();
         const scaleX = canvasW / imgEl.width;
         const scaleY = canvasH / imgEl.height;
-        const scale = Math.min(scaleX, scaleY); // 縦横比を維持しつつ、両方が収まる最小スケール
+        const scale = Math.min(scaleX, scaleY);
 
-        // スケール後の画像の実際の幅と高さを計算
         const scaledWidth = imgEl.width * scale;
         const scaledHeight = imgEl.height * scale;
-
-        // Canvasの中央に配置するためのleftとtopを計算
         const left = (canvasW - scaledWidth) / 2;
         const top = (canvasH - scaledHeight) / 2;
 
-        // FabricImage インスタンス化
         const fabricImg = new FabricImage(imgEl, {
-          left: left, // 計算したleftを設定
-          top: top, // 計算したtopを設定
-          scaleX: scale, // 計算したスケールを設定
-          scaleY: scale, // 計算したスケールを設定
-          selectable: false,
-          evented: false,
+          left: left, top: top, scaleX: scale, scaleY: scale,
+          selectable: false, evented: false,
         });
 
         fabricImg.origSrc = dataURL;
         canvas.backgroundImage = fabricImg;
         canvas.renderAll();
         setImageLoaded(true);
-        //emitSyncRef.current?.({ includeBackground: true, includeImages: false });
       };
     };
-
     reader.readAsDataURL(file);
   };
 
-  // トリミングモードの選択
-  const startCropping = useCallback((mode, initialPolygonPoints = []) => {
-    setCroppingMode(mode);
-    setDrawingObject(null); // 前の描画オブジェクトをクリア
-    setPolygonPoints(initialPolygonPoints);
-    setIsDrawingPolygon(mode === 'polygon');
-
-    const canvas = fabricCanvasRef.current;
-    if (!canvas) return; // Canvasがnullやundefined(未初期化)だったらreturn
-
-    // 既存のトリミング枠があれば削除
-    canvas.getObjects().forEach(obj => canvas.remove(obj));
-
-    canvas.off('mouse:down');
-    canvas.off('mouse:move');
-    canvas.off('mouse:up');
-    canvas.off('object:moving');
-    canvas.off('object:scaling');
-    canvas.off('object:modified');
-
-    let startPoint;
-    let currentShape;
-    let tempPoints = [];
-
-    // ポリゴン初期ポイントが渡された場合（再編集時など）の復元
-    if (mode === 'polygon' && initialPolygonPoints.length > 0) {
-       initialPolygonPoints.forEach((p, index) => {
-          const ptObj = { x: p.x, y: p.y };
-          tempPoints.push(ptObj);
-          
-          if (index > 0) {
-             const prev = tempPoints[index - 1];
-             const line = new Line([prev.x, prev.y, p.x, p.y], {
-                 stroke: 'red', strokeWidth: 2, selectable: false, evented: false, isDrawingTemp: true
-             });
-             prev.lineOut = line;
-             ptObj.lineIn = line;
-             canvas.add(line);
-          }
-          
-          const circle = new Circle({
-              radius: 5, fill: 'red', left: p.x - 5, top: p.y - 5,
-              selectable: true, evented: true, hasControls: false, hasBorders: false, hoverCursor: 'pointer',
-              isDrawingTemp: true, isDrawingTempCircle: true, pointIndex: index
-          });
-          ptObj.circle = circle;
-          canvas.add(circle);
-       });
-    }
-
-    // オブジェクトの全体イベントリスナー
-    canvas.on('object:moving', (e) => {
-      const target = e.target;
-      if (!target) return;
-      if (target.isDrawingTempCircle) {
-         const idx = target.pointIndex;
-         const pt = tempPoints[idx];
-         if (!pt) return;
-         
-         pt.x = target.left + target.radius;
-         pt.y = target.top  + target.radius;
-         
-         if (pt.lineIn) pt.lineIn.set({ x2: pt.x, y2: pt.y });
-         if (pt.lineOut) pt.lineOut.set({ x1: pt.x, y1: pt.y });
-         
-         setPolygonPoints(tempPoints.map(p => ({ x: p.x, y: p.y })));
-         canvas.renderAll();
-      } else if (target.isCroppingShape) {
-         clampMoveToImageBounds(target);
-      }
-    });
-
-    canvas.on('object:scaling', ({ target }) => { if (target && target.isCroppingShape) clampScaleToImageBounds(target); });
-    canvas.on('object:modified', ({ target }) => { if (target) delete target._orig; });
-
-    canvas.on('mouse:down', (options) => {
-      if (!imageLoaded) return;
-      
-      const hasCroppingShape = canvas.getObjects().some(o => o.isCroppingShape);
-      if (hasCroppingShape) return; // 既にトリミング枠完成状態なら新しく描画しない
-
-      const pointer = canvas.getPointer(options.e);
-
-      if (mode === 'polygon') {
-        const target = options.target;
-        // マーカーをクリックした場合は新しく点を追加しない (ドラッグのための操作を優先)
-        if (target && target.isDrawingTempCircle) return;
-
-        const ptObj = { x: pointer.x, y: pointer.y };
-        tempPoints.push(ptObj);
-        const index = tempPoints.length - 1;
-        
-        if (index > 0) {
-            const prevPoint = tempPoints[index - 1];
-            const line = new Line([prevPoint.x, prevPoint.y, ptObj.x, ptObj.y], {
-                stroke: 'red', strokeWidth: 2, selectable: false, evented: false, isDrawingTemp: true
-            });
-            prevPoint.lineOut = line;
-            ptObj.lineIn = line;
-            canvas.add(line);
-        }
-
-        const circle = new Circle({
-            radius: 5, fill: 'red', left: pointer.x - 5, top: pointer.y - 5,
-            selectable: true, evented: true, hasControls: false, hasBorders: false, hoverCursor: 'pointer',
-            isDrawingTemp: true, isDrawingTempCircle: true, pointIndex: index
-        });
-        ptObj.circle = circle;
-        canvas.add(circle);
-        
-        setPolygonPoints(tempPoints.map(p => ({ x: p.x, y: p.y })));
-        return;
-      }
-
-      startPoint = pointer;
-
-      currentShape = mode === 'rect' ? new Rect({ width: 0, height: 0 }) : new Circle({ radius: 0 });
-      currentShape.left = startPoint.x;
-      currentShape.top = startPoint.y;
-      currentShape.fill = 'transparent';
-      currentShape.stroke = 'red';
-      currentShape.strokeWidth = 1;
-      currentShape.strokeUniform = true;
-      currentShape.borderColor = 'red';
-      currentShape.cornerColor = 'green';
-      currentShape.cornerSize = 10;
-      currentShape.transparentCorners = false;
-      currentShape.hasControls = true;
-      currentShape.hasBorders = true;
-      currentShape.isCroppingShape = true;
-      currentShape.setControlsVisibility({ mtr: false });
-      canvas.add(currentShape);
-      setDrawingObject(currentShape);
-    });
-
-    canvas.on('mouse:move', (options) => {
-      if (!currentShape || mode === 'polygon') return;
-      const pointer = canvas.getPointer(options.e);
-
-      if (mode === 'rect') {
-        currentShape.set({
-          width: Math.abs(pointer.x - startPoint.x),
-          height: Math.abs(pointer.y - startPoint.y),
-          left: Math.min(pointer.x, startPoint.x),
-          top: Math.min(pointer.y, startPoint.y),
-        });
-      } else if (mode === 'circle') {
-        const radius = Math.max(Math.abs(pointer.x - startPoint.x), Math.abs(pointer.y - startPoint.y)) / 2;
-        currentShape.set({
-          radius: radius,
-          left: startPoint.x - radius,
-          top: startPoint.y - radius,
-        });
-      }
-      canvas.renderAll();
-    });
-
-    canvas.on('mouse:up', () => {
-      if (currentShape && mode !== 'polygon') {
-        currentShape.setCoords();
-        setDrawingObject(currentShape);
-        currentShape = null;
-      }
-    });
-  }, [imageLoaded]);
-
-  const finishPolygonDrawing = useCallback(() => {
-    const canvas = fabricCanvasRef.current;
-    if (!canvas || polygonPoints.length < 3) {
-      alert('多角形を描くには最低3つの頂点が必要です。');
-      return;
-    }
-
-    // キャンバス上の不要な仮線や点を削除
-    const objects = canvas.getObjects();
-    objects.forEach(obj => {
-      if (obj.isDrawingTemp) {
-        canvas.remove(obj);
-      }
-    });
-
-    const polygon = new Polygon(polygonPoints, {
-      fill: 'transparent',
-      stroke: 'red',
-      strokeWidth: 1,
-      strokeUniform: true,
-      borderColor: 'red',
-      cornerColor: 'green',
-      cornerSize: 10,
-      transparentCorners: false,
-      hasControls: true,
-      hasBorders: true,
-      isCroppingShape: true,
-      objectCaching: false // ポリゴンはキャッシュ無効にする方が拡縮時に安全
-    });
-    
-    polygon.setControlsVisibility({ mtr: false });
-
-    canvas.add(polygon);
-    canvas.setActiveObject(polygon);
-    setDrawingObject(polygon);
-    setIsDrawingPolygon(false); // 描画モード終了
-  }, [polygonPoints]);
-
-  const editPolygonVertices = useCallback(() => {
-    if (!drawingObject || drawingObject.type !== 'polygon') return;
-    
-    const canvas = fabricCanvasRef.current;
-    const matrix = drawingObject.calcTransformMatrix();
-    
-    // 現在の表示上の絶対座標を計算
-    const absolutePoints = drawingObject.points.map(p => {
-        const pathOffsetX = drawingObject.pathOffset ? drawingObject.pathOffset.x : 0;
-        const pathOffsetY = drawingObject.pathOffset ? drawingObject.pathOffset.y : 0;
-        
-        const localPoint = new Point(p.x - pathOffsetX, p.y - pathOffsetY);
-        const absPoint = util.transformPoint(localPoint, matrix);
-        return { x: absPoint.x, y: absPoint.y };
-    });
-
-    // 既存のポリゴンを削除して、再編集モードとして開始
-    startCropping('polygon', absolutePoints);
-  }, [drawingObject, startCropping]);
-
-  // ↓↓↓ 追加箇所: トリミング枠を調整する関数 ↓↓↓
-  const adjustCroppingShape = useCallback((side, direction) => {
-    if (!drawingObject) return;
-
-    const canvas = fabricCanvasRef.current;
-    const amount = adjustmentAmount * direction; // direction: -1で狭める、1で広げる
-
-    if (drawingObject.type === 'rect') {
-      let newLeft = drawingObject.left;
-      let newTop = drawingObject.top;
-      let newWidth = drawingObject.width;
-      let newHeight = drawingObject.height;
-
-      switch (side) {
-        case 'top':
-          newTop -= amount;
-          newHeight += amount;
-          break;
-        case 'right':
-          newWidth += amount;
-          break;
-        case 'bottom':
-          newHeight += amount;
-          break;
-        case 'left':
-          newLeft -= amount;
-          newWidth += amount;
-          break;
-        default:
-          return;
-      }
-
-      // 最小サイズを考慮 (例: 10px以下にならないように)
-      if (newWidth < 10) newWidth = 10;
-      if (newHeight < 10) newHeight = 10;
-
-      drawingObject.set({
-        left: newLeft,
-        top: newTop,
-        width: newWidth,
-        height: newHeight,
-      });
-    } else if (drawingObject.type === 'circle' || drawingObject.type === 'ellipse') { // Circleの場合もEllipseとして扱う
-      let currentRx = drawingObject.rx || drawingObject.radius; // Circleの場合はradiusを使う
-      let currentRy = drawingObject.ry || drawingObject.radius; // Circleの場合はradiusを使う
-      let currentLeft = drawingObject.left;
-      let currentTop = drawingObject.top;
-
-      // 現在の楕円の中心座標を計算 (Fabric.jsのEllipseはrx, ryがleft/topからの距離なのでスケール済み)
-      // もしオブジェクトがCircleで、まだEllipseに変換されていない場合
-      // Circleのleft/topはバウンディングボックスの左上隅なので、中心座標は left + radius
-      const currentScaleX = drawingObject.scaleX || 1;
-      const currentScaleY = drawingObject.scaleY || 1;
-
-      const adjustedAmountX = amount / currentScaleX;
-      const adjustedAmountY = amount / currentScaleY;
-      switch (side) {
-        case 'top':
-          currentRy += adjustedAmountY / 2; // 半径を調整
-          currentTop -= drawingObject.type === 'circle' ? adjustedAmountY : amount; // 上辺を固定するためにオブジェクトのtopを調整
-          break;
-        case 'right':
-          currentRx += adjustedAmountX / 2; // 調整量分、水平半径を増減
-          break;
-        case 'bottom':
-          currentRy += adjustedAmountY / 2; // 調整量分、垂直半径を増減
-          break;
-        case 'left':
-          currentRx += adjustedAmountX / 2; // 半径を調整
-          currentLeft -= drawingObject.type === 'circle' ? adjustedAmountX : amount; // 左辺を固定するためにオブジェクトのleftを調整
-          break;
-        default:
-          return;
-      }
-
-      // 最小サイズを考慮 (見た目の半径が5px以下にならないように)
-      const minVisibleRx = 5 / currentScaleX;
-      const minVisibleRy = 5 / currentScaleY;
-
-      currentRx = Math.max(currentRx, minVisibleRx);
-      currentRy = Math.max(currentRy, minVisibleRy);
-
-      // オブジェクトのタイプがまだ 'circle' の場合は 'ellipse' に変換
-      if (drawingObject.type === 'circle') {
-        canvas.getObjects().forEach(obj => canvas.remove(obj)); // 古いCircleオブジェクトを削除
-        const newEllipse = new Ellipse({
-          left: currentLeft, // 新しいrxに基づいてleftを計算
-          top: currentTop, // 新しいryに基づいてtopを計算
-          rx: currentRx,
-          ry: currentRy,
-          fill: 'transparent',
-          stroke: 'red',
-          strokeWidth: 1,
-          strokeUniform: true,
-          borderColor: 'red',
-          cornerColor: 'green',
-          cornerSize: 10,
-          transparentCorners: false,
-          hasControls: true,
-          hasBorders: true,
-          isCroppingShape: true,
-          scaleX: currentScaleX, // 元のスケールを維持
-          scaleY: currentScaleY, // 元のスケールを維持
-        });
-        newEllipse.setControlsVisibility({ mtr: false });
-        canvas.add(newEllipse);
-        setDrawingObject(newEllipse);
-        canvas.setActiveObject(newEllipse); // 選択状態にする (コントロールを表示するため)
-      } else {
-        // 既にEllipseの場合は直接プロパティを更新
-        drawingObject.set({
-          left: currentLeft,
-          top: currentTop,
-          rx: currentRx,
-          ry: currentRy,
-        });
-      }
-    }
-
-    drawingObject.setCoords(); // リサイズハンドルの位置を更新
-    canvas.renderAll();
-  }, [drawingObject, adjustmentAmount]);
-  // ↑↑↑ 追加箇所終わり ↑↑↑
-
-  // トリミングの実行
-  const crop = useCallback(() => {
-    const canvas = fabricCanvasRef.current;
-    const image = canvas.backgroundImage;
-    if (!image || !image._element) return; // _element は基になる HTMLImageElement
-
-    // ↓↓↓ 修正箇所：高画質トリミングと正しい範囲抽出のためのロジック開始 ↓↓↓
-    // 元の HTMLImageElement からオリジナル画像の寸法を取得
-    const originalImageWidth = image._element.naturalWidth;
-    const originalImageHeight = image._element.naturalHeight;
-
-    // 表示されている画像 (image) のスケールと位置から、
-    // キャンバス座標を元の画像ピクセル座標に変換するためのスケールファクターを計算
-    const scaleFactorX = originalImageWidth / image.getScaledWidth();
-    const scaleFactorY = originalImageHeight / image.getScaledHeight();
-
-    // トリミング形状のバウンディングボックスをキャンバス表示座標で取得
-    const bounds = drawingObject.getBoundingRect();
-
-    // 表示されている画像がキャンバスのどこに配置されているかを計算
-    const imageDisplayLeft = image.left;
-    const imageDisplayTop = image.top;
-
-    // トリミング領域の座標と寸法を *元の画像ピクセル空間* で計算します。
-    // これらの座標は、元の画像のコンテンツの左上隅を基準としています。
-    const cropLeftInOriginalPixels = Math.round((bounds.left - imageDisplayLeft) * scaleFactorX);
-    const cropTopInOriginalPixels = Math.round((bounds.top - imageDisplayTop) * scaleFactorY);
-    const cropWidthInOriginalPixels = Math.round(bounds.width * scaleFactorX);
-    const cropHeightInOriginalPixels = Math.round(bounds.height * scaleFactorY);
-
-    // 一時的なオフスクリーン Fabric.js Canvas を作成します。
-    // このキャンバスは、フル解像度でトリミング処理を行うために、元の画像の寸法全体で作成します。
-    const tempCanvas = new Canvas(null, {
-      width: originalImageWidth,
-      height: originalImageHeight,
-    });
-
-    // 元の HTML 画像要素から新しい FabricImage インスタンスを作成します。
-    // これにより、フル解像度の画像データで作業していることを保証します。
-    const fullResImage = new FabricImage(image._element, {
-      left: 0, // フル解像度の画像をtempCanvasの(0,0)に配置
-      top: 0,
-      selectable: false,
-      evented: false,
-    });
-
-    // クリップパスオブジェクトを定義します。その座標はtempCanvasの絶対座標（元の画像空間）に基づきます。
-    let clipPathObject;
-
-    if (croppingMode === 'rect') {
-      clipPathObject = new Rect({
-        left: cropLeftInOriginalPixels,
-        top: cropTopInOriginalPixels,
-        width: cropWidthInOriginalPixels,
-        height: cropHeightInOriginalPixels,
-        absolutePositioned: true, // 重要: クリップパスの座標はtempCanvasの絶対座標
-      });
-    } else if (croppingMode === 'circle') {
-      // 元の画像ピクセル空間での、楕円の横方向半径 (rx) と縦方向半径 (ry) を計算
-      const rxInOriginalPixels = Math.round(cropWidthInOriginalPixels / 2);
-      const ryInOriginalPixels = Math.round(cropHeightInOriginalPixels / 2);
-
-      // 元の画像ピクセル空間での、トリミング枠の中心座標を計算
-      // bounds.left/top は表示キャンバス上のバウンディングボックスの左上隅
-      // bounds.width/height は表示キャンバス上のバウンディングボックスの寸法
-      const centerXInOriginalPixels = Math.round(((bounds.left + bounds.width / 2) - imageDisplayLeft) * scaleFactorX);
-      const centerYInOriginalPixels = Math.round(((bounds.top + bounds.height / 2) - imageDisplayTop) * scaleFactorY);
-
-      // drawingObjectのスケールXとスケールYが異なる場合（楕円になっている場合）は、
-      // クリップパスをfabric.Ellipseとして作成します。
-      // 浮動小数点誤差を考慮して、わずかな差は許容します。
-      if (Math.abs(drawingObject.scaleX - drawingObject.scaleY) > 0.001 || drawingObject.type === 'ellipse') {
-        // 楕円としてトリミング
-        clipPathObject = new Ellipse({
-          // Ellipseのleft/topはそのバウンディングボックスの左上隅なので、中心から半径を引く
-          left: centerXInOriginalPixels - rxInOriginalPixels,
-          top: centerYInOriginalPixels - ryInOriginalPixels,
-          rx: rxInOriginalPixels, // 横方向半径
-          ry: ryInOriginalPixels, // 縦方向半径
-          absolutePositioned: true, // クリップパスの座標がtempCanvasの絶対座標であることを保証
-        });
-      } else {
-        // ほぼ円形である場合は、引き続きCircleとしてトリミング
-        clipPathObject = new Circle({
-          left: centerXInOriginalPixels - rxInOriginalPixels, // rxとryはほぼ同じ値になるはず
-          top: centerYInOriginalPixels - ryInOriginalPixels,
-          radius: rxInOriginalPixels, // radiusはrxまたはryのどちらかを使用
-          absolutePositioned: true,
-        });
-      }
-    } else if (croppingMode === 'polygon') {
-      const matrix = drawingObject.calcTransformMatrix();
-      const pointsInOriginalSpace = drawingObject.points.map(p => {
-        const pathOffsetX = drawingObject.pathOffset ? drawingObject.pathOffset.x : 0;
-        const pathOffsetY = drawingObject.pathOffset ? drawingObject.pathOffset.y : 0;
-        
-        const localPoint = new Point(p.x - pathOffsetX, p.y - pathOffsetY);
-        const absolutePoint = util.transformPoint(localPoint, matrix);
-        
-        const origX = (absolutePoint.x - imageDisplayLeft) * scaleFactorX;
-        const origY = (absolutePoint.y - imageDisplayTop) * scaleFactorY;
-        return { x: origX, y: origY };
-      });
-      clipPathObject = new Polygon(pointsInOriginalSpace, { absolutePositioned: true });
-    }
-
-    fullResImage.clipPath = clipPathObject;
-    tempCanvas.add(fullResImage);
-    tempCanvas.renderAll();
-
-    // tempCanvasからトリミング結果の画像データを取得します。
-    // toDataURLのleft/top/width/heightパラメータを使用して、正確なトリミング領域を抽出します。
-    const maskBounds = clipPathObject.getBoundingRect(true, true);
-    const finalCroppedImage = tempCanvas.toDataURL({
-      format: 'png',
-      multiplier: 1, // tempCanvas上の解像度を維持
-      left: Math.round(maskBounds.left),
-      top: Math.round(maskBounds.top),
-      width: Math.round(maskBounds.width),
-      height: Math.round(maskBounds.height),
-    });
-
-    setCroppedImageUrl(finalCroppedImage);
-    // ↑↑↑ 修正箇所：高画質トリミングと正しい範囲抽出のためのロジック終了 ↑↑↑
-
-    // 元のキャンバスにトリミング形状を戻す
-    canvas.add(drawingObject);
-    image.clipPath = undefined; // クリップパスを解除
-    canvas.renderAll();
-
-    // 一時キャンバスを破棄してメモリを解放
-    tempCanvas.dispose();
-  }, [drawingObject, croppingMode]);
-
-  // リセット
-  const reset = useCallback(() => {
-    const canvas = fabricCanvasRef.current;
-    canvas.getObjects().forEach(obj => canvas.remove(obj));
-    // リセット時に残っているマウスイベントを全てオフに
-    canvas.off('mouse:down');
-    canvas.off('mouse:move');
-    canvas.off('mouse:up');
-    setCroppedImageUrl(null);
-    setCroppingMode(null);
-    setDrawingObject(null);
-    setPolygonPoints([]);
-    setIsDrawingPolygon(false);
-  }, []);
-
   return (
     <div className="editor-container">
-      {/* 画像アップロード */}
-      <div style={{ marginBottom: '20px' }}>
+      <div className="file-input">
         <input type="file" accept="image/*" className="file-input__control" onClick={e => e.target.value = null} onChange={uploadImage} />
       </div>
 
-      {/* トリミング操作ボタン */}
       <div className="button-group">
-        <button onClick={() => startCropping('rect')} className="btn">四角形</button>
-        <button onClick={() => startCropping('circle')} className="btn">円</button>
-        <button onClick={() => startCropping('polygon')} className="btn">多角形</button>
+        <button onClick={() => startCropping('rect')} className="btn" disabled={!imageLoaded}>四角形</button>
+        <button onClick={() => startCropping('circle')} className="btn" disabled={!imageLoaded}>円</button>
+        <button onClick={() => startCropping('polygon')} className="btn" disabled={!imageLoaded}>多角形</button>
+        <button onClick={() => startCropping('path')} className="btn" disabled={!imageLoaded}>フリーハンド</button>
         
         {isDrawingPolygon && !drawingObject && (
           <button onClick={finishPolygonDrawing} className="btn btn--warning">描画完了</button>
@@ -757,8 +99,18 @@ export default function CropperComponent() {
         <button onClick={reset} className="btn btn--danger">リセット</button>
       </div>
 
-      {/* トリミング枠調整ボタン (ポリゴン以外で表示) */}
-      {croppingMode !== 'polygon' && (
+      {croppingMode === 'path' && (
+        <div className="slider-group">
+          <label>曲線の滑らかさ補正:</label>
+          <input type="range" min="0" max="100" value={pathSmoothing}
+            onChange={e => setPathSmoothing(parseInt(e.target.value, 10))}
+            style={{ '--thumb-percent': `${(pathSmoothing / 100) * 100}%` }}
+          />
+          <span>{pathSmoothing}</span>
+        </div>
+      )}
+
+      {croppingMode && croppingMode !== 'polygon' && croppingMode !== 'path' && (
         <div className="adjustment-controls">
           <h3>トリミング枠の調整</h3>
           <div className="adjustment-group">
@@ -773,12 +125,10 @@ export default function CropperComponent() {
         </div>
       )}
 
-      {/* Canvas */}
       <div className="canvas-wrapper" style={{ height: isMobile ? '600px' : '800px' }}>
         <canvas ref={canvasRef} />
       </div>
 
-      {/* トリミング結果 */}
       {croppedImageUrl && (
         <div className="result-container">
           <h2 className="result-title">トリミング結果</h2>
@@ -790,4 +140,4 @@ export default function CropperComponent() {
       )}
     </div>
   );
-};
+}

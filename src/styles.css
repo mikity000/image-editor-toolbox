@@ -1,32 +1,30 @@
-/* styles.css（ダークテーマ＋レスポンシブ対応） */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg-color: #121212;
-  --surface-color: #1e1e1e;
-  --text-color: #e0e0e0;
-  --muted-text-color: #a0a0a0;
-  --border-color: #333333;
-  --accent-color: #4f94d4;
-  --button-hover-color: #3e8ccb;
-  --input-bg-color: #2a2a2a;
-  --input-text-color: #f0f0f0;
-  --small-text-color: #b0b0b0;
-  --thumb-percent: 0%; /* ガイドライン */
-}
+  /* Premium Dark Theme Core */
+  --bg-color: #0b0c10;
+  --bg-surface: #1f2833;
+  --bg-surface-glass: rgba(31, 40, 51, 0.6);
+  --text-color: #c5c6c7;
+  --text-heading: #ffffff;
+  --accent-color: #66fcf1;
+  --accent-secondary: #45a29e;
+  
+  /* Buttons and States */
+  --btn-success: #28a745;
+  --btn-danger: #dc3545;
+  --btn-warning: #ffc107;
+  --btn-hover-opacity: 0.85;
 
-/* ── App 全体ラッパー ── */
-.app-container {
-  padding: 20px;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-/* ── ページ見出し ── */
-.app-title {
-  color: var(--text-color);
-  font-size: 1.75rem;
-  margin-bottom: 24px;
-  text-align: center;
+  /* Layout and Effects */
+  --border-radius-lg: 16px;
+  --border-radius-sm: 8px;
+  --shadow-glow: 0 0 15px rgba(102, 252, 241, 0.4);
+  --shadow-deep: 0 8px 32px rgba(0, 0, 0, 0.5);
+  
+  /* Input settings */
+  --input-bg-color: #12141a;
+  --border-color: #3b4252;
 }
 
 html, body {
@@ -34,714 +32,422 @@ html, body {
   padding: 0;
   background-color: var(--bg-color);
   color: var(--text-color);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    sans-serif;
+  font-family: 'Inter', sans-serif;
   line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* エディタ全体ラッパー */
-.editor-container {
-  font-family: Arial, sans-serif;
-  max-width: 800px;
-  margin: 20px auto;
-  padding: 20px;
-  /* background-color: var(--surface-color);  //背景がない方が見やすいのでコメントアウト
-  border: 1px solid var(--border-color);
-  border-radius: 8px; */
-}
-
-/* small タグ */
-small {
-  color: var(--small-text-color);
-  font-size: 0.9rem;
-}
-
-/* ファイル入力セクション */
-.file-input {
-  margin-bottom: 16px;
-  display: flex;
-  flex-direction: column;
-}
-
-.file-input__control {
-  display: inline-block;
-  padding: 0.5rem 0.75rem;
-  background-color: var(--input-bg-color);
-  color: var(--input-text-color);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-.file-input__control::-webkit-file-upload-button {
-  background-color: var(--surface-color);
-  color: var(--text-color);
-  border: none;
-  padding: 0.4rem 0.6rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.file-input__control::-moz-file-upload-button {
-  background-color: var(--surface-color);
-  color: var(--text-color);
-  border: none;
-  padding: 0.4rem 0.6rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.file-input__hint {
-  margin-top: 4px;
-  color: var(--muted-text-color);
-}
-
-/* ボタン群 */
-.button-group {
-  margin-bottom: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.btn {
-  background-color: var(--surface-color);
-  color: var(--text-color);
-  border: 1px solid var(--border-color);
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-  flex: 1 1 auto;
-  min-width: 60px;
-  text-align: center;
-}
-
-.btn:hover {
-  background-color: var(--button-hover-color);
-  border-color: var(--accent-color);
-}
-
-.btn:focus {
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
-}
-
-/* 選択中サイズ表示 */
-.selected-size {
-  margin-bottom: 16px;
-  font-size: 1rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-}
-
-.selected-size__value {
-  margin-left: 8px;
-  color: var(--accent-color);
-}
-
-/* キャンバスを包むラッパー */
-.canvas-wrapper {
-  background-color: var(--surface-color);
-  border-radius: 4px;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-  margin-bottom: 16px;
-  width: 100%;
-  height: 60vh;
-  /* aspect-ratio: 600 / 400; */
-  overflow: hidden;
-}
-
-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-/* 操作説明テキスト */
-.instructions {
-  margin-top: 16px;
-  text-align: center;
-}
-
-.instructions__text {
-  font-size: 0.9rem;
-  color: var(--muted-text-color);
-}
-
-/* ガイドラインの太さ調整スライダー */
-.slider-group {
-  margin-bottom: 16px; /* 他のセクションと合わせる */
-  display: flex; /* 要素を横並びにする */
-  align-items: center; /* 垂直方向の中央揃え */
-  gap: 12px; /* 要素間のスペース */
-  flex-wrap: wrap; /* 小さい画面で折り返す */
-}
-
-.slider-group label {
-  color: var(--text-color);
-  white-space: nowrap; /* テキストの折り返しを防ぐ */
-  font-size: 1rem;
-}
-
-.slider-group input[type="range"] {
-  flex-grow: 1; /* 利用可能なスペースを埋める */
-  -webkit-appearance: none; /* デフォルトのスタイルを無効化 (WebKit/Blink) */
-  appearance: none; /* デフォルトのスタイルを無効化 */
-  width: auto; /* 親要素に合わせて幅を自動調整 */
-  height: 8px; /* トラックの高さ */
-  background: linear-gradient(to right, var(--accent-color) var(--thumb-percent), var(--input-bg-color) var(--thumb-percent)); /* ★修正箇所 */
-  border-radius: 5px; /* トラックの角を丸くする */
-  outline: none; /* フォーカス時のアウトラインをなくす */
-  transition: background 0.2s ease;
-}
-
-/* WebKit/Blink (Chrome, Safari, Edge) のトラック */
-.slider-group input[type="range"]::-webkit-slider-runnable-track {
-  width: auto;
-  height: 8px;
-  background: linear-gradient(to right, var(--accent-color) var(--thumb-percent), var(--input-bg-color) var(--thumb-percent)); /* ★修正箇所 */
-  border-radius: 5px;
-  border: 1px solid var(--border-color); /* 境界線を追加 */
-  cursor: pointer;
-}
-
-/* Mozilla (Firefox) のトラック */
-.slider-group input[type="range"]::-moz-range-track {
-  width: auto;
-  height: 8px;
-  background: linear-gradient(to right, var(--accent-color) var(--thumb-percent), var(--input-bg-color) var(--thumb-percent)); /* ★修正箇所 */
-  border-radius: 5px;
-  border: 1px solid var(--border-color); /* 境界線を追加 */
-  cursor: pointer;
-}
-
-/* WebKit/Blink (Chrome, Safari, Edge) のつまみ */
-.slider-group input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none; /* デフォルトのスタイルを無効化 */
-  appearance: none;
-  width: 20px; /* つまみの幅 */
-  height: 20px; /* つまみの高さ */
-  background: var(--accent-color); /* つまみの色 */
-  border: 1px solid var(--accent-color);
-  border-radius: 50%; /* 完全な丸 */
-  cursor: grab; /* カーソルをグラブに */
-  margin-top: -7px; /* トラックの中央に配置 */
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4); /* 影を追加 */
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-/* Mozilla (Firefox) のつまみ */
-.slider-group input[type="range"]::-moz-range-thumb {
-  width: 20px; /* つまみの幅 */
-  height: 20px; /* つまみの高さ */
-  background: var(--accent-color); /* つまみの色 */
-  border: 1px solid var(--accent-color);
-  border-radius: 50%; /* 完全な丸 */
-  cursor: grab; /* カーソルをグラブに */
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.4); /* 影を追加 */
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-/* つまみのホバーとアクティブ状態 */
-.slider-group input[type="range"]::-webkit-slider-thumb:hover,
-.slider-group input[type="range"]::-moz-range-thumb:hover {
-  background: var(--button-hover-color);
-  border-color: var(--button-hover-color);
-  cursor: grabbing; /* ホバー時にカーソルをグラビングに */
-}
-
-.slider-group input[type="range"]:focus::-webkit-slider-thumb,
-.slider-group input[type="range"]:focus::-moz-range-thumb {
-  outline: 2px solid var(--accent-color); /* フォーカス時のアウトライン */
-  outline-offset: 2px;
-}
-
-/* スライダーの現在の値の表示 */
-.slider-group span {
-  color: var(--accent-color);
-  font-weight: bold;
-  min-width: 25px; /* 値の表示幅を確保 */
-  text-align: right; /* 右寄せ */
-}
-
-/* 画像一覧 */
-.image-list {
-  display: flex;
-  flex-wrap: wrap;
-  margin-top: 1rem;
-  max-height: 400px;    /* 好きな高さに調整してください */
-  overflow-y: auto;     /* 縦方向のスクロールを有効化 */
-  border: 1px solid var(--border-color); /*見やすいように枠線を付けてもOK*/
-  padding: 8px;         /* 内側の余白もお好みで */
-}
-/* スクロールバーの見た目をもう少しカスタムしたい場合（Webkit系ブラウザ向け） */
-.image-list::-webkit-scrollbar {
-  width: 6px;
-}
-.image-list::-webkit-scrollbar-thumb {
-  background-color: var(--accent-color);
-  border-radius: 4px;
-}
-.image-list__container {
-  margin: 0.5rem;
-  text-align: center;
-}
-.image-list__item {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  cursor: pointer;
-  border: 2px solid #ccc;
-  border-radius: 4px;
-}
-.image-list__filename {
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
-  word-break: break-all;
-}
-
-/* 拡大率を表示する部分 */
-.selected-size__zoom {
-  margin-left: auto;
-  color: var(--accent-color);
-}
-
-/* モバイル／レスポンシブ */
-@media (max-width: 600px) {
-  html, body {
-    font-size: 14px;
-  }
-  .file-input__control {
-    font-size: 0.9rem;
-    padding: 0.4rem 0.6rem;
-  }
-  .btn {
-    font-size: 0.9rem;
-    padding: 0.4rem 0.8rem;
-    min-width: 100%;
-  }
-  .button-group {
-    flex-direction: column;
-    gap: 12px;
-  }
-  .editor-container {
-    padding: 16px 12px;
-  }
-  .slider-group {
-    flex-direction: column; /* モバイルでは縦並びにする */
-    align-items: flex-start; /* 左寄せ */
-    gap: 8px;
-  }
-  .slider-group label {
-    margin-bottom: 0; /* ラベルの下マージンをリセット */
-  }
-  .slider-group input[type="range"] {
-    width: 100%; /* 幅を100%にする */
-  }
-  .slider-group span {
-    align-self: flex-end; /* 値を右寄せにする */
-  }
-
-  /* トリミング枠調整グループの修正 */
-  .adjustment-group {
-    flex-direction: row; /* 横並びにする */
-    flex-wrap: wrap;     /* 画面幅が足りない場合は折り返す */
-    justify-content: center; /* 中央寄せ */
-    gap: 8px; /* 各調整ボックス間のギャップ */
-  }
-
-  .adjustment-box h4 {
-    margin: 0;
-    white-space: nowrap;
-    font-size: 1.1em;
-    color: var(--text-color); /* PC用のスタイルから継承 */
-  }
-
-  /* ★★★ ここが重要: -1 と +1 ボタンを横並びにするためのスタイル ★★★ */
-  /* -1 ボタンと +1 ボタンをまとめてFlexコンテナのように扱う */
-  .adjustment-box button:first-of-type + button { /* 最初のbuttonの直後のbutton (+1ボタン) */
-    margin-left: 8px; /* -1ボタンと+1ボタンの間の横マージン */
-  }
-
-  .adjustment-box button {
-    flex: 1 1 45%;
-    width: 60px;
-    min-width: unset;
-    height: 35px;
-    padding: 0.3rem 0.5rem;
-    font-size: 1.2em;
-  }
-}
-
-/* src/styles.css */
-
-/* アプリケーション全体のレイアウト */
+/* App Layout & Header */
 .app-layout {
   display: flex;
-  flex-direction: column; /* 縦方向に要素を並べる */
-  min-height: 100vh; /* 画面いっぱいに広がるように */
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-/* ヘッダー */
 .app-header {
-  background-color: #282c34;
-  color: white;
-  padding: 10px 20px;
-  text-align: center;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* メインコンテンツとサイドバーのコンテナ */
-.content-area {
-  flex: 10; /* 残りのスペースを埋める */
-}
-
-/* フッター */
-.app-footer {
-  background-color: #282c34;
-  color: white;
-  text-align: center;
-  padding: 10px 20px;
-  font-size: 0.8em;
-}
-
-/* その他のスタイル（以前のナビゲーションやページコンテナのスタイルなど）は適宜調整 */
-.main-nav ul { /* ヘッダー内のナビゲーションも修正 */
+.main-nav ul {
   display: flex;
   justify-content: center;
   list-style: none;
   padding: 0;
   margin: 0;
+  gap: 2rem;
 }
-.main-nav li {
-  margin: 0 15px;
-}
-.main-nav a {
-  color: white;
-  text-decoration: none;
-}
-/* ... ページ固有のスタイルなども続ける */
 
+.main-nav a {
+  color: var(--text-color);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1.1rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius-sm);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.main-nav a:hover,
+.main-nav a.active {
+  color: var(--accent-color);
+  text-shadow: 0 0 8px var(--accent-color);
+  background: rgba(102, 252, 241, 0.1);
+}
+
+/* Main Container */
+.app-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.app-title {
+  color: var(--text-heading);
+  text-align: center;
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  background: -webkit-linear-gradient(var(--accent-color), var(--accent-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+/* Editor Container (Glassmorphism) */
+.editor-container {
+  background: var(--bg-surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius-lg);
+  padding: 2rem;
+  box-shadow: var(--shadow-deep);
+}
+
+/* File Input */
+.file-input {
+  margin-bottom: 1.5rem;
+}
+
+.file-input__control {
+  width: 100%;
+  padding: 0.8rem;
+  background: var(--input-bg-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.file-input__control:hover {
+  border-color: var(--accent-secondary);
+  box-shadow: 0 0 8px rgba(69, 162, 158, 0.3);
+}
+
+.file-input__hint {
+  display: block;
+  margin-top: 0.5rem;
+  color: #8892b0;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Base Buttons */
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+}
+
+.btn {
+  background: var(--bg-surface);
+  color: var(--text-heading);
+  border: 1px solid var(--border-color);
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.btn:active:not(:disabled) {
+  opacity: 0.8;
+}
 
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
-.btn--success {
-  background-color: #28a745;
-  border-color: #28a745;
+
+/* Button Variants */
+.btn--success { background: rgba(40, 167, 69, 0.1); border-color: var(--btn-success); color: var(--btn-success); }
+.btn--success:hover:not(:disabled) { background: var(--btn-success); color: #fff; }
+
+.btn--danger { background: rgba(220, 53, 69, 0.1); border-color: var(--btn-danger); color: var(--btn-danger); }
+.btn--danger:hover:not(:disabled) { background: var(--btn-danger); color: #fff; }
+
+.btn--warning { background: rgba(255, 193, 7, 0.1); border-color: var(--btn-warning); color: var(--btn-warning); }
+.btn--warning:hover:not(:disabled) { background: var(--btn-warning); color: #212529; }
+
+/* Canvas Area */
+.canvas-wrapper {
+  background: #0f1015;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+  margin-bottom: 1.5rem;
+  width: 100%;
 }
-.btn--danger {
-  background-color: #dc3545;
-  border-color: #dc3545;
-}
+
+/* Control Panels (Adjustments) */
 .adjustment-controls {
-  margin-bottom: 20px;
-  text-align: center;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--border-radius-sm);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
 }
+
 .adjustment-controls h3 {
-  margin-bottom: 12px;
-  color: var(--text-color);
+  margin: 0 0 1rem 0;
+  text-align: center;
+  font-size: 1.2rem;
+  color: var(--text-heading);
 }
+
 .adjustment-group {
   display: flex;
   justify-content: center;
+  gap: 1rem;
   flex-wrap: wrap;
-  gap: 10px;
 }
+
 .adjustment-box {
+  background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  padding: 10px;
-  border-radius: 5px;
+  border-radius: var(--border-radius-sm);
+  padding: 0.8rem;
   text-align: center;
+  flex: 1 1 120px;
+  max-width: 200px;
 }
-/* .adjustment-box 内の隣接するボタンに左マージンを追加 */
-.adjustment-box button + button {
-  margin-left: 8px;
-}
+
 .adjustment-box h4 {
-  margin: 0 0 8px;
+  margin: 0 0 0.8rem 0;
+  font-size: 0.9rem;
   color: var(--text-color);
 }
-.result-container {
-  margin-top: 30px;
-  text-align: center;
-}
-.result-title {
-  margin-bottom: 15px;
-  color: var(--text-color);
-}
-#croppedResult {
-  max-width: 100%;
-  height: auto;
-  border: 2px solid var(--accent-color);
-  border-radius: 4px;
-}
-.download-btn {
-  display: inline-block;
-  margin-top: 15px;
-  background-color: var(--accent-color);
-  color: var(--text-color);
-  text-decoration: none;
-  border-radius: 4px;
-  padding: 0.5rem 1rem;
-}
 
-/* ここからPDFコンポーネント専用のスタイルを追加・調整 */
+.adjustment-box button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+.adjustment-box button + button { margin-left: 8px; }
 
-/* .file-input__control の調整 (PDFコンポーネント用) */
-.file-input__control {
-  width: 100%; /* フル幅に調整 */
-  box-sizing: border-box; /* paddingとborderをwidthに含める */
-}
-
-/* ファイル選択ボタンの見た目を調整 (PDFコンポーネント用) */
-.file-input__control::-webkit-file-upload-button {
-  border: 1px solid var(--border-color); /* ボタンに枠線を追加 */
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.file-input__control::-webkit-file-upload-button:hover {
-  background-color: var(--button-hover-color);
-  border-color: var(--accent-color);
-}
-
-.file-input__control::-moz-file-upload-button {
-  border: 1px solid var(--border-color); /* ボタンに枠線を追加 */
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.file-input__control::-moz-file-upload-button:hover {
-  background-color: var(--button-hover-color);
-  border-color: var(--accent-color);
-}
-
-/* .btn の調整 (PDFコンポーネント用) */
-.btn:hover:not(:disabled) { /* 無効化されたボタンにはホバーエフェクトを適用しない */
-  background-color: var(--button-hover-color);
-  border-color: var(--accent-color);
-}
-
-.btn--success {
-  background-color: #28a745;
-  border-color: #28a745;
-}
-.btn--success:hover:not(:disabled) {
-  background-color: #218838; /* より濃い緑 */
-  border-color: #1e7e34;
-}
-
-.btn--danger {
-  background-color: #dc3545;
-  border-color: #dc3545;
-}
-.btn--danger:hover:not(:disabled) {
-  background-color: #c82333; /* より濃い赤 */
-  border-color: #bd2130;
-}
-
-/* 画像一覧コンテナ (PDFコンポーネント専用) */
+/* Image List (PDF Component) */
 .image-list-container {
-  border: 1px dashed var(--border-color); /* 破線に変更 */
-  border-radius: 8px;
-  padding: 4px; /* パディングをさらに減らす */
-  margin-top: 16px;
-  background-color: var(--input-bg-color); /* 入力フィールドの背景色に合わせる */
-  min-height: 400px;
-  display: flex;
-  justify-content: flex-start; /* 中央寄せに戻す (プレースホルダー用) */
-  align-items: flex-start; /* 中央寄せに戻す (プレースホルダー用) */
-  flex-direction: column; /* テキストとリストを縦に並べるため */
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: 1rem;
+  margin-top: 1rem;
+  min-height: 200px;
 }
 
-/* 画像リスト (PDFコンポーネント専用に上書き) */
-/* 既存の.image-listはCombinerComponentなどで使われているため、
-   PdfComponent内で使用する.image-listはより詳細なセレクタで指定するか、
-   別のクラス名を検討してください。今回はcontainer内部の.image-listとして定義します。
-*/
-.image-list-container .image-list {
+.image-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); /* アイテムの最小幅を大きく調整 (サムネイルサイズ+パディング+ボーダー) */
-  gap: 7px; /* アイテム間のギャップを適度に戻す */
-  width: 100%;
-  max-height: 600px; /* スクロール可能にする */
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  max-height: 500px;
   overflow-y: auto;
-  padding-right: 4px; /* スクロールバーのための余白を調整 */
-  border: none; /* 親のimage-list-containerが枠線を持つので、ここでは不要 */
-  margin-top: 0; /* 親コンテナがマージンを持つため */
-  padding: 0; /* 親コンテナがパディングを持つため */
+  padding-right: 8px;
 }
 
-/* スクロールバーの見た目をカスタム (PDFコンポーネント専用) */
-.image-list-container .image-list::-webkit-scrollbar {
-  width: 6px; /* 元の幅に戻す */
-}
-.image-list-container .image-list::-webkit-scrollbar-thumb {
-  background-color: var(--accent-color);
-  border-radius: 4px;
-}
-.image-list-container .image-list::-webkit-scrollbar-track { /* スクロールトラックの背景色を追加 */
-  background-color: var(--surface-color);
-  border-radius: 4px;
-}
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-surface); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-secondary); }
 
-/* 個々の画像プレビューアイテム (PDFコンポーネント専用) */
-/* 既存の.image-list__containerと.image-list__itemと競合しないよう、新しいクラス名を使用 */
+/* Image Preview Cards */
 .image-preview-item {
+  background: var(--bg-surface);
+  border: 2px solid transparent;
+  border-radius: var(--border-radius-sm);
+  padding: 0.5rem;
+  cursor: grab;
+  transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-color: var(--surface-color); /* テーマに合わせた背景色 */
-  border: 1px solid var(--border-color);
-  border-radius: 4px; /* 角を小さく丸める */
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* 影を控えめに復活させる */
-  cursor: grab;
-  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, border-color 0.1s ease;
-  padding: 4px; /* アイテム全体のパディングを減らし、画像を大きく表示できるスペースを増やす */
-  font-size: 0.85em; /* テキストサイズを微調整 */
+  position: relative;
+}
+
+.image-preview-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
 }
 
 .image-preview-item.selected {
-  border-color: var(--accent-color); /* 選択時の色をアクセントカラーに */
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3); /* 選択時の影のサイズを適度に戻す */
-  transform: translateY(-1px); /* 選択時にわずかに浮き上がらせる */
-}
-
-.image-preview-item:active {
-  cursor: grabbing;
+  border-color: var(--accent-color);
+  background: rgba(102, 252, 241, 0.05);
+  box-shadow: 0 0 10px rgba(102, 252, 241, 0.2);
 }
 
 .thumbnail {
-  width: 130px;
-  height: 130px;
-  margin-bottom: 0px;
-  object-fit: contain; /* アスペクト比を維持して収める */
-  display: block;
-  background-color: var(--input-bg-color); /* 統一感のある背景色 */
-  border-radius: 2px; /* サムネイルの角を小さく丸める */
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: #000;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  flex-shrink: 0; /* 潰れるのを防止 */
 }
 
-.image-info { /* マージンはJS側でインラインスタイルで指定するため、ここでは不要 */
+.image-info {
+  width: 100%;
   text-align: center;
-  font-size: 0.85em; /* テキストサイズを微調整 */
-  width: 100%; /* 親要素の幅いっぱいに */
 }
 
-.image-info .file-name { /* ファイル名のスタイル */
-  font-weight: bold;
-  font-size: 1.1em;
-  color: var(--text-color);
+.image-info .file-name {
+  font-size: 0.8rem;
+  color: var(--text-heading);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.1; /* 行の高さをさらに詰める */
-  margin: 4px; /* ファイル名の隙間を完全に除去 */
+  margin: 0;
 }
 
-.image-info .page-number { /* ページ番号のスタイル */
-  color: var(--muted-text-color);
-  font-size: 0.92em; /* 微調整 */
-  line-height: 1.1; /* 行の高さをさらに詰める */
-  margin: 1px; /* ページ番号の隙間を完全に除去 */
+.image-info .page-number {
+  font-size: 0.75rem;
+  color: var(--accent-secondary);
+  margin: 0;
+  font-weight: 600;
 }
 
-/* Loading Overlay Styles (PDFコンポーネント専用 - 元のスタイルに戻す) */
-/* 進捗表示は元のスタイルにリセット */
+/* Loading Overlay */
 .loading-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5); /* 元の透明度に戻す */
+  background: rgba(11, 12, 16, 0.8);
+  backdrop-filter: blur(5px);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .loading-content {
-  background-color: #333; /* 元の背景色に戻す */
-  padding: 20px; /* 元のパディングに戻す */
-  border-radius: 5px; /* 元の角丸に戻す */
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); /* 元の影に戻す */
+  background: var(--bg-surface);
+  padding: 2.5rem;
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--accent-secondary);
+  box-shadow: var(--shadow-glow);
   text-align: center;
-  color: white; /* 元のテキスト色に戻す */
-  font-size: 1em; /* 元のフォントサイズに戻す */
-  font-weight: normal; /* 元のフォントウェイトに戻す */
+  width: 80%;
+  max-width: 400px;
+}
+
+.loading-content p {
+  font-size: 1.2rem;
+  color: var(--text-heading);
+  margin-bottom: 1rem;
 }
 
 .progress-bar-container {
-  width: 100%; /* 元の幅に戻す */
-  height: 10px; /* 元の高さに戻す */
-  background-color: #555; /* 元の背景色に戻す */
-  border-radius: 5px; /* 元の角丸に戻す */
-  margin: 10px 0; /* 元のマージンに戻す */
+  background: var(--input-bg-color);
+  border-radius: 8px;
+  height: 12px;
   overflow: hidden;
+  margin-bottom: 0.5rem;
 }
 
 .progress-bar {
   height: 100%;
-  background-color: #007bff; /* 元のプログレスバーの色に戻す */
-  border-radius: 5px; /* 元の角丸に戻す */
-  transition: width 0.3s ease; /* 元のトランジションに戻す */
+  background: linear-gradient(90deg, var(--accent-secondary), var(--accent-color));
+  border-radius: 8px;
+  transition: width 0.3s ease;
+  box-shadow: var(--shadow-glow);
 }
 
-/* 選択中のサムネイルの枚数 */
+/* Badges & Instructions */
 .count-badge {
   position: absolute;
-  top: 1px;
-  right: 0px;
-  background: dodgerblue;
-  color: white;
+  top: -8px;
+  right: -8px;
+  background: var(--accent-color);
+  color: #000;
   border-radius: 50%;
   width: 24px;
   height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 0.8rem;
   font-weight: bold;
-  z-index: 1; /* アイテムより手前に表示 */
-  pointer-events: none; /* バッジがマウスイベントの邪魔をしないようにする */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  z-index: 10;
 }
 
-/* 選択中のサムネイルの幻影 */
-.stack{
+.instructions__text {
+  color: var(--accent-secondary);
+  font-size: 0.9rem;
+}
+
+/* Stack for Dragged Multiple Items */
+.stack {
   position: absolute;
-  inset: 0; /* top:0; right:0; bottom:0; left:0; と同義 */
-  pointer-events: none; /* クリックイベントを無効化 */
+  inset: 0;
+  pointer-events: none;
+  background: transparent;
 }
 
-/* モバイル／レスポンシブ (PDFコンポーネント専用部分の調整) */
+.app-footer {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-color);
+  font-size: 0.9rem;
+  margin-top: auto;
+}
+
+/* Results section */
+.result-container {
+  margin-top: 2rem;
+  text-align: center;
+  padding: 2rem;
+  background: var(--bg-surface-glass);
+  border-radius: var(--border-radius-lg);
+}
+
+#croppedResult {
+  max-width: 100%;
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--shadow-deep);
+  border: 1px solid var(--border-color);
+}
+
+.download-btn {
+  display: inline-block;
+  margin-top: 1.5rem;
+  background: var(--accent-color);
+  color: #000;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.8rem 1.5rem;
+  border-radius: var(--border-radius-sm);
+}
+
+.download-btn:hover {
+  background: #fff;
+}
+
+/* Responsive */
 @media (max-width: 600px) {
-  .image-list-container .image-list {
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* モバイル向けにアイテムの最小幅を調整 */
-    gap: 5px; /* モバイルでのギャップを調整 */
-  }
-  .thumbnail {
-    width: 110px; /* モバイル時のサムネイルサイズを大きく調整 */
-    height: 110px; /* モバイル時のサムネイルサイズを大きく調整 */
-  }
-  .image-preview-item {
-    padding: 3px; /* モバイル時のアイテムパディングを調整 */
-  }
-  .image-info .file-name {
-    font-size: 1.1em; /* モバイル時のファイル名を調整 */
-    margin: 4px;
-  }
-  .image-info .page-number {
-    font-size: 0.92em; /* モバイル時のページ番号を調整 */
-    margin: 1px;
-  }
-  .loading-content {
-    padding: 15px; /* モバイル時のローディング表示パディングを調整 */
-    font-size: 0.9em;
-  }
-  .progress-bar-container {
-    width: 150px; /* モバイル時のプログレスバーの幅を調整 */
-  }
+  .app-container { padding: 1rem; }
+  .editor-container { padding: 1rem; }
+  .btn { width: 100%; }
+  .adjustment-box { flex: 1 1 100%; max-width: none; }
+  .main-nav ul { flex-direction: column; gap: 0.5rem; }
 }
