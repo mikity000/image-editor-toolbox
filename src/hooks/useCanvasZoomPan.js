@@ -34,6 +34,7 @@ export function useCanvasZoomPan(fabricCanvas, isMobile) {
           isPanning.current = true;
           lastPos.current = { x: evt.clientX, y: evt.clientY };
           fabricCanvas.defaultCursor = 'grab';
+          fabricCanvas.discardActiveObject();
         }
       };
 
