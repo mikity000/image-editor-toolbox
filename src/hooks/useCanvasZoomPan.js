@@ -21,8 +21,8 @@ export function useCanvasZoomPan(fabricCanvas, isMobile) {
         let zoom = fabricCanvas.getZoom();
         zoom *= 0.999 ** evt.deltaY;
         zoom = Math.min(Math.max(zoom, 0.1), 10);
-        const pointer = fabricCanvas.getPointer(evt);
-        fabricCanvas.zoomToPoint({ x: pointer.x, y: pointer.y }, zoom);
+        const center = fabricCanvas.getCenter();
+        fabricCanvas.zoomToPoint({ x: center.left, y: center.top }, zoom);
         setZoomLevel(zoom);
         evt.preventDefault();
         evt.stopPropagation();
@@ -99,9 +99,8 @@ export function useCanvasZoomPan(fabricCanvas, isMobile) {
             let newZoom = fabricCanvas.getZoom() * scale * dampenedScale;
             newZoom = Math.min(Math.max(newZoom, 0.01), 10);
 
-            const mid = getMidPoint(e);
-            const pointer = fabricCanvas.getPointer({ clientX: mid.x, clientY: mid.y });
-            fabricCanvas.zoomToPoint(new Point(pointer.x, pointer.y), newZoom);
+            const center = fabricCanvas.getCenter();
+            fabricCanvas.zoomToPoint(new Point(center.left, center.top), newZoom);
             setZoomLevel(newZoom);
 
             touchData.current.lastDist = newDist;

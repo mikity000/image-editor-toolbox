@@ -396,6 +396,44 @@ html, body {
   font-size: 0.9rem;
 }
 
+/* Image Combiner Specific Styles */
+.slider-group,
+.selected-size {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.75rem 1rem;
+  border-radius: var(--border-radius-sm);
+  margin-bottom: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  gap: 1rem;
+}
+
+.selected-size__value {
+  color: var(--accent-color);
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+
+.selected-size__zoom {
+  color: var(--text-color);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.selected-size__zoom-value {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.slider-group input[type="range"] {
+  flex: 1;
+  margin: 0 1rem;
+}
+
 /* Stack for Dragged Multiple Items */
 .stack {
   position: absolute;

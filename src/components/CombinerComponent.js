@@ -14,7 +14,7 @@ export default function CombinerComponent() {
 
   // Custom hooks
   const { saveState, undo, redo } = useUndoRedo(fabricCanvas, setImageList);
-  const { zoomLevel, setZoomLevel } = useCanvasZoomPan(fabricCanvas, isMobile);
+  const { zoomLevel } = useCanvasZoomPan(fabricCanvas, isMobile);
   
   useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize, saveState);
 
@@ -26,6 +26,7 @@ export default function CombinerComponent() {
       height: wrapperEl.clientHeight,
       backgroundColor: 'transparent',
       selection: true,
+      selectionKey: 'ctrlKey',
     });
     setFabricCanvas(canvas);
 
@@ -164,7 +165,7 @@ export default function CombinerComponent() {
       </div>
 
       <div className="slider-group">
-        <label>ガイドラインの太さ:</label>
+        <label>ガイドラインの太さ：</label>
         <input type="range" min="1" max="20" value={guideThickness}
           onChange={e => setGuideThickness(parseInt(e.target.value, 10))}
           style={{ '--thumb-percent': `${((guideThickness - 1) / (20 - 1)) * 100}%` }}
@@ -173,13 +174,18 @@ export default function CombinerComponent() {
       </div>
 
       <div className="selected-size">
-        <strong>選択中画像 サイズ:</strong>
-        <span className="selected-size__value">
-          {selectedSize ? `幅 ${selectedSize.width.toFixed(0)} px, 高さ ${selectedSize.height.toFixed(0)} px` : " ー"}
-        </span>
-        <span className="selected-size__zoom" style={{ marginLeft: 'auto' }}>
-          {`${Math.round(zoomLevel * 100)}%`}
-        </span>
+        <div className="selected-size__info">
+          <strong>選択中画像 サイズ：</strong>
+          <span className="selected-size__value">
+            {selectedSize ? `幅 ${selectedSize.width.toFixed(0)} px, 高さ ${selectedSize.height.toFixed(0)} px` : " ー"}
+          </span>
+        </div>
+        <div className="selected-size__zoom">
+          <strong>ズーム：</strong>
+          <span className="selected-size__zoom-value">
+            {`${Math.round(zoomLevel * 100)}%`}
+          </span>
+        </div>
       </div>
 
       <div className="canvas-wrapper" style={{ height: isMobile ? '500px' : '700px' }}>
