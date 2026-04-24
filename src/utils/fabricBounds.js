@@ -63,3 +63,15 @@ export const clampScaleToImageBounds = (obj, canvas) => {
   obj.set({ left: newLeftEdge + ox * newWidth, top: newTopEdge + oy * newHeight });
   obj.setCoords();
 };
+
+export const clampPointToImageBounds = (point, canvas) => {
+  if (!canvas || !canvas.backgroundImage) return point;
+  const bg = canvas.backgroundImage;
+  const bgLeft = bg.left, bgTop = bg.top;
+  const bgRight = bgLeft + bg.getScaledWidth(), bgBottom = bgTop + bg.getScaledHeight();
+  
+  return {
+    x: Math.min(Math.max(point.x, bgLeft), bgRight),
+    y: Math.min(Math.max(point.y, bgTop), bgBottom)
+  };
+};

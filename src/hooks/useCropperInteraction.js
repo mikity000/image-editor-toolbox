@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { Rect, Circle, Ellipse, Polygon, Line, Point, util, PencilBrush } from 'fabric';
-import { clampMoveToImageBounds, clampScaleToImageBounds } from '../utils/fabricBounds';
+import { clampMoveToImageBounds, clampScaleToImageBounds, clampPointToImageBounds } from '../utils/fabricBounds';
 
 export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedImageUrl, pathSmoothing = 8) {
   const [croppingMode, setCroppingMode] = useState(null);
@@ -88,11 +88,18 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
       const target = e.target;
       if (!target) return;
       if (target.isDrawingTempCircle) {
+         const cx = target.left + target.radius;
+         const cy = target.top + target.radius;
+         const clamped = clampPointToImageBounds({ x: cx, y: cy }, canvas);
+         
+         target.set({ left: clamped.x - target.radius, top: clamped.y - target.radius });
+         target.setCoords();
+
          const idx = target.pointIndex;
          const pt = tempPoints[idx];
          if (!pt) return;
-         pt.x = target.left + target.radius;
-         pt.y = target.top  + target.radius;
+         pt.x = clamped.x;
+         pt.y = clamped.y;
          if (pt.lineIn) pt.lineIn.set({ x2: pt.x, y2: pt.y });
          if (pt.lineOut) pt.lineOut.set({ x1: pt.x, y1: pt.y });
          polygonPointsRef.current = tempPoints.map(p => ({ x: p.x, y: p.y }));
@@ -115,7 +122,9 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
       if (mode === 'polygon') {
         const target = options.target;
         if (target && target.isDrawingTempCircle) return;
-        const ptObj = { x: pointer.x, y: pointer.y };
+        
+        const clampedPointer = clampPointToImageBounds({ x: pointer.x, y: pointer.y }, canvas);
+        const ptObj = { x: clampedPointer.x, y: clampedPointer.y };
         tempPoints.push(ptObj);
         const index = tempPoints.length - 1;
         if (index > 0) {
@@ -128,7 +137,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
             canvas.add(line);
         }
         const circle = new Circle({
-            radius: 5, fill: 'red', left: pointer.x - 5, top: pointer.y - 5,
+            radius: 5, fill: 'red', left: clampedPointer.x - 5, top: clampedPointer.y - 5,
             selectable: true, evented: true, hasControls: false, hasBorders: false, hoverCursor: 'pointer',
             isDrawingTemp: true, isDrawingTempCircle: true, pointIndex: index
         });
@@ -173,7 +182,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
         currentShape = null;
       }
     });
-  }, [imageLoaded, fabricCanvasRef, clampMoveToImageBounds, clampScaleToImageBounds]);
+  }, [imageLoaded, fabricCanvasRef, clampMoveToImageBounds, clampScaleToImageBounds, clampPointToImageBounds]);
 
   const finishPolygonDrawing = useCallback(() => {
     const canvas = fabricCanvasRef.current;
