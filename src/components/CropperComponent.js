@@ -16,7 +16,7 @@ export default function CropperComponent() {
 
   const {
     croppingMode, drawingObject, isDrawingPolygon,
-    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, reset
+    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, reset
   } = useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedImageUrl, pathSmoothing);
 
   const { crop } = useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCroppedImageUrl);
@@ -83,6 +83,28 @@ export default function CropperComponent() {
                 <button onClick={() => adjustCroppingShape(side, 0.5)} className="btn">+</button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {isDrawingPolygon && !drawingObject && (
+        <div className="adjustment-controls">
+          <h3>選択中の頂点の操作</h3>
+          <div className="adjustment-group">
+            <div className="adjustment-box">
+              <h4>X軸 (左右)</h4>
+              <button onClick={() => adjustActiveVertex(-0.5, 0)} className="btn">←</button>
+              <button onClick={() => adjustActiveVertex(0.5, 0)} className="btn">→</button>
+            </div>
+            <div className="adjustment-box">
+              <h4>Y軸 (上下)</h4>
+              <button onClick={() => adjustActiveVertex(0, -0.5)} className="btn">↑</button>
+              <button onClick={() => adjustActiveVertex(0, 0.5)} className="btn">↓</button>
+            </div>
+            <div className="adjustment-box">
+              <h4>削除</h4>
+              <button onClick={deleteActiveVertex} className="btn btn--danger btn--auto-width">頂点を削除</button>
+            </div>
           </div>
         </div>
       )}

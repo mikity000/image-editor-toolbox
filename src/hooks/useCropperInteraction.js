@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef } from 'react';
-import { Rect, Circle, Ellipse, Polygon, Line, Point, util, PencilBrush } from 'fabric';
+import { Rect, Circle, Polygon, Line, Point, util, PencilBrush } from 'fabric';
 import { clampMoveToImageBounds, clampScaleToImageBounds, clampPointToImageBounds } from '../utils/fabricBounds';
 
 export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedImageUrl, pathSmoothing = 8) {
   const [croppingMode, setCroppingMode] = useState(null);
   const [drawingObject, setDrawingObject] = useState(null);
   const polygonPointsRef = useRef([]);
+  const tempPointsRef = useRef([]);
   const [isDrawingPolygon, setIsDrawingPolygon] = useState(false);
   const [adjustmentAmount] = useState(1); // 調整量（固定）
 
@@ -26,6 +27,30 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     canvas.off('object:scaling');
     canvas.off('object:modified');
     canvas.off('path:created');
+    canvas.off('selection:created');
+    canvas.off('selection:updated');
+    canvas.off('selection:cleared');
+
+    const handleSelection = (e) => {
+      if (e.deselected) {
+        e.deselected.forEach(obj => {
+          if (obj.isDrawingTempCircle) {
+            obj.set({ fill: 'red', strokeWidth: 0, radius: 5 });
+          }
+        });
+      }
+      if (e.selected) {
+        e.selected.forEach(obj => {
+          if (obj.isDrawingTempCircle) {
+            obj.set({ fill: '#ffc107', strokeWidth: 2, stroke: '#000', radius: 5 });
+          }
+        });
+      }
+    };
+
+    canvas.on('selection:created', handleSelection);
+    canvas.on('selection:updated', handleSelection);
+    canvas.on('selection:cleared', handleSelection);
 
     canvas.isDrawingMode = (mode === 'path');
     if (mode === 'path') {
@@ -60,6 +85,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     let startPoint;
     let currentShape;
     let tempPoints = [];
+    tempPointsRef.current = tempPoints;
 
     if (mode === 'polygon' && initialPolygonPoints.length > 0) {
        initialPolygonPoints.forEach((p, index) => {
@@ -182,7 +208,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
         currentShape = null;
       }
     });
-  }, [imageLoaded, fabricCanvasRef, clampMoveToImageBounds, clampScaleToImageBounds, clampPointToImageBounds]);
+  }, [imageLoaded, fabricCanvasRef, pathSmoothing]);
 
   const finishPolygonDrawing = useCallback(() => {
     const canvas = fabricCanvasRef.current;
@@ -219,6 +245,48 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     });
     startCropping('polygon', absolutePoints);
   }, [drawingObject, startCropping]);
+
+  const adjustActiveVertex = useCallback((dx, dy) => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+    const activeObj = canvas.getActiveObject();
+    if (activeObj && activeObj.isDrawingTempCircle) {
+      const cx = activeObj.left + activeObj.radius + dx;
+      const cy = activeObj.top + activeObj.radius + dy;
+      const clamped = clampPointToImageBounds({ x: cx, y: cy }, canvas);
+      
+      activeObj.set({ left: clamped.x - activeObj.radius, top: clamped.y - activeObj.radius });
+      activeObj.setCoords();
+
+      const idx = activeObj.pointIndex;
+      const pt = tempPointsRef.current[idx];
+      if (!pt) return;
+      pt.x = clamped.x;
+      pt.y = clamped.y;
+      if (pt.lineIn) pt.lineIn.set({ x2: pt.x, y2: pt.y });
+      if (pt.lineOut) pt.lineOut.set({ x1: pt.x, y1: pt.y });
+      polygonPointsRef.current = tempPointsRef.current.map(p => ({ x: p.x, y: p.y }));
+      canvas.renderAll();
+    }
+  }, [fabricCanvasRef]);
+
+  const deleteActiveVertex = useCallback(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+    const activeObj = canvas.getActiveObject();
+    if (activeObj && activeObj.isDrawingTempCircle) {
+      if (tempPointsRef.current.length <= 3) {
+        alert('多角形として成立させるため、最低3つの頂点が必要です。');
+        return;
+      }
+      const idx = activeObj.pointIndex;
+      const updatedPoints = tempPointsRef.current
+        .filter((_, i) => i !== idx)
+        .map(p => ({ x: p.x, y: p.y }));
+      
+      startCropping('polygon', updatedPoints);
+    }
+  }, [fabricCanvasRef, startCropping]);
 
   const adjustCroppingShape = useCallback((side, direction) => {
     if (!drawingObject) return;
@@ -278,6 +346,9 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
       canvas.off('mouse:move');
       canvas.off('mouse:up');
       canvas.off('path:created');
+      canvas.off('selection:created');
+      canvas.off('selection:updated');
+      canvas.off('selection:cleared');
       canvas.isDrawingMode = false;
     }
     setCroppedImageUrl(null);
@@ -289,6 +360,6 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
 
   return {
     croppingMode, drawingObject, isDrawingPolygon,
-    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, reset
+    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, reset
   };
 }
