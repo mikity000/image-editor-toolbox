@@ -410,10 +410,18 @@ html, body {
   gap: 1rem;
 }
 
-.selected-size__value {
+.selected-size__value,
+.slider-group__value {
   color: var(--accent-color);
   font-weight: 500;
   margin-left: 0.5rem;
+}
+
+.slider-group__value {
+  min-width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
 }
 
 .selected-size__zoom {
@@ -427,6 +435,10 @@ html, body {
 .selected-size__zoom-value {
   color: var(--accent-color);
   font-weight: 600;
+  min-width: 50px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
 }
 
 .slider-group input[type="range"] {

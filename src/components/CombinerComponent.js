@@ -170,7 +170,7 @@ export default function CombinerComponent() {
           onChange={e => setGuideThickness(parseInt(e.target.value, 10))}
           style={{ '--thumb-percent': `${((guideThickness - 1) / (20 - 1)) * 100}%` }}
         />
-        <span>{guideThickness}px</span>
+        <span className="slider-group__value">{guideThickness}px</span>
       </div>
 
       <div className="selected-size">
