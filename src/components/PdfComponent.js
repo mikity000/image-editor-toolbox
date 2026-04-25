@@ -139,53 +139,61 @@ export default function PdfComponent() {
         </div>
       )}
 
-      {/* ファイル入力セクション */}
-      <div className="file-input">
-        <input type="file" accept="image/*" multiple className="file-input__control" disabled={isProcessing || isUploading}
-          onClick={e => e.target.value = null} onChange={uploadImage}
-        />
-        <small className="file-input__hint">
-          （PNG/JPEG などの画像を複数選択できます）
-        </small>
-      </div>
-
-      {/* 操作ボタン群 */}
-      <div className="button-group">
-        <button onClick={deleteSelected} disabled={selectedImages.size === 0 || isProcessing || isUploading} className="btn btn--danger">
-          選択画像削除
-        </button>
-        <button onClick={resetImages} disabled={images.length === 0 || isProcessing || isUploading} className="btn">
-          リセット
-        </button>
-        <button onClick={handleGeneratePdf} disabled={images.length === 0 || isProcessing || isUploading} className="btn btn--success">
-          {isProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
-        </button>
-      </div>
-
-      {/* サムネイルリスト DND コンテナ */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart}
-        onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
-        <SortableContext items={images.map(img => img.id)}>
-          <div className="image-list-container">
-            {images.length > 0 && (
-              <div className="image-list">
-                {images.map((image, index) => (
-                  <SortableImagePreview key={image.id} image={image} images={images} index={index}
-                    isSelected={selectedImages.has(image.id)} onSelect={selectImage}
-                    activeId={activeId} selectedImages={selectedImages}
-                  />
-                ))}
+      <div className="cropper-layout">
+        <div className="cropper-main">
+          {/* サムネイルリスト DND コンテナ */}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart}
+            onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
+            <SortableContext items={images.map(img => img.id)}>
+              <div className="image-list-container">
+                {images.length > 0 && (
+                  <div className="image-list">
+                    {images.map((image, index) => (
+                      <SortableImagePreview key={image.id} image={image} images={images} index={index}
+                        isSelected={selectedImages.has(image.id)} onSelect={selectImage}
+                        activeId={activeId} selectedImages={selectedImages}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </SortableContext>
-      </DndContext>
+            </SortableContext>
+          </DndContext>
 
-      {/* サムネイルの順番入れ替えの操作説明 */}
-      <div className="instructions">
-        <small className="instructions__text">
-          {isMobile ? "長押しで順番を入れ替えられます。" : "ドラッグで順番を入れ替えられます。"}
-        </small>
+          {/* サムネイルの順番入れ替えの操作説明 */}
+          <div className="instructions">
+            <small className="instructions__text">
+              {isMobile ? "長押しで順番を入れ替えられます。" : "ドラッグで順番を入れ替えられます。"}
+            </small>
+          </div>
+        </div>
+
+        <div className="cropper-sidebar">
+          <div className="sidebar-sticky-content">
+            {/* ファイル入力セクション */}
+            <div className="file-input">
+              <input type="file" accept="image/*" multiple className="file-input__control" disabled={isProcessing || isUploading}
+                onClick={e => e.target.value = null} onChange={uploadImage}
+              />
+              <small className="file-input__hint">
+                （PNG/JPEG などの画像を複数選択できます）
+              </small>
+            </div>
+
+            {/* 操作ボタン群 */}
+            <div className="button-group sidebar-buttons">
+              <button onClick={deleteSelected} disabled={selectedImages.size === 0 || isProcessing || isUploading} className="btn btn--danger btn-full">
+                選択画像削除
+              </button>
+              <button onClick={resetImages} disabled={images.length === 0 || isProcessing || isUploading} className="btn btn-full">
+                リセット
+              </button>
+              <button onClick={handleGeneratePdf} disabled={images.length === 0 || isProcessing || isUploading} className="btn btn--success btn-full">
+                {isProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

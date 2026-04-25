@@ -148,71 +148,79 @@ export default function CombinerComponent() {
 
   return (
     <div className="editor-container">
-      <div className="file-input">
-        <input type="file" accept="image/*" multiple className="file-input__control"
-          onClick={e => (e.target.value = null)} onChange={uploadImage}
-        />
-        <small className="file-input__hint">
-          （PNG/JPEG などの画像を複数選択できます）
-        </small>
-      </div>
+      <div className="cropper-layout">
+        <div className="cropper-main">
+          <div className="canvas-wrapper" style={{ height: isMobile ? '500px' : '700px' }}>
+            <canvas ref={canvasRef} />
+          </div>
 
-      <div className="button-group">
-        <button className="btn" onClick={undo}>Undo</button>
-        <button className="btn" onClick={redo}>Redo</button>
-        <button className="btn btn--danger" onClick={deleteSelected}>選択画像削除</button>
-        <button className="btn btn--success" onClick={download}>ダウンロード</button>
-      </div>
-
-      <div className="slider-group">
-        <label>ガイドラインの太さ：</label>
-        <input type="range" min="1" max="20" value={guideThickness}
-          onChange={e => setGuideThickness(parseInt(e.target.value, 10))}
-          style={{ '--thumb-percent': `${((guideThickness - 1) / (20 - 1)) * 100}%` }}
-        />
-        <span className="slider-group__value">{guideThickness}px</span>
-      </div>
-
-      <div className="selected-size">
-        <div className="selected-size__info">
-          <strong>選択中画像 サイズ：</strong>
-          <span className="selected-size__value">
-            {selectedSize ? `幅 ${selectedSize.width.toFixed(0)} px, 高さ ${selectedSize.height.toFixed(0)} px` : " ー"}
-          </span>
-        </div>
-        <div className="selected-size__zoom">
-          <strong>ズーム：</strong>
-          <span className="selected-size__zoom-value">
-            {`${Math.round(zoomLevel * 100)}%`}
-          </span>
-        </div>
-      </div>
-
-      <div className="canvas-wrapper" style={{ height: isMobile ? '500px' : '700px' }}>
-        <canvas ref={canvasRef} />
-      </div>
-
-      {imageList.length > 0 && (
-        <div className="image-list-container" style={{ minHeight: 'auto' }}>
-          <div className="image-list" style={{ display: 'flex', gap: '10px', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '10px', maxHeight: 'none' }}>
-            {imageList.map((imgObj, index) => (
-              <div key={index} className="image-preview-item" style={{ flex: '0 0 100px' }} onClick={() => clickImageList(imgObj)}>
-                <img src={imgObj.origSrc} className="thumbnail" alt={`canvas-image-${index}`} />
-                <div className="image-info">
-                   <p className="file-name">{imgObj.fileName || '不明なファイル名'}</p>
-                </div>
+          {imageList.length > 0 && (
+            <div className="image-list-container" style={{ minHeight: 'auto' }}>
+              <div className="image-list" style={{ display: 'flex', gap: '10px', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '10px', maxHeight: 'none' }}>
+                {imageList.map((imgObj, index) => (
+                  <div key={index} className="image-preview-item" style={{ flex: '0 0 100px' }} onClick={() => clickImageList(imgObj)}>
+                    <img src={imgObj.origSrc} className="thumbnail" alt={`canvas-image-${index}`} />
+                    <div className="image-info">
+                       <p className="file-name">{imgObj.fileName || '不明なファイル名'}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+          )}
+
+          <div className="instructions">
+            <small className="instructions__text">
+              {isMobile ? "ピンチでズーム、二本指ドラッグでパンが可能です。"
+                : "スクロールでズーム、Altキー + ドラッグでパンできます。"}
+            </small>
           </div>
         </div>
-      )}
 
-      <div className="instructions">
-        <small className="instructions__text">
-          {isMobile ? "ピンチでズーム、二本指ドラッグでパンが可能です。"
-            : "スクロールでズーム、Altキー + ドラッグでパンできます。"}
-        </small>
+        <div className="cropper-sidebar">
+          <div className="sidebar-sticky-content">
+            <div className="file-input">
+              <input type="file" accept="image/*" multiple className="file-input__control"
+                onClick={e => (e.target.value = null)} onChange={uploadImage}
+              />
+              <small className="file-input__hint">
+                （PNG/JPEG などの画像を複数選択できます）
+              </small>
+            </div>
+
+            <div className="button-group sidebar-buttons">
+              <button className="btn" onClick={undo}>Undo</button>
+              <button className="btn" onClick={redo}>Redo</button>
+              <button className="btn btn--danger btn-full" onClick={deleteSelected}>選択画像削除</button>
+              <button className="btn btn--success btn-full" onClick={download}>ダウンロード</button>
+            </div>
+
+            <div className="slider-group">
+              <label>ガイドラインの太さ：</label>
+              <input type="range" min="1" max="20" value={guideThickness}
+                onChange={e => setGuideThickness(parseInt(e.target.value, 10))}
+                style={{ '--thumb-percent': `${((guideThickness - 1) / (20 - 1)) * 100}%` }}
+              />
+              <span className="slider-group__value">{guideThickness}px</span>
+            </div>
+
+            <div className="selected-size">
+              <div className="selected-size__info">
+                <strong>選択中画像 サイズ：</strong>
+                <span className="selected-size__value">
+                  {selectedSize ? `幅 ${selectedSize.width.toFixed(0)} px, 高さ ${selectedSize.height.toFixed(0)} px` : " ー"}
+                </span>
+              </div>
+              <div className="selected-size__zoom">
+                <strong>ズーム：</strong>
+                <span className="selected-size__zoom-value">
+                  {`${Math.round(zoomLevel * 100)}%`}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
-};
+}

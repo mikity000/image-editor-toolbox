@@ -73,30 +73,7 @@ html, body {
   gap: 1rem;
 }
 
-@media (min-width: 768px) {
-  .cropper-layout {
-    flex-direction: row;
-  }
-  
-  .cropper-sidebar {
-    width: 280px;
-    flex-shrink: 0;
-  }
-  
-  .sidebar-sticky-content {
-    position: sticky;
-    top: 2rem;
-  }
-  
-  .sidebar-buttons {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .sidebar-buttons .btn {
-    width: 100%;
-  }
-}
+
 
 .app-header {
   background: var(--bg-surface);
@@ -254,14 +231,14 @@ html, body {
 .adjustment-controls {
   background: rgba(0, 0, 0, 0.2);
   border-radius: var(--border-radius-sm);
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
 }
 
 .adjustment-controls h3 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.8rem 0;
   text-align: center;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: var(--text-heading);
 }
 
@@ -307,8 +284,15 @@ html, body {
   font-size: 0.9rem;
 }
 
+.cropper-sidebar .adjustment-group {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
 .cropper-sidebar .adjustment-box {
   max-width: 100%;
+  padding: 0.5rem;
 }
 
 /* Image List (PDF Component) */
@@ -325,7 +309,7 @@ html, body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 12px;
-  max-height: 500px;
+  max-height: 800px;
   overflow-y: auto;
   padding-right: 8px;
 }
@@ -556,6 +540,38 @@ html, body {
 
 .download-btn:hover {
   background: #fff;
+}
+
+/* Desktop Responsive Rules */
+@media (min-width: 768px) {
+  .cropper-layout {
+    flex-direction: row;
+  }
+  
+  .cropper-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+  }
+  
+  .sidebar-sticky-content {
+    position: sticky;
+    top: 2rem;
+  }
+  
+  .sidebar-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    align-items: stretch;
+  }
+  
+  .sidebar-buttons .btn {
+    width: 100%;
+  }
+
+  .btn-full {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Responsive */
