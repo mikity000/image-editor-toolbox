@@ -2,17 +2,20 @@ import { useCallback } from 'react';
 import { Canvas, FabricImage, Rect, Circle, Ellipse, Polygon, Point, Path, util } from 'fabric';
 
 export function useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCroppedImageUrl) {
-  const crop = useCallback(async () => {
+  const crop = useCallback(async (overrideObj = null) => {
     const canvas = fabricCanvasRef.current;
     const image = canvas.backgroundImage;
     if (!image || !image._element) return;
+
+    const targetObj = overrideObj || drawingObject;
+    if (!targetObj) return;
 
     const originalImageWidth = image._element.naturalWidth;
     const originalImageHeight = image._element.naturalHeight;
     const scaleFactorX = originalImageWidth / image.getScaledWidth();
     const scaleFactorY = originalImageHeight / image.getScaledHeight();
 
-    const bounds = drawingObject.getBoundingRect();
+    const bounds = targetObj.getBoundingRect();
     const imageDisplayLeft = image.left;
     const imageDisplayTop = image.top;
 
@@ -44,7 +47,7 @@ export function useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCr
       const centerXInOriginalPixels = Math.round(((bounds.left + bounds.width / 2) - imageDisplayLeft) * scaleFactorX);
       const centerYInOriginalPixels = Math.round(((bounds.top + bounds.height / 2) - imageDisplayTop) * scaleFactorY);
 
-      if (Math.abs(drawingObject.scaleX - drawingObject.scaleY) > 0.001 || drawingObject.type === 'ellipse') {
+      if (Math.abs(targetObj.scaleX - targetObj.scaleY) > 0.001 || targetObj.type === 'ellipse') {
         clipPathObject = new Ellipse({
           left: centerXInOriginalPixels - rxInOriginalPixels, top: centerYInOriginalPixels - ryInOriginalPixels,
           rx: rxInOriginalPixels, ry: ryInOriginalPixels, absolutePositioned: true,
@@ -56,10 +59,10 @@ export function useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCr
         });
       }
     } else if (croppingMode === 'polygon') {
-      const matrix = drawingObject.calcTransformMatrix();
-      const pointsInOriginalSpace = drawingObject.points.map(p => {
-        const pathOffsetX = drawingObject.pathOffset ? drawingObject.pathOffset.x : 0;
-        const pathOffsetY = drawingObject.pathOffset ? drawingObject.pathOffset.y : 0;
+      const matrix = targetObj.calcTransformMatrix();
+      const pointsInOriginalSpace = targetObj.points.map(p => {
+        const pathOffsetX = targetObj.pathOffset ? targetObj.pathOffset.x : 0;
+        const pathOffsetY = targetObj.pathOffset ? targetObj.pathOffset.y : 0;
         const localPoint = new Point(p.x - pathOffsetX, p.y - pathOffsetY);
         const absolutePoint = util.transformPoint(localPoint, matrix);
         
@@ -69,12 +72,12 @@ export function useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCr
       });
       clipPathObject = new Polygon(pointsInOriginalSpace, { absolutePositioned: true });
     } else if (croppingMode === 'path') {
-      clipPathObject = new Path(drawingObject.path, {
-        left: (drawingObject.left - imageDisplayLeft) * scaleFactorX,
-        top: (drawingObject.top - imageDisplayTop) * scaleFactorY,
-        scaleX: drawingObject.scaleX * scaleFactorX,
-        scaleY: drawingObject.scaleY * scaleFactorY,
-        pathOffset: drawingObject.pathOffset,
+      clipPathObject = new Path(targetObj.path, {
+        left: (targetObj.left - imageDisplayLeft) * scaleFactorX,
+        top: (targetObj.top - imageDisplayTop) * scaleFactorY,
+        scaleX: targetObj.scaleX * scaleFactorX,
+        scaleY: targetObj.scaleY * scaleFactorY,
+        pathOffset: targetObj.pathOffset,
         absolutePositioned: true,
       });
     }
@@ -95,7 +98,9 @@ export function useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCr
 
     setCroppedImageUrl(finalCroppedImage);
 
-    canvas.add(drawingObject);
+    if (drawingObject && targetObj === drawingObject) {
+      canvas.add(drawingObject);
+    }
     image.clipPath = undefined;
     canvas.renderAll();
     tempCanvas.dispose();

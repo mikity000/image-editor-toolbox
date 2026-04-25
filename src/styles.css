@@ -44,6 +44,60 @@ html, body {
   min-height: 100vh;
 }
 
+/* Cropper Split Layout */
+.cropper-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cropper-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.cropper-sidebar {
+  width: 100%;
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+.sidebar-sticky-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .cropper-layout {
+    flex-direction: row;
+  }
+  
+  .cropper-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+  }
+  
+  .sidebar-sticky-content {
+    position: sticky;
+    top: 2rem;
+  }
+  
+  .sidebar-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .sidebar-buttons .btn {
+    width: 100%;
+  }
+}
+
 .app-header {
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
@@ -79,7 +133,7 @@ html, body {
 
 /* Main Container */
 .app-container {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
 }
@@ -251,6 +305,10 @@ html, body {
   min-width: 40px;
   padding: 0 1rem;
   font-size: 0.9rem;
+}
+
+.cropper-sidebar .adjustment-box {
+  max-width: 100%;
 }
 
 /* Image List (PDF Component) */
