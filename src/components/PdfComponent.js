@@ -175,9 +175,6 @@ export default function PdfComponent() {
               <input type="file" accept="image/*" multiple className="file-input__control" disabled={isProcessing || isUploading}
                 onClick={e => e.target.value = null} onChange={uploadImage}
               />
-              <small className="file-input__hint">
-                （PNG/JPEG などの画像を複数選択できます）
-              </small>
             </div>
 
             {/* 操作ボタン群 */}

@@ -183,9 +183,6 @@ export default function CombinerComponent() {
               <input type="file" accept="image/*" multiple className="file-input__control"
                 onClick={e => (e.target.value = null)} onChange={uploadImage}
               />
-              <small className="file-input__hint">
-                （PNG/JPEG などの画像を複数選択できます）
-              </small>
             </div>
 
             <div className="button-group sidebar-buttons">
@@ -196,7 +193,7 @@ export default function CombinerComponent() {
             </div>
 
             <div className="slider-group">
-              <label>ガイドラインの太さ：</label>
+              <label>ガイドラインの太さ</label>
               <input type="range" min="1" max="20" value={guideThickness}
                 onChange={e => setGuideThickness(parseInt(e.target.value, 10))}
                 style={{ '--thumb-percent': `${((guideThickness - 1) / (20 - 1)) * 100}%` }}
@@ -206,13 +203,13 @@ export default function CombinerComponent() {
 
             <div className="selected-size">
               <div className="selected-size__info">
-                <strong>選択中画像 サイズ：</strong>
+                <strong>サイズ</strong>
                 <span className="selected-size__value">
                   {selectedSize ? `幅 ${selectedSize.width.toFixed(0)} px, 高さ ${selectedSize.height.toFixed(0)} px` : " ー"}
                 </span>
               </div>
               <div className="selected-size__zoom">
-                <strong>ズーム：</strong>
+                <strong>ズーム</strong>
                 <span className="selected-size__zoom-value">
                   {`${Math.round(zoomLevel * 100)}%`}
                 </span>

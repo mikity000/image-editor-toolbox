@@ -92,7 +92,7 @@ export default function CropperComponent() {
 
             {croppingMode === 'path' && (
               <div className="slider-group">
-                <label>曲線の滑らかさ補正:</label>
+                <label>曲線の滑らかさ補正</label>
                 <input type="range" min="0" max="50" value={pathSmoothing}
                   onChange={e => setPathSmoothing(parseInt(e.target.value, 10))}
                   style={{ '--thumb-percent': `${(pathSmoothing / 50) * 100}%` }}
