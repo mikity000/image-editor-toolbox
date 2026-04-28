@@ -74,10 +74,28 @@ export default function CropperComponent() {
             </div>
 
             <div className="button-group sidebar-buttons">
-              <button onClick={() => startCropping('rect')} className="btn" disabled={!imageLoaded}>四角形</button>
-              <button onClick={() => startCropping('circle')} className="btn" disabled={!imageLoaded}>円</button>
-              <button onClick={() => startCropping('polygon')} className="btn" disabled={!imageLoaded}>多角形</button>
-              <button onClick={() => startCropping('path')} className="btn" disabled={!imageLoaded}>自由形</button>
+              <button onClick={() => startCropping('rect')} className="btn shape-btn" disabled={!imageLoaded}>
+                <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                </svg>
+              </button>
+              <button onClick={() => startCropping('circle')} className="btn shape-btn" disabled={!imageLoaded}>
+                <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                </svg>
+              </button>
+              <button onClick={() => startCropping('polygon')} className="btn shape-btn" disabled={!imageLoaded}>
+                <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="12 2 22 8.5 18.5 20 5.5 20 2 8.5"></polygon>
+                </svg>
+              </button>
+              <button onClick={() => startCropping('path')} className="btn shape-btn" disabled={!imageLoaded}>
+                <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L8.5 19.5 2 22l2.5-6.5L17 3z"></path>
+                  <path d="M15 5l4 4"></path>
+                  <path d="M2 23h20"></path>
+                </svg>
+              </button>
               
               {isDrawingPolygon && !drawingObject && (
                 <button onClick={finishPolygonDrawing} className="btn btn--warning btn-full">描画完了</button>

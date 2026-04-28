@@ -276,6 +276,13 @@ html, body {
   font-size: 1.2rem;
   font-weight: bold;
 }
+
+.shape-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .adjustment-box button + button { margin-left: 8px; }
 
 .adjustment-box button.btn--auto-width {
