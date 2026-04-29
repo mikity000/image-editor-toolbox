@@ -125,6 +125,7 @@ html, body {
   text-transform: uppercase;
   background: -webkit-linear-gradient(var(--accent-color), var(--accent-secondary));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
