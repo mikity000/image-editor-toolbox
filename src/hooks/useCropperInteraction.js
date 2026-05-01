@@ -47,7 +47,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
       if (e.selected) {
         e.selected.forEach(obj => {
           if (obj.isDrawingTempCircle) {
-            obj.set({ fill: '#ffc107', strokeWidth: 2, stroke: '#000', radius: 5 });
+            obj.set({ fill: '#32cd32', strokeWidth: 1, stroke: '#000', radius: 5 });
             if (tempPointsRef.current && tempPointsRef.current.length >= 3) {
               const poly = new Polygon(tempPointsRef.current.map(p => ({ x: p.x, y: p.y })));
               const bounds = poly.getBoundingRect();

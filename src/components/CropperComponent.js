@@ -96,7 +96,7 @@ export default function CropperComponent() {
                     width: '12px',
                     height: '12px',
                     borderRadius: '50%',
-                    backgroundColor: 'rgba(255, 193, 7, 0.9)',
+                    backgroundColor: 'rgba(50, 205, 50, 0.9)',
                     border: '1px solid rgba(0, 0, 0, 0.6)',
                     transform: (() => {
                       const dx = activeVertexRatio.x - 0.5;
