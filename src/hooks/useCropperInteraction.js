@@ -8,8 +8,9 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
   const polygonPointsRef = useRef([]);
   const tempPointsRef = useRef([]);
   const [isDrawingPolygon, setIsDrawingPolygon] = useState(false);
-  const [adjustmentAmount] = useState(1); // 調整量（固定）
+  const [adjustmentAmount] = useState(1);
   const [autoCropCount, setAutoCropCount] = useState(0);
+  const [activeVertexRatio, setActiveVertexRatio] = useState(null);
 
   const triggerAutoCrop = useCallback(() => setAutoCropCount(c => c + 1), []);
 
@@ -39,6 +40,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
         e.deselected.forEach(obj => {
           if (obj.isDrawingTempCircle) {
             obj.set({ fill: 'red', strokeWidth: 0, radius: 5 });
+            setActiveVertexRatio(null);
           }
         });
       }
@@ -46,6 +48,13 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
         e.selected.forEach(obj => {
           if (obj.isDrawingTempCircle) {
             obj.set({ fill: '#ffc107', strokeWidth: 2, stroke: '#000', radius: 5 });
+            if (tempPointsRef.current && tempPointsRef.current.length >= 3) {
+              const poly = new Polygon(tempPointsRef.current.map(p => ({ x: p.x, y: p.y })));
+              const bounds = poly.getBoundingRect();
+              const cx = obj.left + obj.radius;
+              const cy = obj.top + obj.radius;
+              setActiveVertexRatio({ x: (cx - bounds.left) / bounds.width, y: (cy - bounds.top) / bounds.height });
+            }
           }
         });
       }
@@ -102,6 +111,15 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
          if (pt.lineIn) pt.lineIn.set({ x2: pt.x, y2: pt.y });
          if (pt.lineOut) pt.lineOut.set({ x1: pt.x, y1: pt.y });
          polygonPointsRef.current = tempPoints.map(p => ({ x: p.x, y: p.y }));
+         
+         if (tempPointsRef.current && tempPointsRef.current.length >= 3) {
+           const poly = new Polygon(tempPointsRef.current.map(p => ({ x: p.x, y: p.y })));
+           const bounds = poly.getBoundingRect();
+           const cx = target.left + target.radius;
+           const cy = target.top + target.radius;
+           setActiveVertexRatio({ x: (cx - bounds.left) / bounds.width, y: (cy - bounds.top) / bounds.height });
+         }
+         
          canvas.renderAll();
       } else if (target.isCroppingShape) {
          clampMoveToImageBounds(target, canvas);
@@ -284,6 +302,15 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
       if (pt.lineIn) pt.lineIn.set({ x2: pt.x, y2: pt.y });
       if (pt.lineOut) pt.lineOut.set({ x1: pt.x, y1: pt.y });
       polygonPointsRef.current = tempPointsRef.current.map(p => ({ x: p.x, y: p.y }));
+      
+      if (tempPointsRef.current && tempPointsRef.current.length >= 3) {
+        const poly = new Polygon(tempPointsRef.current.map(p => ({ x: p.x, y: p.y })));
+        const bounds = poly.getBoundingRect();
+        const finalCx = activeObj.left + activeObj.radius;
+        const finalCy = activeObj.top + activeObj.radius;
+        setActiveVertexRatio({ x: (finalCx - bounds.left) / bounds.width, y: (finalCy - bounds.top) / bounds.height });
+      }
+
       canvas.renderAll();
       triggerAutoCrop();
     }
@@ -359,6 +386,34 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     triggerAutoCrop();
   }, [drawingObject, adjustmentAmount, fabricCanvasRef, triggerAutoCrop]);
 
+  const selectVertexAtPosition = useCallback((x, y) => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+
+    const circles = canvas.getObjects().filter(obj => obj.isDrawingTempCircle);
+    if (circles.length === 0) return;
+
+    let closestCircle = null;
+    let minDistance = Infinity;
+
+    circles.forEach(circle => {
+      const cx = circle.left + circle.radius;
+      const cy = circle.top + circle.radius;
+      const dist = Math.sqrt(Math.pow(cx - x, 2) + Math.pow(cy - y, 2));
+
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestCircle = circle;
+      }
+    });
+
+    // しきい値（半径20ピクセル以内）を満たす場合のみ選択
+    if (closestCircle && minDistance <= 20) {
+      canvas.setActiveObject(closestCircle);
+      canvas.renderAll();
+    }
+  }, [fabricCanvasRef]);
+
   const reset = useCallback(() => {
     const canvas = fabricCanvasRef.current;
     if (canvas) {
@@ -380,7 +435,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
   }, [fabricCanvasRef, setCroppedImageUrl]);
 
   return {
-    croppingMode, drawingObject, isDrawingPolygon, autoCropCount,
-    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, getTempPolygon, reset
+    croppingMode, drawingObject, isDrawingPolygon, autoCropCount, activeVertexRatio,
+    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, getTempPolygon, selectVertexAtPosition, reset
   };
 }

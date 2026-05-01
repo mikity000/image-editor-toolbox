@@ -15,11 +15,32 @@ export default function CropperComponent() {
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
 
   const {
-    croppingMode, drawingObject, isDrawingPolygon, autoCropCount,
-    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, getTempPolygon, reset
+    croppingMode, drawingObject, isDrawingPolygon, autoCropCount, activeVertexRatio,
+    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, getTempPolygon, selectVertexAtPosition, reset
   } = useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedImageUrl, pathSmoothing);
 
   const { crop } = useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCroppedImageUrl);
+
+  const handleCroppedImageClick = (e) => {
+    if (!isDrawingPolygon) return;
+
+    const rect = e.target.getBoundingClientRect();
+    const xRatio = (e.clientX - rect.left) / rect.width;
+    const yRatio = (e.clientY - rect.top) / rect.height;
+
+    let targetObj = drawingObject;
+    if (!targetObj && isDrawingPolygon) {
+      targetObj = getTempPolygon();
+    }
+    
+    if (targetObj) {
+      const bounds = targetObj.getBoundingRect();
+      const canvasX = bounds.left + xRatio * bounds.width;
+      const canvasY = bounds.top + yRatio * bounds.height;
+      
+      selectVertexAtPosition(canvasX, canvasY);
+    }
+  };
 
   useEffect(() => {
     if (autoCropCount > 0) {
@@ -59,7 +80,36 @@ export default function CropperComponent() {
           {croppedImageUrl && (
             <div className="result-container">
               <h2 className="result-title">トリミング結果</h2>
-              <img src={croppedImageUrl} alt="Cropped Result" id="croppedResult" />
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <img 
+                  src={croppedImageUrl} 
+                  alt="Cropped Result" 
+                  id="croppedResult" 
+                  onClick={handleCroppedImageClick}
+                  style={{ display: 'block' }}
+                />
+                {isDrawingPolygon && activeVertexRatio && (
+                  <div style={{
+                    position: 'absolute',
+                    left: `${activeVertexRatio.x * 100}%`,
+                    top: `${activeVertexRatio.y * 100}%`,
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(255, 193, 7, 0.9)',
+                    border: '1px solid rgba(0, 0, 0, 0.6)',
+                    transform: (() => {
+                      const dx = activeVertexRatio.x - 0.5;
+                      const dy = activeVertexRatio.y - 0.5;
+                      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                      return `translate(calc(-50% + ${(dx / len) * 50}%), calc(-50% + ${(dy / len) * 50}%))`;
+                    })(),
+                    pointerEvents: 'none',
+                    boxShadow: '0 0 4px rgba(255, 255, 255, 0.8)',
+                    zIndex: 10
+                  }} />
+                )}
+              </div>
               <div>
                 <a href={croppedImageUrl} download="cropped_image.png" className="btn download-btn">画像をダウンロード</a>
               </div>
