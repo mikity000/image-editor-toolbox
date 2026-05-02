@@ -93,6 +93,30 @@ export default function CombinerComponent() {
     setImageList(fabricCanvas.getObjects());
   };
 
+  const adjustLayer = (action) => {
+    if (!fabricCanvas) return;
+    const activeObjs = fabricCanvas.getActiveObjects();
+    if (!activeObjs.length) return;
+
+    const objects = fabricCanvas.getObjects();
+    // 現在のインデックス順（背面→前面）にソート
+    activeObjs.sort((a, b) => objects.indexOf(a) - objects.indexOf(b));
+
+    if (action === 'front') {
+      activeObjs.forEach(obj => fabricCanvas.bringObjectToFront(obj));
+    } else if (action === 'back') {
+      [...activeObjs].reverse().forEach(obj => fabricCanvas.sendObjectToBack(obj));
+    } else if (action === 'forward') {
+      [...activeObjs].reverse().forEach(obj => fabricCanvas.bringObjectForward(obj));
+    } else if (action === 'backward') {
+      activeObjs.forEach(obj => fabricCanvas.sendObjectBackwards(obj));
+    }
+
+    fabricCanvas.requestRenderAll();
+    saveState();
+    setImageList([...fabricCanvas.getObjects()]);
+  };
+
   const download = () => {
     if (!fabricCanvas) return;
     const imageObjects = fabricCanvas.getObjects();
@@ -188,7 +212,15 @@ export default function CombinerComponent() {
             <div className="button-group sidebar-buttons">
               <button className="btn" onClick={undo}>Undo</button>
               <button className="btn" onClick={redo}>Redo</button>
-              <button className="btn btn--danger btn-full" onClick={deleteSelected}>選択画像削除</button>
+
+              <div className="btn-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%', marginTop: '8px' }}>
+                <button className="btn" style={{ whiteSpace: 'nowrap' }} onClick={() => adjustLayer('front')}>最前面へ</button>
+                <button className="btn" style={{ whiteSpace: 'nowrap' }} onClick={() => adjustLayer('forward')}>前面へ</button>
+                <button className="btn" style={{ whiteSpace: 'nowrap' }} onClick={() => adjustLayer('backward')}>背面へ</button>
+                <button className="btn" style={{ whiteSpace: 'nowrap' }} onClick={() => adjustLayer('back')}>最背面へ</button>
+              </div>
+
+              <button className="btn btn--danger btn-full" style={{marginTop: '10px'}} onClick={deleteSelected}>選択画像削除</button>
               <button className="btn btn--success btn-full" onClick={download}>ダウンロード</button>
             </div>
 
