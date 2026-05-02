@@ -2,6 +2,16 @@ import { useState, useCallback, useRef } from 'react';
 import { Rect, Circle, Polygon, Line, Point, util, PencilBrush } from 'fabric';
 import { clampMoveToImageBounds, clampScaleToImageBounds, clampPointToImageBounds } from '../utils/fabricBounds';
 
+const getDistanceToSegment = (p, v, w) => {
+  const l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
+  if (l2 === 0) return Math.sqrt(Math.pow(p.x - v.x, 2) + Math.pow(p.y - v.y, 2));
+  let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+  t = Math.max(0, Math.min(1, t));
+  const projX = v.x + t * (w.x - v.x);
+  const projY = v.y + t * (w.y - v.y);
+  return Math.sqrt(Math.pow(p.x - projX, 2) + Math.pow(p.y - projY, 2));
+};
+
 export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedImageUrl, pathSmoothing = 8) {
   const [croppingMode, setCroppingMode] = useState(null);
   const [drawingObject, setDrawingObject] = useState(null);
@@ -69,27 +79,50 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     let tempPoints = [];
     tempPointsRef.current = tempPoints;
 
-    if (mode === 'polygon' && initialPolygonPoints.length > 0) {
-       initialPolygonPoints.forEach((p, index) => {
-          const ptObj = { x: p.x, y: p.y };
-          tempPoints.push(ptObj);
-          if (index > 0) {
-             const prev = tempPoints[index - 1];
-             const line = new Line([prev.x, prev.y, p.x, p.y], {
-                 stroke: 'red', strokeWidth: 2, selectable: false, evented: false, isDrawingTemp: true
-             });
-             prev.lineOut = line;
-             ptObj.lineIn = line;
-             canvas.add(line);
-          }
-          const circle = new Circle({
-              radius: 5, fill: 'red', left: p.x - 5, top: p.y - 5,
-              selectable: true, evented: true, hasControls: false, hasBorders: false, hoverCursor: 'pointer',
-              isDrawingTemp: true, isDrawingTempCircle: true, pointIndex: index
+    const rebuildTempShapes = () => {
+      canvas.getObjects().forEach(obj => { if (obj.isDrawingTemp) canvas.remove(obj); });
+      
+      tempPoints.forEach(p => {
+        p.lineIn = null; p.lineOut = null; p.circle = null; p.closingLine = null; p.closingLineIn = null;
+      });
+
+      tempPoints.forEach((p, index) => {
+        if (index > 0) {
+          const prev = tempPoints[index - 1];
+          const line = new Line([prev.x, prev.y, p.x, p.y], {
+              stroke: 'red', strokeWidth: 2, selectable: false, evented: false, isDrawingTemp: true
           });
-          ptObj.circle = circle;
-          canvas.add(circle);
-       });
+          prev.lineOut = line;
+          p.lineIn = line;
+          canvas.add(line);
+        }
+        const circle = new Circle({
+            radius: 5, fill: 'red', left: p.x - 5, top: p.y - 5,
+            selectable: true, evented: true, hasControls: false, hasBorders: false, hoverCursor: 'pointer',
+            isDrawingTemp: true, isDrawingTempCircle: true, pointIndex: index
+        });
+        p.circle = circle;
+        canvas.add(circle);
+      });
+
+      if (tempPoints.length >= 3) {
+        const first = tempPoints[0];
+        const last = tempPoints[tempPoints.length - 1];
+        const line = new Line([last.x, last.y, first.x, first.y], {
+            stroke: 'red', strokeWidth: 2, strokeDashArray: [5, 5], selectable: false, evented: false, isDrawingTemp: true
+        });
+        last.closingLine = line;
+        first.closingLineIn = line;
+        canvas.add(line);
+      }
+
+      polygonPointsRef.current = tempPoints.map(p => ({ x: p.x, y: p.y }));
+    };
+
+    if (mode === 'polygon' && initialPolygonPoints.length > 0) {
+       tempPoints = initialPolygonPoints.map(p => ({ x: p.x, y: p.y }));
+       tempPointsRef.current = tempPoints;
+       rebuildTempShapes();
     }
 
     canvas.on('object:moving', (e) => {
@@ -110,6 +143,8 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
          pt.y = clamped.y;
          if (pt.lineIn) pt.lineIn.set({ x2: pt.x, y2: pt.y });
          if (pt.lineOut) pt.lineOut.set({ x1: pt.x, y1: pt.y });
+         if (pt.closingLine) pt.closingLine.set({ x1: pt.x, y1: pt.y });
+         if (pt.closingLineIn) pt.closingLineIn.set({ x2: pt.x, y2: pt.y });
          polygonPointsRef.current = tempPoints.map(p => ({ x: p.x, y: p.y }));
          
          if (tempPointsRef.current && tempPointsRef.current.length >= 3) {
@@ -176,26 +211,27 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
         
         const clampedPointer = clampPointToImageBounds({ x: pointer.x, y: pointer.y }, canvas);
         const ptObj = { x: clampedPointer.x, y: clampedPointer.y };
-        tempPoints.push(ptObj);
-        const index = tempPoints.length - 1;
-        if (index > 0) {
-            const prevPoint = tempPoints[index - 1];
-            const line = new Line([prevPoint.x, prevPoint.y, ptObj.x, ptObj.y], {
-                stroke: 'red', strokeWidth: 2, selectable: false, evented: false, isDrawingTemp: true
-            });
-            prevPoint.lineOut = line;
-            ptObj.lineIn = line;
-            canvas.add(line);
-        }
-        const circle = new Circle({
-            radius: 5, fill: 'red', left: clampedPointer.x - 5, top: clampedPointer.y - 5,
-            selectable: true, evented: true, hasControls: false, hasBorders: false, hoverCursor: 'pointer',
-            isDrawingTemp: true, isDrawingTempCircle: true, pointIndex: index
-        });
-        ptObj.circle = circle;
-        canvas.add(circle);
         
-        polygonPointsRef.current = tempPoints.map(p => ({ x: p.x, y: p.y }));
+        let insertIndex = tempPoints.length; // デフォルトは末尾に追加
+
+        if (tempPoints.length >= 2) {
+          let minDist = 15; // しきい値
+          for (let i = 0; i < tempPoints.length; i++) {
+            // 頂点が2つしかない場合、閉じる線は存在しないのでスキップ
+            if (i === tempPoints.length - 1 && tempPoints.length < 3) continue;
+
+            const p1 = tempPoints[i];
+            const p2 = tempPoints[(i + 1) % tempPoints.length];
+            const d = getDistanceToSegment(clampedPointer, p1, p2);
+            if (d < minDist) {
+              minDist = d;
+              insertIndex = i + 1;
+            }
+          }
+        }
+
+        tempPoints.splice(insertIndex, 0, ptObj);
+        rebuildTempShapes();
         return;
       }
 
@@ -301,6 +337,8 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
       pt.y = clamped.y;
       if (pt.lineIn) pt.lineIn.set({ x2: pt.x, y2: pt.y });
       if (pt.lineOut) pt.lineOut.set({ x1: pt.x, y1: pt.y });
+      if (pt.closingLine) pt.closingLine.set({ x1: pt.x, y1: pt.y });
+      if (pt.closingLineIn) pt.closingLineIn.set({ x2: pt.x, y2: pt.y });
       polygonPointsRef.current = tempPointsRef.current.map(p => ({ x: p.x, y: p.y }));
       
       if (tempPointsRef.current && tempPointsRef.current.length >= 3) {
