@@ -215,7 +215,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
         let insertIndex = tempPoints.length; // デフォルトは末尾に追加
 
         if (tempPoints.length >= 2) {
-          let minDist = 15; // しきい値
+          let minDist = 10; // しきい値
           for (let i = 0; i < tempPoints.length; i++) {
             // 頂点が2つしかない場合、閉じる線は存在しないのでスキップ
             if (i === tempPoints.length - 1 && tempPoints.length < 3) continue;
@@ -232,6 +232,9 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
 
         tempPoints.splice(insertIndex, 0, ptObj);
         rebuildTempShapes();
+        if (tempPoints.length >= 3) {
+          triggerAutoCrop();
+        }
         return;
       }
 
@@ -359,10 +362,6 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     if (!canvas) return;
     const activeObj = canvas.getActiveObject();
     if (activeObj && activeObj.isDrawingTempCircle) {
-      if (tempPointsRef.current.length <= 3) {
-        alert('多角形として成立させるため、最低3つの頂点が必要です。');
-        return;
-      }
       const idx = activeObj.pointIndex;
       const updatedPoints = tempPointsRef.current
         .filter((_, i) => i !== idx)
