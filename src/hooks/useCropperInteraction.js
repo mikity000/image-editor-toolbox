@@ -20,7 +20,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
   const [isDrawingPolygon, setIsDrawingPolygon] = useState(false);
   const [adjustmentAmount] = useState(1);
   const [autoCropCount, setAutoCropCount] = useState(0);
-  const [activeVertexRatio, setActiveVertexRatio] = useState(null);
+  const [activeVertexPos, setActiveVertexPos] = useState(null);
 
   const triggerAutoCrop = useCallback(() => setAutoCropCount(c => c + 1), []);
 
@@ -33,7 +33,9 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
 
-    canvas.getObjects().forEach(obj => canvas.remove(obj));
+    canvas.getObjects().forEach(obj => {
+      if (obj.isDrawingTemp || obj.isDrawingTempCircle) canvas.remove(obj);
+    });
     canvas.off('mouse:down');
     canvas.off('mouse:move');
     canvas.off('mouse:up');
@@ -50,23 +52,27 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
         e.deselected.forEach(obj => {
           if (obj.isDrawingTempCircle) {
             obj.set({ fill: 'red', strokeWidth: 0, radius: 5 });
-            setActiveVertexRatio(null);
+            setActiveVertexPos(null);
           }
         });
       }
-      if (e.selected) {
+      if (e.selected && e.selected.length > 0) {
+        const obj = e.selected[0];
+        if (obj.isCroppingShape) {
+          setDrawingObject(obj);
+        }
         e.selected.forEach(obj => {
           if (obj.isDrawingTempCircle) {
             obj.set({ fill: '#32cd32', strokeWidth: 1, stroke: '#000', radius: 5 });
             if (tempPointsRef.current && tempPointsRef.current.length >= 3) {
-              const poly = new Polygon(tempPointsRef.current.map(p => ({ x: p.x, y: p.y })));
-              const bounds = poly.getBoundingRect();
               const cx = obj.left + obj.radius;
               const cy = obj.top + obj.radius;
-              setActiveVertexRatio({ x: (cx - bounds.left) / bounds.width, y: (cy - bounds.top) / bounds.height });
+              setActiveVertexPos({ x: cx, y: cy });
             }
           }
         });
+      } else if (!canvas.getActiveObject()) {
+        setDrawingObject(null);
       }
     };
 
@@ -148,11 +154,9 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
          polygonPointsRef.current = tempPoints.map(p => ({ x: p.x, y: p.y }));
          
          if (tempPointsRef.current && tempPointsRef.current.length >= 3) {
-           const poly = new Polygon(tempPointsRef.current.map(p => ({ x: p.x, y: p.y })));
-           const bounds = poly.getBoundingRect();
-           const cx = target.left + target.radius;
-           const cy = target.top + target.radius;
-           setActiveVertexRatio({ x: (cx - bounds.left) / bounds.width, y: (cy - bounds.top) / bounds.height });
+            const cx = target.left + target.radius;
+            const cy = target.top + target.radius;
+            setActiveVertexPos({ x: cx, y: cy });
          }
          
          canvas.renderAll();
@@ -200,8 +204,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
 
     canvas.on('mouse:down', (options) => {
       if (!imageLoaded) return;
-      const hasCroppingShape = canvas.getObjects().some(o => o.isCroppingShape);
-      if (hasCroppingShape) return;
+      if (options.target && options.target.isCroppingShape) return;
 
       const pointer = canvas.getPointer(options.e);
 
@@ -268,6 +271,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     canvas.on('mouse:up', () => {
       if (currentShape && mode !== 'polygon') {
         currentShape.setCoords();
+        canvas.setActiveObject(currentShape);
         setDrawingObject(currentShape);
         currentShape = null;
         triggerAutoCrop();
@@ -283,7 +287,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     }
 
     const objects = canvas.getObjects();
-    objects.forEach(obj => { if (obj.isDrawingTemp) canvas.remove(obj); });
+    objects.forEach(obj => { if (obj.isDrawingTemp || obj.isDrawingTempCircle) canvas.remove(obj); });
 
     const polygon = new Polygon(polygonPointsRef.current, {
       fill: 'transparent', stroke: 'red', strokeWidth: 1, strokeUniform: true,
@@ -296,6 +300,12 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     canvas.setActiveObject(polygon);
     setDrawingObject(polygon);
     setIsDrawingPolygon(false);
+    setCroppingMode(null);
+
+    canvas.off('mouse:down');
+    canvas.off('mouse:move');
+    canvas.off('mouse:up');
+
     triggerAutoCrop();
   }, [fabricCanvasRef, triggerAutoCrop]);
 
@@ -309,8 +319,14 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
         const absPoint = util.transformPoint(localPoint, matrix);
         return { x: absPoint.x, y: absPoint.y };
     });
+
+    const canvas = fabricCanvasRef.current;
+    if (canvas) {
+      canvas.remove(drawingObject);
+    }
+
     startCropping('polygon', absolutePoints);
-  }, [drawingObject, startCropping]);
+  }, [drawingObject, startCropping, fabricCanvasRef]);
 
   const getTempPolygon = useCallback(() => {
     if (tempPointsRef.current && tempPointsRef.current.length >= 3) {
@@ -345,11 +361,9 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
       polygonPointsRef.current = tempPointsRef.current.map(p => ({ x: p.x, y: p.y }));
       
       if (tempPointsRef.current && tempPointsRef.current.length >= 3) {
-        const poly = new Polygon(tempPointsRef.current.map(p => ({ x: p.x, y: p.y })));
-        const bounds = poly.getBoundingRect();
         const finalCx = activeObj.left + activeObj.radius;
         const finalCy = activeObj.top + activeObj.radius;
-        setActiveVertexRatio({ x: (finalCx - bounds.left) / bounds.width, y: (finalCy - bounds.top) / bounds.height });
+        setActiveVertexPos({ x: finalCx, y: finalCy });
       }
 
       canvas.renderAll();
@@ -372,6 +386,20 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     }
   }, [fabricCanvasRef, startCropping, triggerAutoCrop]);
 
+  const deleteActiveShape = useCallback(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+    const activeObjects = canvas.getActiveObjects();
+    if (activeObjects.length > 0) {
+      activeObjects.forEach(obj => {
+        if (obj.isCroppingShape) canvas.remove(obj);
+      });
+      canvas.discardActiveObject();
+      setDrawingObject(null);
+      triggerAutoCrop();
+    }
+  }, [fabricCanvasRef, triggerAutoCrop]);
+
   const adjustCroppingShape = useCallback((side, direction) => {
     if (!drawingObject) return;
     const canvas = fabricCanvasRef.current;
@@ -381,6 +409,11 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     let scaleY = drawingObject.scaleY || 1;
     let left = drawingObject.left;
     let top = drawingObject.top;
+
+    const oldScaleX = scaleX;
+    const oldScaleY = scaleY;
+    const oldLeft = left;
+    const oldTop = top;
 
     // オブジェクトのベースとなる幅と高さを取得（スケール前の純粋なサイズ）
     const baseW = drawingObject.width || (drawingObject.rx ? drawingObject.rx * 2 : drawingObject.radius * 2);
@@ -419,6 +452,23 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     // setActiveObjectやsetの後にCoordsを更新させる
     const activeObj = canvas.getActiveObject() || drawingObject;
     if (activeObj) activeObj.setCoords();
+
+    const image = canvas.backgroundImage;
+    if (image) {
+      const bounds = drawingObject.getBoundingRect();
+      const imageLeft = image.left;
+      const imageTop = image.top;
+      const imageWidth = image.getScaledWidth();
+      const imageHeight = image.getScaledHeight();
+
+      if (bounds.left < imageLeft || bounds.top < imageTop || 
+          bounds.left + bounds.width > imageLeft + imageWidth || 
+          bounds.top + bounds.height > imageTop + imageHeight) {
+        drawingObject.set({ left: oldLeft, top: oldTop, scaleX: oldScaleX, scaleY: oldScaleY });
+        if (activeObj) activeObj.setCoords();
+      }
+    }
+
     canvas.renderAll();
     triggerAutoCrop();
   }, [drawingObject, adjustmentAmount, fabricCanvasRef, triggerAutoCrop]);
@@ -472,7 +522,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
   }, [fabricCanvasRef, setCroppedImageUrl]);
 
   return {
-    croppingMode, drawingObject, isDrawingPolygon, autoCropCount, activeVertexRatio,
-    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, getTempPolygon, selectVertexAtPosition, reset
+    croppingMode, drawingObject, isDrawingPolygon, autoCropCount, activeVertexPos,
+    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, deleteActiveShape, getTempPolygon, selectVertexAtPosition, reset
   };
 }

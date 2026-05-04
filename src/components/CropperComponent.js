@@ -9,17 +9,19 @@ export default function CropperComponent() {
   const fabricCanvasRef = useRef(null);
   const [croppedImageUrl, setCroppedImageUrl] = useState(null);
   const [pathSmoothing, setPathSmoothing] = useState(20);
+  const [invertCrop, setInvertCrop] = useState(false);
+  const [exportBoundsCanvas, setExportBoundsCanvas] = useState(null);
   
   const { imageLoaded, uploadImage } = useImageUpload(fabricCanvasRef, setCroppedImageUrl);
 
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
 
   const {
-    croppingMode, drawingObject, isDrawingPolygon, autoCropCount, activeVertexRatio,
-    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, getTempPolygon, selectVertexAtPosition, reset
+    croppingMode, drawingObject, isDrawingPolygon, autoCropCount, activeVertexPos,
+    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, deleteActiveShape, getTempPolygon, selectVertexAtPosition, reset
   } = useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedImageUrl, pathSmoothing);
 
-  const { crop } = useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCroppedImageUrl);
+  const { crop } = useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCroppedImageUrl, invertCrop, setExportBoundsCanvas);
 
   const handleCroppedImageClick = (e) => {
     if (!isDrawingPolygon) return;
@@ -28,15 +30,9 @@ export default function CropperComponent() {
     const xRatio = (e.clientX - rect.left) / rect.width;
     const yRatio = (e.clientY - rect.top) / rect.height;
 
-    let targetObj = drawingObject;
-    if (!targetObj && isDrawingPolygon) {
-      targetObj = getTempPolygon();
-    }
-    
-    if (targetObj) {
-      const bounds = targetObj.getBoundingRect();
-      const canvasX = bounds.left + xRatio * bounds.width;
-      const canvasY = bounds.top + yRatio * bounds.height;
+    if (exportBoundsCanvas) {
+      const canvasX = exportBoundsCanvas.left + xRatio * exportBoundsCanvas.width;
+      const canvasY = exportBoundsCanvas.top + yRatio * exportBoundsCanvas.height;
       
       selectVertexAtPosition(canvasX, canvasY);
     }
@@ -44,14 +40,18 @@ export default function CropperComponent() {
 
   useEffect(() => {
     if (autoCropCount > 0) {
-      if (drawingObject) {
-        crop();
-      } else if (isDrawingPolygon) {
+      if (isDrawingPolygon) {
         const tempPoly = getTempPolygon();
-        if (tempPoly) crop(tempPoly);
+        if (tempPoly) {
+          crop(tempPoly);
+        } else {
+          crop();
+        }
+      } else {
+        crop();
       }
     }
-  }, [autoCropCount, drawingObject, isDrawingPolygon, crop, getTempPolygon]);
+  }, [autoCropCount, isDrawingPolygon, crop, getTempPolygon]);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -88,19 +88,21 @@ export default function CropperComponent() {
                   onClick={handleCroppedImageClick}
                   style={{ display: 'block' }}
                 />
-                {isDrawingPolygon && activeVertexRatio && (
+                {isDrawingPolygon && activeVertexPos && exportBoundsCanvas && (
                   <div style={{
                     position: 'absolute',
-                    left: `${activeVertexRatio.x * 100}%`,
-                    top: `${activeVertexRatio.y * 100}%`,
+                    left: `${((activeVertexPos.x - exportBoundsCanvas.left) / exportBoundsCanvas.width) * 100}%`,
+                    top: `${((activeVertexPos.y - exportBoundsCanvas.top) / exportBoundsCanvas.height) * 100}%`,
                     width: '12px',
                     height: '12px',
                     borderRadius: '50%',
                     backgroundColor: 'rgba(50, 205, 50, 0.9)',
                     border: '1px solid rgba(0, 0, 0, 0.6)',
                     transform: (() => {
-                      const dx = activeVertexRatio.x - 0.5;
-                      const dy = activeVertexRatio.y - 0.5;
+                      const ratioX = (activeVertexPos.x - exportBoundsCanvas.left) / exportBoundsCanvas.width;
+                      const ratioY = (activeVertexPos.y - exportBoundsCanvas.top) / exportBoundsCanvas.height;
+                      const dx = ratioX - 0.5;
+                      const dy = ratioY - 0.5;
                       const len = Math.sqrt(dx * dx + dy * dy) || 1;
                       return `translate(calc(-50% + ${(dx / len) * 50}%), calc(-50% + ${(dy / len) * 50}%))`;
                     })(),
@@ -121,6 +123,17 @@ export default function CropperComponent() {
           <div className="sidebar-sticky-content">
             <div className="file-input">
               <input type="file" accept="image/*" className="file-input__control" onClick={e => e.target.value = null} onChange={uploadImage} />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+              <input 
+                type="checkbox" 
+                id="invertCropCheckbox"
+                checked={invertCrop} 
+                onChange={(e) => setInvertCrop(e.target.checked)}
+                style={{ cursor: 'pointer', width: '18px', height: '18px', accentColor: '#66fcf1' }}
+              />
+              <label htmlFor="invertCropCheckbox" style={{ cursor: 'pointer', color: '#c5c6c7', fontSize: '0.95rem', userSelect: 'none' }}>外側を切り取る</label>
             </div>
 
             <div className="button-group sidebar-buttons">
@@ -151,14 +164,18 @@ export default function CropperComponent() {
                 <button onClick={finishPolygonDrawing} className="btn btn--warning btn-full">描画完了</button>
               )}
               
-              {drawingObject && croppingMode === 'polygon' && (
+              {drawingObject && drawingObject.type === 'polygon' && (
                 <button onClick={editPolygonVertices} className="btn btn--warning btn-full">頂点を再編集</button>
               )}
               
+              {drawingObject && (
+                <button onClick={deleteActiveShape} className="btn btn--danger btn-full">削除</button>
+              )}
+
               <button onClick={reset} className="btn btn--danger btn-full">リセット</button>
             </div>
 
-            {croppingMode === 'path' && (
+            {drawingObject && drawingObject.type === 'path' && (
               <div className="slider-group">
                 <label>曲線の滑らかさ補正</label>
                 <input type="range" min="0" max="50" value={pathSmoothing}
@@ -169,13 +186,13 @@ export default function CropperComponent() {
               </div>
             )}
 
-            {croppingMode && croppingMode !== 'polygon' && croppingMode !== 'path' && (
+            {drawingObject && drawingObject.type !== 'polygon' && drawingObject.type !== 'path' && (
               <div className="adjustment-controls">
-                <h3>トリミング枠の調整</h3>
+                <h3>選択中の図形の調整</h3>
                 <div className="adjustment-group">
-                  {['top', 'left', 'right', 'bottom'].map((side) => (
+                  {['top', 'right', 'left', 'bottom'].map((side) => (
                     <div key={side} className="adjustment-box">
-                      <h4>{{ 'top': '上辺', 'left': '左辺', 'right': '右辺', 'bottom': '下辺' }[side]}</h4>
+                      <h4>{{ 'top': '上辺', 'right': '右辺', 'left': '左辺', 'bottom': '下辺' }[side]}</h4>
                       <button onClick={() => adjustCroppingShape(side, -0.5)} className="btn">-</button>
                       <button onClick={() => adjustCroppingShape(side, 0.5)} className="btn">+</button>
                     </div>
