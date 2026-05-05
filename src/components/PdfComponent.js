@@ -6,6 +6,7 @@ import { SortableContext, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { compressImage } from '../utils';
 import { usePdfGenerator } from '../hooks/usePdfGenerator';
+import { usePdfExtractor } from '../hooks/usePdfExtractor';
 
 export default function PdfComponent() {
   const [images, setImages] = useState([]);
@@ -15,6 +16,7 @@ export default function PdfComponent() {
   const [uploadProgress, setUploadProgress] = useState(0); // アップロード進捗
 
   const { generatePdf, isProcessing, progress: pdfProgress } = usePdfGenerator();
+  const { extractImagesFromPdf, isExtracting, extractProgress } = usePdfExtractor();
   // モバイル判定を navigator.userAgent とメディアクエリで判定
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
   const socketRef = useRef(null);
@@ -34,35 +36,48 @@ export default function PdfComponent() {
   //   emitListRef.current = emitListSync;
   // }, []);
 
-  const uploadImage = async (event) => {
+  const handleFileInput = async (event) => {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 
-    setIsUploading(true);
+    // PDFファイルと画像ファイルに分類
+    const pdfFiles = files.filter(f => f.type === 'application/pdf');
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
 
-    const totalFiles = files.length; // 総ファイル数
+    // PDFファイルの処理（順次抽出）
+    for (const pdfFile of pdfFiles) {
+      const extractedImages = await extractImagesFromPdf(pdfFile);
+      if (extractedImages.length > 0) {
+        setImages(prev => [...prev, ...extractedImages]);
+      }
+    }
 
-    // 並列に全ファイルを圧縮して Data URL に変換
-    let completed = 0;
-    const compressPromises = files.map((file) =>
-      compressImage(file).then((dataUrl) => ({
-        id: URL.createObjectURL(file),
-        file,
-        name: file.name,
-        dataUrl,
-      })).finally(() => {
-        completed++;
-        const progressValue = Math.round((completed / totalFiles) * 100); // 一時的な進捗
-        setUploadProgress(progressValue);
-      })
-    );
+    // 画像ファイルの処理
+    if (imageFiles.length > 0) {
+      setIsUploading(true);
+      const totalFiles = imageFiles.length; // 総ファイル数
 
-    const newImages = await Promise.all(compressPromises);
-    const updated = [...images, ...newImages];
-    setImages(updated);
-    //emitListRef.current?.(updated);
-    setIsUploading(false);
-    setUploadProgress(0); // 完了後に進捗をリセット
+      // 並列に全ファイルを圧縮して Data URL に変換
+      let completed = 0;
+      const compressPromises = imageFiles.map((file) =>
+        compressImage(file).then((dataUrl) => ({
+          id: URL.createObjectURL(file),
+          file,
+          name: file.name,
+          dataUrl,
+        })).finally(() => {
+          completed++;
+          const progressValue = Math.round((completed / totalFiles) * 100); // 一時的な進捗
+          setUploadProgress(progressValue);
+        })
+      );
+
+      const newImages = await Promise.all(compressPromises);
+      setImages(prev => [...prev, ...newImages]);
+      //emitListRef.current?.(updated);
+      setIsUploading(false);
+      setUploadProgress(0); // 完了後に進捗をリセット
+    }
   };
 
   // ドラッグ開始時の処理
@@ -122,15 +137,17 @@ export default function PdfComponent() {
     generatePdf(images);
   };
 
-  const currentProgress = isUploading ? uploadProgress : pdfProgress;
+  const isAnyLoading = isUploading || isProcessing || isExtracting;
+  const currentProgress = isUploading ? uploadProgress : (isExtracting ? extractProgress : pdfProgress);
+  const loadingText = isUploading ? '画像をアップロード中...' : (isExtracting ? 'PDFから画像を抽出中...' : 'PDFを生成中...');
 
   return (
     <div className="editor-container">
       {/* Loading Overlay */}
-      {(isUploading || isProcessing) && (
+      {isAnyLoading && (
         <div className="loading-overlay">
           <div className="loading-content">
-            <p>{isUploading ? '画像をアップロード中...' : 'PDFを生成中...'}</p>
+            <p>{loadingText}</p>
             <div className="progress-bar-container">
               <div className="progress-bar" style={{ width: `${currentProgress}%` }}></div>
             </div>
@@ -170,22 +187,22 @@ export default function PdfComponent() {
 
         <div className="cropper-sidebar">
           <div className="sidebar-sticky-content">
-            {/* ファイル入力セクション */}
+            {/* ファイル入力セクション（画像・PDF両対応） */}
             <div className="file-input">
-              <input type="file" accept="image/*" multiple className="file-input__control" disabled={isProcessing || isUploading}
-                onClick={e => e.target.value = null} onChange={uploadImage}
+              <input type="file" accept="image/*,application/pdf" multiple className="file-input__control" disabled={isAnyLoading}
+                onClick={e => e.target.value = null} onChange={handleFileInput}
               />
             </div>
 
             {/* 操作ボタン群 */}
             <div className="button-group sidebar-buttons">
-              <button onClick={deleteSelected} disabled={selectedImages.size === 0 || isProcessing || isUploading} className="btn btn--danger btn-full">
+              <button onClick={deleteSelected} disabled={selectedImages.size === 0 || isAnyLoading} className="btn btn--danger btn-full">
                 選択画像削除
               </button>
-              <button onClick={resetImages} disabled={images.length === 0 || isProcessing || isUploading} className="btn btn-full">
+              <button onClick={resetImages} disabled={images.length === 0 || isAnyLoading} className="btn btn-full">
                 リセット
               </button>
-              <button onClick={handleGeneratePdf} disabled={images.length === 0 || isProcessing || isUploading} className="btn btn--success btn-full">
+              <button onClick={handleGeneratePdf} disabled={images.length === 0 || isAnyLoading} className="btn btn--success btn-full">
                 {isProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
               </button>
             </div>
