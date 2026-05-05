@@ -31,7 +31,7 @@ export function useBasicShapeCropper(fabricCanvasRef, setDrawingObject, triggerA
       currentShape.setCoords();
 
       const bounds = currentShape.getBoundingRect();
-      if (Math.max(bounds.width, bounds.height) < 10) {
+      if (bounds.width < 10 || bounds.height < 10) {
         canvas.remove(currentShape);
         return;
       }

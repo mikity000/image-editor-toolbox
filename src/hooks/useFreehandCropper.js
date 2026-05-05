@@ -19,7 +19,7 @@ export function useFreehandCropper(fabricCanvasRef, setDrawingObject, triggerAut
       canvas.isDrawingMode = false;
 
       const bounds = pathObj.getBoundingRect();
-      if (Math.max(bounds.width, bounds.height) < 10) {
+      if (bounds.width < 10 || bounds.height < 10) {
         canvas.remove(pathObj);
         return;
       }
