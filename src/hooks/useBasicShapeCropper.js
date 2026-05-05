@@ -29,6 +29,13 @@ export function useBasicShapeCropper(fabricCanvasRef, setDrawingObject, triggerA
   const finishDrawing = useCallback((currentShape, canvas) => {
     if (currentShape) {
       currentShape.setCoords();
+
+      const bounds = currentShape.getBoundingRect();
+      if (Math.max(bounds.width, bounds.height) < 10) {
+        canvas.remove(currentShape);
+        return;
+      }
+
       canvas.setActiveObject(currentShape);
       setDrawingObject(currentShape);
       triggerAutoCrop();
