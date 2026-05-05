@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { Canvas, FabricImage, Rect, Circle, Ellipse, Polygon, Point, Path, util } from 'fabric';
 
-export function useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCroppedImageUrl, invertCrop = false, setExportBoundsCanvas) {
+export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = false, setExportBoundsCanvas) {
   const crop = useCallback(async (overrideObj = null) => {
     const canvas = fabricCanvasRef.current;
     const image = canvas.backgroundImage;
@@ -93,6 +93,7 @@ export function useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCr
     if (invertCrop) {
       tempCanvas.add(fullResImage);
       clipShapes.forEach(shape => {
+        shape.set({ stroke: 'black', strokeWidth: 2 });
         shape.globalCompositeOperation = 'destination-out';
         tempCanvas.add(shape);
       });
@@ -108,10 +109,42 @@ export function useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCr
 
     let exportLeft, exportTop, exportWidth, exportHeight;
     if (invertCrop) {
-      exportLeft = 0;
-      exportTop = 0;
-      exportWidth = originalImageWidth;
-      exportHeight = originalImageHeight;
+      // 完全透明以外は全部コンテンツとして扱う（外部関数で処理）
+      const renderedCanvas = tempCanvas.toCanvasElement();
+      const ctx = renderedCanvas.getContext('2d');
+      const imageData = ctx.getImageData(0, 0, originalImageWidth, originalImageHeight);
+      const data = imageData.data;
+      // 完全透明以外は全部コンテンツとして扱う
+      const ALPHA_THRESHOLD = 0;
+
+      let minX = originalImageWidth, minY = originalImageHeight, maxX = 0, maxY = 0;
+      let hasContent = false;
+
+      for (let y = 0; y < originalImageHeight; y++) {
+        for (let x = 0; x < originalImageWidth; x++) {
+          const alpha = data[(y * originalImageWidth + x) * 4 + 3];
+          if (alpha > ALPHA_THRESHOLD) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+            hasContent = true;
+          }
+        }
+      }
+
+      if (hasContent) {
+        exportLeft = minX;
+        exportTop = minY;
+        exportWidth = maxX - minX + 1;
+        exportHeight = maxY - minY + 1;
+      } else {
+        // 全体が透明になった場合（図形が画像全体を覆った場合）のフォールバック
+        exportLeft = 0;
+        exportTop = 0;
+        exportWidth = originalImageWidth;
+        exportHeight = originalImageHeight;
+      }
     } else {
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       clipShapes.forEach(s => {
@@ -127,8 +160,14 @@ export function useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCr
       exportWidth = Math.round(maxX - minX);
       exportHeight = Math.round(maxY - minY);
       
+      const origLeft = exportLeft;
       exportLeft = Math.max(0, exportLeft);
+      exportWidth -= (exportLeft - origLeft);
+
+      const origTop = exportTop;
       exportTop = Math.max(0, exportTop);
+      exportHeight -= (exportTop - origTop);
+
       if (exportLeft + exportWidth > originalImageWidth) exportWidth = originalImageWidth - exportLeft;
       if (exportTop + exportHeight > originalImageHeight) exportHeight = originalImageHeight - exportTop;
     }
@@ -152,7 +191,7 @@ export function useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCr
       });
     }
     tempCanvas.dispose();
-  }, [croppingMode, fabricCanvasRef, setCroppedImageUrl, invertCrop, setExportBoundsCanvas]);
+  }, [fabricCanvasRef, setCroppedImageUrl, invertCrop, setExportBoundsCanvas]);
 
   return { crop };
 }

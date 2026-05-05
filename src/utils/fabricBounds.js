@@ -5,8 +5,9 @@ export const clampMoveToImageBounds = (obj, canvas) => {
   const bgRight = bgLeft + bg.getScaledWidth(), bgBottom = bgTop + bg.getScaledHeight();
   const objWidth = obj.getScaledWidth(), objHeight = obj.getScaledHeight();
   
-  const clampedLeft = Math.min(Math.max(obj.left, bgLeft), bgRight - objWidth);
-  const clampedTop = Math.min(Math.max(obj.top, bgTop), bgBottom - objHeight);
+  const buffer = 1;
+  const clampedLeft = Math.min(Math.max(obj.left, bgLeft - buffer), bgRight - objWidth + buffer);
+  const clampedTop = Math.min(Math.max(obj.top, bgTop - buffer), bgBottom - objHeight + buffer);
   
   obj.set({ left: clampedLeft, top: clampedTop });
   obj.setCoords();
@@ -15,8 +16,9 @@ export const clampMoveToImageBounds = (obj, canvas) => {
 export const clampScaleToImageBounds = (obj, canvas) => {
   if (!canvas || !canvas.backgroundImage) return;
   const bg = canvas.backgroundImage;
-  const bgLeft = bg.left, bgTop = bg.top;
-  const bgWidth = bg.getScaledWidth(), bgHeight = bg.getScaledHeight();
+  const buffer = 1; // 移動処理と同じく1pxのバッファを追加して可動域を統一
+  const bgLeft = bg.left - buffer, bgTop = bg.top - buffer;
+  const bgWidth = bg.getScaledWidth() + buffer * 2, bgHeight = bg.getScaledHeight() + buffer * 2;
   const bgRight = bgLeft + bgWidth, bgBottom = bgTop + bgHeight;
 
   if (!obj._orig) {

@@ -453,17 +453,35 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     const activeObj = canvas.getActiveObject() || drawingObject;
     if (activeObj) activeObj.setCoords();
 
+    // 操作した辺が画像領域外にはみ出した場合、操作を元に戻す
     const image = canvas.backgroundImage;
     if (image) {
       const bounds = drawingObject.getBoundingRect();
-      const imageLeft = image.left;
-      const imageTop = image.top;
-      const imageWidth = image.getScaledWidth();
-      const imageHeight = image.getScaledHeight();
+      const imgLeft = image.left;
+      const imgTop = image.top;
+      const imgRight = imgLeft + image.getScaledWidth();
+      const imgBottom = imgTop + image.getScaledHeight();
+      const epsilon = 1.5; // 移動処理のバッファ(1px) + ストローク分(0.5px) に合わせる
 
-      if (bounds.left < imageLeft || bounds.top < imageTop || 
-          bounds.left + bounds.width > imageLeft + imageWidth || 
-          bounds.top + bounds.height > imageTop + imageHeight) {
+      let outOfBounds = false;
+
+      // 操作した辺だけをチェックする
+      switch (side) {
+        case 'left':
+          if (bounds.left < imgLeft - epsilon) outOfBounds = true;
+          break;
+        case 'right':
+          if (bounds.left + bounds.width > imgRight + epsilon) outOfBounds = true;
+          break;
+        case 'top':
+          if (bounds.top < imgTop - epsilon) outOfBounds = true;
+          break;
+        case 'bottom':
+          if (bounds.top + bounds.height > imgBottom + epsilon) outOfBounds = true;
+          break;
+      }
+
+      if (outOfBounds) {
         drawingObject.set({ left: oldLeft, top: oldTop, scaleX: oldScaleX, scaleY: oldScaleY });
         if (activeObj) activeObj.setCoords();
       }

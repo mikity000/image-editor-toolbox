@@ -21,7 +21,7 @@ export default function CropperComponent() {
     startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, deleteActiveShape, getTempPolygon, selectVertexAtPosition, reset
   } = useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedImageUrl, pathSmoothing);
 
-  const { crop } = useImageCrop(fabricCanvasRef, drawingObject, croppingMode, setCroppedImageUrl, invertCrop, setExportBoundsCanvas);
+  const { crop } = useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop, setExportBoundsCanvas);
 
   const handleCroppedImageClick = (e) => {
     if (!isDrawingPolygon) return;
