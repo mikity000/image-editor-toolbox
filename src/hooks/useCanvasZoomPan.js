@@ -20,7 +20,7 @@ export function useCanvasZoomPan(fabricCanvas, isMobile) {
         const evt = opt.e;
         let zoom = fabricCanvas.getZoom();
         zoom *= 0.999 ** evt.deltaY;
-        zoom = Math.min(Math.max(zoom, 0.1), 10);
+        zoom = Math.min(Math.max(zoom, 0.01), 10);
         const center = fabricCanvas.getCenter();
         fabricCanvas.zoomToPoint({ x: center.left, y: center.top }, zoom);
         setZoomLevel(zoom);
