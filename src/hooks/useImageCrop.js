@@ -1,7 +1,17 @@
-import { useCallback } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { Canvas, FabricImage, Rect, Circle, Ellipse, Polygon, Point, Path, util } from 'fabric';
 
 export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = false, setExportBoundsCanvas) {
+  const tempCanvasRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (tempCanvasRef.current) {
+        tempCanvasRef.current.dispose();
+      }
+    };
+  }, []);
+
   const crop = useCallback(async (overrideObj = null) => {
     const canvas = fabricCanvasRef.current;
     const image = canvas.backgroundImage;
@@ -23,10 +33,17 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
     const imageDisplayLeft = image.left;
     const imageDisplayTop = image.top;
 
-    const tempCanvas = new Canvas(null, {
-      width: originalImageWidth,
-      height: originalImageHeight,
-    });
+    if (!tempCanvasRef.current) {
+      const tempCanvasElement = document.createElement('canvas');
+      tempCanvasRef.current = new Canvas(tempCanvasElement);
+    }
+    const tempCanvas = tempCanvasRef.current;
+    
+    if (tempCanvas.width !== originalImageWidth || tempCanvas.height !== originalImageHeight) {
+      tempCanvas.setWidth(originalImageWidth);
+      tempCanvas.setHeight(originalImageHeight);
+    }
+    tempCanvas.clear();
 
     const fullResImage = new FabricImage(image._element, {
       left: 0, top: 0, selectable: false, evented: false,
@@ -190,7 +207,6 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
         height: exportHeight / scaleFactorY
       });
     }
-    tempCanvas.dispose();
   }, [fabricCanvasRef, setCroppedImageUrl, invertCrop, setExportBoundsCanvas]);
 
   return { crop };
