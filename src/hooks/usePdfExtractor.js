@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PDFDocument, PDFName } from 'pdf-lib';
+import { PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
 
 export function usePdfExtractor() {
   const [isExtracting, setIsExtracting] = useState(false);
@@ -17,7 +17,7 @@ export function usePdfExtractor() {
       
       const imageObjects = [];
       indirectObjects.forEach(([ref, obj]) => {
-        if (obj?.constructor?.name === 'PDFRawStream') {
+        if (obj instanceof PDFRawStream) {
           const dict = obj.dict;
           const subtype = dict.get(PDFName.of('Subtype'));
           const filter = dict.get(PDFName.of('Filter'));
