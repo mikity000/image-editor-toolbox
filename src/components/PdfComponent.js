@@ -7,6 +7,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { compressImage } from '../utils';
 import { usePdfGenerator } from '../hooks/usePdfGenerator';
 import { usePdfExtractor } from '../hooks/usePdfExtractor';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
 export default function PdfComponent() {
   const [images, setImages] = useState([]);
@@ -137,9 +139,32 @@ export default function PdfComponent() {
     generatePdf(images);
   };
 
-  const isAnyLoading = isUploading || isProcessing || isExtracting;
+  const [isZipping, setIsZipping] = useState(false);
+
+  const downloadAllImages = async () => {
+    if (images.length === 0) return;
+    setIsZipping(true);
+    try {
+      const zip = new JSZip();
+      for (let i = 0; i < images.length; i++) {
+        const image = images[i];
+        // dataUrl から Blob データを取得
+        const res = await fetch(image.dataUrl);
+        const blob = await res.blob();
+        zip.file(image.name, blob);
+      }
+      const content = await zip.generateAsync({ type: 'blob' });
+      saveAs(content, 'images.zip');
+    } catch (err) {
+      console.error('画像の一括ダウンロードに失敗しました:', err);
+    } finally {
+      setIsZipping(false);
+    }
+  };
+
+  const isAnyLoading = isUploading || isProcessing || isExtracting || isZipping;
   const currentProgress = isUploading ? uploadProgress : (isExtracting ? extractProgress : pdfProgress);
-  const loadingText = isUploading ? '画像をアップロード中...' : (isExtracting ? 'PDFから画像を抽出中...' : 'PDFを生成中...');
+  const loadingText = isUploading ? '画像をアップロード中...' : (isExtracting ? 'PDFから画像を抽出中...' : (isZipping ? '画像をZIPに圧縮中...' : 'PDFを生成中...'));
 
   return (
     <div className="editor-container">
@@ -204,6 +229,9 @@ export default function PdfComponent() {
               </button>
               <button onClick={handleGeneratePdf} disabled={images.length === 0 || isAnyLoading} className="btn btn--success btn-full">
                 {isProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
+              </button>
+              <button onClick={downloadAllImages} disabled={images.length === 0 || isAnyLoading} className="btn btn--success btn-full">
+                {isZipping ? 'ダウンロード準備中...' : '画像を一括DL'}
               </button>
             </div>
           </div>
