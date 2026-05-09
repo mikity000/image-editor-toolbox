@@ -36,7 +36,7 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
       const circle = new Circle({
           radius: 5, fill: 'red', left: p.x - 5, top: p.y - 5,
           selectable: true, evented: true, hasControls: false, hasBorders: false, hoverCursor: 'pointer',
-          isDrawingTemp: true, isDrawingTempCircle: true, pointIndex: index
+          isDrawingTemp: true, isDrawingTempCircle: true, pointIndex: index, padding: 7
       });
       p.circle = circle;
       canvas.add(circle);
