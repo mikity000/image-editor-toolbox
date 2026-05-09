@@ -18,6 +18,7 @@ export default function CropperComponent() {
 
   const {
     croppingMode, drawingObject, isDrawingPolygon, autoCropCount, activeVertexPos,
+    isMagneticMode, setIsMagneticMode, magneticThreshold, setMagneticThreshold,
     startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, deleteActiveShape, getTempPolygon, selectVertexAtPosition, reset
   } = useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedImageUrl, pathSmoothing);
 
@@ -161,7 +162,23 @@ export default function CropperComponent() {
               </button>
               
               {isDrawingPolygon && !drawingObject && (
-                <button onClick={finishPolygonDrawing} className="btn btn--warning btn-full">描画完了</button>
+                <>
+                  <div className="slider-group" style={{ gridColumn: '1 / -1', marginBottom: '8px', background: 'rgba(255, 255, 255, 0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)', display: 'block' }}>
+                    <label htmlFor="magneticModeCheckbox" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: '#c5c6c7', fontSize: '0.95rem', userSelect: 'none', margin: isMagneticMode ? '0 0 8px 0' : 0, width: '100%' }}>
+                      <input type="checkbox" id="magneticModeCheckbox" checked={isMagneticMode} onChange={(e) => setIsMagneticMode(e.target.checked)} style={{ cursor: 'pointer', width: '18px', height: '18px', accentColor: '#66fcf1' }} />
+                      吸着モード {isMagneticMode && <span style={{ marginLeft: 'auto', color: 'var(--accent-color)', fontWeight: 500 }}>感度: {magneticThreshold}</span>}
+                    </label>
+                    {isMagneticMode && (
+                      <div style={{ width: '100%', padding: '0 4px' }}>
+                        <input type="range" min="10" max="150" value={magneticThreshold}
+                          onChange={e => setMagneticThreshold(parseInt(e.target.value, 10))}
+                          style={{ '--thumb-percent': `${((magneticThreshold - 10) / 140) * 100}%`, width: '100%', margin: 0, display: 'block' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={finishPolygonDrawing} className="btn btn--warning btn-full" style={{ gridColumn: '1 / -1' }}>描画完了</button>
+                </>
               )}
               
               {drawingObject && drawingObject.type === 'polygon' && (
@@ -182,7 +199,7 @@ export default function CropperComponent() {
                   onChange={e => setPathSmoothing(parseInt(e.target.value, 10))}
                   style={{ '--thumb-percent': `${(pathSmoothing / 50) * 100}%` }}
                 />
-                <span>{pathSmoothing}</span>
+                <span className="slider-group__value">{pathSmoothing}</span>
               </div>
             )}
 

@@ -1,6 +1,7 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { Polygon, Line, Circle, Point, util } from 'fabric';
 import { clampPointToImageBounds } from '../utils/fabricBounds';
+import { initEdgeDetectionCanvas, clearEdgeDetectionCanvas, findClosestEdge } from '../utils/edgeDetection';
 
 const getDistanceToSegment = (p, v, w) => {
   const l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
@@ -12,9 +13,41 @@ const getDistanceToSegment = (p, v, w) => {
   return Math.sqrt(Math.pow(p.x - projX, 2) + Math.pow(p.y - projY, 2));
 };
 
-export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAutoCrop, setActiveVertexPos, setIsDrawingPolygon, setCroppingMode) {
+export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAutoCrop, setActiveVertexPos, isDrawingPolygon, setIsDrawingPolygon, setCroppingMode) {
   const polygonPointsRef = useRef([]);
   const tempPointsRef = useRef([]);
+  
+  const [isMagneticMode, setIsMagneticMode] = useState(false);
+  const [magneticThreshold, setMagneticThreshold] = useState(80);
+  
+  const isMagneticModeRef = useRef(isMagneticMode);
+  const magneticThresholdRef = useRef(magneticThreshold);
+  const magneticPreviewLineRef = useRef(null);
+  const magneticPreviewCircleRef = useRef(null);
+  const lastPointerRef = useRef(null);
+
+  useEffect(() => { isMagneticModeRef.current = isMagneticMode; }, [isMagneticMode]);
+  useEffect(() => { magneticThresholdRef.current = magneticThreshold; }, [magneticThreshold]);
+
+  useEffect(() => {
+    const canvas = fabricCanvasRef.current;
+    if (isMagneticMode && canvas && isDrawingPolygon) {
+      initEdgeDetectionCanvas(canvas);
+    } else {
+      clearEdgeDetectionCanvas();
+      if (canvas) {
+        if (magneticPreviewLineRef.current) {
+          canvas.remove(magneticPreviewLineRef.current);
+          magneticPreviewLineRef.current = null;
+        }
+        if (magneticPreviewCircleRef.current) {
+          canvas.remove(magneticPreviewCircleRef.current);
+          magneticPreviewCircleRef.current = null;
+        }
+        canvas.renderAll();
+      }
+    }
+  }, [isMagneticMode, fabricCanvasRef, isDrawingPolygon]);
 
   const rebuildTempShapes = useCallback((canvas) => {
     canvas.getObjects().forEach(obj => { if (obj.isDrawingTemp) canvas.remove(obj); });
@@ -56,18 +89,69 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     polygonPointsRef.current = tempPointsRef.current.map(p => ({ x: p.x, y: p.y }));
   }, []);
 
+  const updateMagneticPreview = useCallback((pointer) => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas || !isMagneticModeRef.current || tempPointsRef.current.length === 0 || !pointer) return;
+
+    const clampedPointer = clampPointToImageBounds({ x: pointer.x, y: pointer.y }, canvas);
+    
+    // スナップ計算
+    const snapResult = findClosestEdge(clampedPointer.x, clampedPointer.y, 5, magneticThresholdRef.current);
+    const targetPoint = snapResult;
+
+    const lastPoint = tempPointsRef.current[tempPointsRef.current.length - 1];
+
+    if (!magneticPreviewLineRef.current) {
+        magneticPreviewLineRef.current = new Line([lastPoint.x, lastPoint.y, targetPoint.x, targetPoint.y], {
+            stroke: 'cyan', strokeWidth: 2, strokeDashArray: [3, 3], selectable: false, evented: false, isDrawingTemp: true
+        });
+        canvas.add(magneticPreviewLineRef.current);
+    } else {
+        magneticPreviewLineRef.current.set({ x1: lastPoint.x, y1: lastPoint.y, x2: targetPoint.x, y2: targetPoint.y });
+    }
+
+    if (!magneticPreviewCircleRef.current) {
+        magneticPreviewCircleRef.current = new Circle({
+            radius: 4, fill: snapResult.snapped ? 'cyan' : 'gray', 
+            left: targetPoint.x - 4, top: targetPoint.y - 4,
+            selectable: false, evented: false, isDrawingTemp: true
+        });
+        canvas.add(magneticPreviewCircleRef.current);
+    } else {
+        magneticPreviewCircleRef.current.set({ 
+            left: targetPoint.x - 4, top: targetPoint.y - 4, 
+            fill: snapResult.snapped ? 'cyan' : 'gray' 
+        });
+    }
+
+    canvas.renderAll();
+  }, [fabricCanvasRef]);
+
   const startPolygonDrawing = useCallback((initialPoints = []) => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
 
+    if (isMagneticModeRef.current) {
+      initEdgeDetectionCanvas(canvas);
+    }
+
     if (initialPoints.length > 0) {
       tempPointsRef.current = initialPoints.map(p => ({ x: p.x, y: p.y }));
       rebuildTempShapes(canvas);
+      
+      magneticPreviewLineRef.current = null;
+      magneticPreviewCircleRef.current = null;
+
+      if (isMagneticModeRef.current && lastPointerRef.current) {
+        updateMagneticPreview(lastPointerRef.current);
+      }
     } else {
       tempPointsRef.current = [];
       polygonPointsRef.current = [];
+      magneticPreviewLineRef.current = null;
+      magneticPreviewCircleRef.current = null;
     }
-  }, [fabricCanvasRef, rebuildTempShapes]);
+  }, [fabricCanvasRef, rebuildTempShapes, updateMagneticPreview]);
 
   const handlePolygonMouseDown = useCallback((pointer, target) => {
     const canvas = fabricCanvasRef.current;
@@ -75,7 +159,12 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     if (target && target.isDrawingTempCircle) return;
     
     const clampedPointer = clampPointToImageBounds({ x: pointer.x, y: pointer.y }, canvas);
-    const ptObj = { x: clampedPointer.x, y: clampedPointer.y };
+    let ptObj = { x: clampedPointer.x, y: clampedPointer.y };
+    
+    if (isMagneticModeRef.current) {
+      const snapResult = findClosestEdge(clampedPointer.x, clampedPointer.y, 5, magneticThresholdRef.current);
+      ptObj = { x: snapResult.x, y: snapResult.y };
+    }
     
     let insertIndex = tempPointsRef.current.length; 
 
@@ -96,10 +185,25 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
 
     tempPointsRef.current.splice(insertIndex, 0, ptObj);
     rebuildTempShapes(canvas);
+    
+    if (magneticPreviewLineRef.current) {
+      canvas.remove(magneticPreviewLineRef.current);
+      magneticPreviewLineRef.current = null;
+    }
+    if (magneticPreviewCircleRef.current) {
+      canvas.remove(magneticPreviewCircleRef.current);
+      magneticPreviewCircleRef.current = null;
+    }
+
     if (tempPointsRef.current.length >= 3) {
       triggerAutoCrop();
     }
   }, [fabricCanvasRef, rebuildTempShapes, triggerAutoCrop]);
+
+  const handlePolygonMouseMove = useCallback((pointer) => {
+    lastPointerRef.current = pointer;
+    updateMagneticPreview(pointer);
+  }, [updateMagneticPreview]);
 
   const handlePolygonVertexMoving = useCallback((target) => {
     const canvas = fabricCanvasRef.current;
@@ -141,6 +245,9 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
 
     const objects = canvas.getObjects();
     objects.forEach(obj => { if (obj.isDrawingTemp || obj.isDrawingTempCircle) canvas.remove(obj); });
+
+    if (magneticPreviewLineRef.current) magneticPreviewLineRef.current = null;
+    if (magneticPreviewCircleRef.current) magneticPreviewCircleRef.current = null;
 
     const polygon = new Polygon(polygonPointsRef.current, {
       fill: 'transparent', stroke: 'red', strokeWidth: 1, strokeUniform: true,
@@ -268,7 +375,8 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
 
   return {
     polygonPointsRef, tempPointsRef,
-    startPolygonDrawing, handlePolygonMouseDown, handlePolygonVertexMoving,
+    isMagneticMode, setIsMagneticMode, magneticThreshold, setMagneticThreshold,
+    startPolygonDrawing, handlePolygonMouseDown, handlePolygonMouseMove, handlePolygonVertexMoving,
     finishPolygonDrawing, editPolygonVertices, adjustActiveVertex, deleteActiveVertex, selectVertexAtPosition, getTempPolygon
   };
 }

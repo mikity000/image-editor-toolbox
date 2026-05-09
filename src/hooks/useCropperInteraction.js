@@ -15,11 +15,12 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
   const triggerAutoCrop = useCallback(() => setAutoCropCount(c => c + 1), []);
 
   const {
-    startPolygonDrawing, handlePolygonMouseDown, handlePolygonVertexMoving,
+    startPolygonDrawing, handlePolygonMouseDown, handlePolygonMouseMove, handlePolygonVertexMoving,
     finishPolygonDrawing, editPolygonVertices: rawEditPolygonVertices,
     adjustActiveVertex, deleteActiveVertex: rawDeleteActiveVertex,
-    selectVertexAtPosition, getTempPolygon
-  } = usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAutoCrop, setActiveVertexPos, setIsDrawingPolygon, setCroppingMode);
+    selectVertexAtPosition, getTempPolygon,
+    isMagneticMode, setIsMagneticMode, magneticThreshold, setMagneticThreshold
+  } = usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAutoCrop, setActiveVertexPos, isDrawingPolygon, setIsDrawingPolygon, setCroppingMode);
 
   const { enableFreehand, disableFreehand } = useFreehandCropper(fabricCanvasRef, setDrawingObject, triggerAutoCrop, pathSmoothing);
 
@@ -107,10 +108,12 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     });
 
     canvas.on('mouse:move', (options) => {
+      const pointer = canvas.getPointer(options.e);
       if (mode === 'rect' || mode === 'circle') {
-        const pointer = canvas.getPointer(options.e);
         updateDrawing(mode, currentShape, startPoint, pointer);
         canvas.renderAll();
+      } else if (mode === 'polygon') {
+        handlePolygonMouseMove(pointer);
       }
     });
 
@@ -141,7 +144,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
       if (target && (target.isCroppingShape || target.isDrawingTempCircle)) triggerAutoCrop();
     });
 
-  }, [fabricCanvasRef, imageLoaded, disableFreehand, startPolygonDrawing, enableFreehand, handlePolygonMouseDown, startDrawing, updateDrawing, finishDrawing, handlePolygonVertexMoving, triggerAutoCrop]);
+  }, [fabricCanvasRef, imageLoaded, disableFreehand, startPolygonDrawing, enableFreehand, handlePolygonMouseDown, handlePolygonMouseMove, startDrawing, updateDrawing, finishDrawing, handlePolygonVertexMoving, triggerAutoCrop]);
 
   const editPolygonVertices = useCallback(() => {
     rawEditPolygonVertices(drawingObject, startCropping);
@@ -192,6 +195,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
 
   return {
     croppingMode, drawingObject, isDrawingPolygon, autoCropCount, activeVertexPos,
+    isMagneticMode, setIsMagneticMode, magneticThreshold, setMagneticThreshold,
     startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape: wrappedAdjustCroppingShape, adjustActiveVertex, deleteActiveVertex, deleteActiveShape, getTempPolygon, selectVertexAtPosition, reset
   };
 }
