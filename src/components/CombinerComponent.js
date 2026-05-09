@@ -179,10 +179,10 @@ export default function CombinerComponent() {
           </div>
 
           {imageList.length > 0 && (
-            <div className="image-list-container" style={{ minHeight: 'auto' }}>
-              <div className="image-list" style={{ display: 'flex', gap: '10px', overflowX: 'auto', overflowY: 'hidden', paddingBottom: '10px', maxHeight: 'none' }}>
+            <div className="image-list-container image-list-container--auto">
+              <div className="image-list image-list--horizontal">
                 {imageList.map((imgObj, index) => (
-                  <div key={index} className="image-preview-item" style={{ flex: '0 0 100px' }} onClick={() => clickImageList(imgObj)}>
+                  <div key={index} className="image-preview-item image-preview-item--fixed" onClick={() => clickImageList(imgObj)}>
                     <img src={imgObj.origSrc} className="thumbnail" alt={`canvas-image-${index}`} />
                     <div className="image-info">
                        <p className="file-name">{imgObj.fileName || '不明なファイル名'}</p>
@@ -213,14 +213,14 @@ export default function CombinerComponent() {
               <button className="btn" onClick={undo}>Undo</button>
               <button className="btn" onClick={redo}>Redo</button>
 
-              <div className="btn-full" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%', marginTop: '8px' }}>
-                <button className="btn" style={{ whiteSpace: 'nowrap' }} onClick={() => adjustLayer('front')}>最前面へ</button>
-                <button className="btn" style={{ whiteSpace: 'nowrap' }} onClick={() => adjustLayer('forward')}>前面へ</button>
-                <button className="btn" style={{ whiteSpace: 'nowrap' }} onClick={() => adjustLayer('backward')}>背面へ</button>
-                <button className="btn" style={{ whiteSpace: 'nowrap' }} onClick={() => adjustLayer('back')}>最背面へ</button>
+              <div className="btn-full layer-controls-grid">
+                <button className="btn btn--nowrap" onClick={() => adjustLayer('front')}>最前面へ</button>
+                <button className="btn btn--nowrap" onClick={() => adjustLayer('forward')}>前面へ</button>
+                <button className="btn btn--nowrap" onClick={() => adjustLayer('backward')}>背面へ</button>
+                <button className="btn btn--nowrap" onClick={() => adjustLayer('back')}>最背面へ</button>
               </div>
 
-              <button className="btn btn--danger btn-full" style={{marginTop: '10px'}} onClick={deleteSelected}>選択画像削除</button>
+              <button className="btn btn--danger btn-full mt-10" onClick={deleteSelected}>選択画像削除</button>
               <button className="btn btn--success btn-full" onClick={download}>ダウンロード</button>
             </div>
 

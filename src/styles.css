@@ -568,6 +568,101 @@ html, body {
   background: #fff;
 }
 
+/* Custom Checkbox & Options */
+.setting-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.custom-checkbox {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-color);
+}
+
+.custom-checkbox-label {
+  cursor: pointer;
+  color: var(--text-color);
+  font-size: 0.95rem;
+  user-select: none;
+}
+
+.custom-checkbox-label--flex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-checkbox-label--full {
+  width: 100%;
+}
+
+.slider-group--block {
+  display: block;
+}
+
+.slider-wrapper {
+  width: 100%;
+  padding: 0 4px;
+}
+
+.sensitivity-label {
+  margin-left: auto;
+  color: var(--accent-color);
+  font-weight: 500;
+}
+
+.result-image-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.result-image {
+  display: block;
+}
+
+/* Combiner specific layout classes */
+.image-list-container--auto {
+  min-height: auto;
+}
+
+.image-list--horizontal {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 10px;
+  max-height: none;
+}
+
+.image-preview-item--fixed {
+  flex: 0 0 100px;
+}
+
+.layer-controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.btn--nowrap {
+  white-space: nowrap;
+}
+
+/* Utility classes */
+.mt-0 { margin-top: 0; }
+.mt-10 { margin-top: 10px; }
+.mb-0 { margin-bottom: 0; }
+.mb-8 { margin-bottom: 8px; }
+
 /* Desktop Responsive Rules */
 @media (min-width: 768px) {
   .cropper-layout {

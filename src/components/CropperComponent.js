@@ -81,13 +81,13 @@ export default function CropperComponent() {
           {croppedImageUrl && (
             <div className="result-container">
               <h2 className="result-title">トリミング結果</h2>
-              <div style={{ position: 'relative', display: 'inline-block' }}>
+              <div className="result-image-wrapper">
                 <img 
                   src={croppedImageUrl} 
                   alt="Cropped Result" 
                   id="croppedResult" 
                   onClick={handleCroppedImageClick}
-                  style={{ display: 'block' }}
+                  className="result-image"
                 />
                 {isDrawingPolygon && activeVertexPos && exportBoundsCanvas && (
                   <div style={{
@@ -126,15 +126,15 @@ export default function CropperComponent() {
               <input type="file" accept="image/*" className="file-input__control" onClick={e => e.target.value = null} onChange={uploadImage} />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <div className="setting-box">
               <input 
                 type="checkbox" 
                 id="invertCropCheckbox"
                 checked={invertCrop} 
                 onChange={(e) => setInvertCrop(e.target.checked)}
-                style={{ cursor: 'pointer', width: '18px', height: '18px', accentColor: '#66fcf1' }}
+                className="custom-checkbox"
               />
-              <label htmlFor="invertCropCheckbox" style={{ cursor: 'pointer', color: '#c5c6c7', fontSize: '0.95rem', userSelect: 'none' }}>外側を切り取る</label>
+              <label htmlFor="invertCropCheckbox" className="custom-checkbox-label">外側を切り取る</label>
             </div>
 
             <div className="button-group sidebar-buttons">
@@ -163,13 +163,13 @@ export default function CropperComponent() {
               
               {isDrawingPolygon && !drawingObject && (
                 <>
-                  <div className="slider-group" style={{ gridColumn: '1 / -1', marginBottom: '8px', background: 'rgba(255, 255, 255, 0.03)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)', display: 'block' }}>
-                    <label htmlFor="magneticModeCheckbox" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: '#c5c6c7', fontSize: '0.95rem', userSelect: 'none', margin: isMagneticMode ? '0 0 8px 0' : 0, width: '100%' }}>
-                      <input type="checkbox" id="magneticModeCheckbox" checked={isMagneticMode} onChange={(e) => setIsMagneticMode(e.target.checked)} style={{ cursor: 'pointer', width: '18px', height: '18px', accentColor: '#66fcf1' }} />
-                      吸着モード {isMagneticMode && <span style={{ marginLeft: 'auto', color: 'var(--accent-color)', fontWeight: 500 }}>感度: {magneticThreshold}</span>}
+                  <div className="setting-box slider-group--block mb-8" style={{ gridColumn: '1 / -1' }}>
+                    <label htmlFor="magneticModeCheckbox" className={`custom-checkbox-label custom-checkbox-label--flex custom-checkbox-label--full ${isMagneticMode ? 'mb-8' : 'mb-0'}`}>
+                      <input type="checkbox" id="magneticModeCheckbox" checked={isMagneticMode} onChange={(e) => setIsMagneticMode(e.target.checked)} className="custom-checkbox" />
+                      吸着モード {isMagneticMode && <span className="sensitivity-label">感度: {magneticThreshold}</span>}
                     </label>
                     {isMagneticMode && (
-                      <div style={{ width: '100%', padding: '0 4px' }}>
+                      <div className="slider-wrapper">
                         <input type="range" min="10" max="150" value={magneticThreshold}
                           onChange={e => setMagneticThreshold(parseInt(e.target.value, 10))}
                           style={{ '--thumb-percent': `${((magneticThreshold - 10) / 140) * 100}%`, width: '100%', margin: 0, display: 'block' }}
