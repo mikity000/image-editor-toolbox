@@ -1,4 +1,7 @@
+import { Constants } from '../constants/Constants';
+
 let edgeCanvasContext = null;
+
 let edgeCanvasWidth = 0;
 let edgeCanvasHeight = 0;
 
@@ -34,7 +37,7 @@ export const clearEdgeDetectionCanvas = () => {
   edgeCanvasHeight = 0;
 };
 
-export const findClosestEdge = (x, y, radius = 30, threshold = 80) => {
+export const findClosestEdge = (x, y, radius = Constants.SNAP_RADIUS, threshold = Constants.MAGNETIC_THRESHOLD_DEFAULT) => {
   if (!edgeCanvasContext) return { x, y, snapped: false };
 
   // マウス座標を中心とした走査範囲を計算

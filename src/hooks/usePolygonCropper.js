@@ -2,6 +2,8 @@ import { useRef, useCallback, useState, useEffect } from 'react';
 import { Polygon, Line, Circle, Point, util } from 'fabric';
 import { clampPointToImageBounds } from '../utils/fabricBounds';
 import { initEdgeDetectionCanvas, clearEdgeDetectionCanvas, findClosestEdge } from '../utils/edgeDetection';
+import { Constants } from '../constants/Constants';
+
 
 const getDistanceToSegment = (p, v, w) => {
   const l2 = Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
@@ -18,7 +20,7 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
   const tempPointsRef = useRef([]);
   
   const [isMagneticMode, setIsMagneticMode] = useState(false);
-  const [magneticThreshold, setMagneticThreshold] = useState(80);
+  const [magneticThreshold, setMagneticThreshold] = useState(Constants.MAGNETIC_THRESHOLD_DEFAULT);
   
   const isMagneticModeRef = useRef(isMagneticMode);
   const magneticThresholdRef = useRef(magneticThreshold);
@@ -69,7 +71,7 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
       const circle = new Circle({
           radius: 5, fill: 'red', left: p.x - 5, top: p.y - 5,
           selectable: true, evented: true, hasControls: false, hasBorders: false, hoverCursor: 'pointer',
-          isDrawingTemp: true, isDrawingTempCircle: true, pointIndex: index, padding: 7
+          isDrawingTemp: true, isDrawingTempCircle: true, pointIndex: index, padding: Constants.VERTEX_HIT_PADDING
       });
       p.circle = circle;
       canvas.add(circle);
@@ -96,7 +98,7 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     const clampedPointer = clampPointToImageBounds({ x: pointer.x, y: pointer.y }, canvas);
     
     // スナップ計算
-    const snapResult = findClosestEdge(clampedPointer.x, clampedPointer.y, 5, magneticThresholdRef.current);
+    const snapResult = findClosestEdge(clampedPointer.x, clampedPointer.y, Constants.SNAP_RADIUS, magneticThresholdRef.current);
     const targetPoint = snapResult;
 
     const lastPoint = tempPointsRef.current[tempPointsRef.current.length - 1];
@@ -162,14 +164,14 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     let ptObj = { x: clampedPointer.x, y: clampedPointer.y };
     
     if (isMagneticModeRef.current) {
-      const snapResult = findClosestEdge(clampedPointer.x, clampedPointer.y, 5, magneticThresholdRef.current);
+      const snapResult = findClosestEdge(clampedPointer.x, clampedPointer.y, Constants.SNAP_RADIUS, magneticThresholdRef.current);
       ptObj = { x: snapResult.x, y: snapResult.y };
     }
     
     let insertIndex = tempPointsRef.current.length; 
 
     if (tempPointsRef.current.length >= 2) {
-      let minDist = 10; 
+      let minDist = Constants.VERTEX_INSERT_DISTANCE; 
       for (let i = 0; i < tempPointsRef.current.length; i++) {
         if (i === tempPointsRef.current.length - 1 && tempPointsRef.current.length < 3) continue;
 
