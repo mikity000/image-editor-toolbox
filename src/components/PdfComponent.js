@@ -18,7 +18,7 @@ export default function PdfComponent() {
   const [uploadProgress, setUploadProgress] = useState(0); // アップロード進捗
 
   const { generatePdf, isProcessing, progress: pdfProgress } = usePdfGenerator();
-  const { extractImagesFromPdf, isExtracting, extractProgress } = usePdfExtractor();
+  const { extractImagesFromPdfs, isExtracting, extractProgress } = usePdfExtractor();
   // モバイル判定を navigator.userAgent とメディアクエリで判定
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
   const socketRef = useRef(null);
@@ -47,11 +47,10 @@ export default function PdfComponent() {
     const imageFiles = files.filter(f => f.type.startsWith('image/'));
 
     // PDFファイルの処理（順次抽出）
-    for (const pdfFile of pdfFiles) {
-      const extractedImages = await extractImagesFromPdf(pdfFile);
-      if (extractedImages.length > 0) {
+    if (pdfFiles.length > 0) {
+      await extractImagesFromPdfs(pdfFiles, (extractedImages) => {
         setImages(prev => [...prev, ...extractedImages]);
-      }
+      });
     }
 
     // 画像ファイルの処理
