@@ -550,7 +550,8 @@ html, body {
   max-width: 100%;
   border-radius: var(--border-radius-sm);
   box-shadow: var(--shadow-deep);
-  border: 1px solid var(--border-color);
+  /* border: 1px solid var(--border-color); */
+  border: 3px solid #39ff14;
 }
 
 .download-btn {
