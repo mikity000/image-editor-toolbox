@@ -114,7 +114,7 @@ export default function CropperComponent() {
                 )}
               </div>
               <div>
-                <a href={croppedImageUrl} download="cropped_image.png" className="btn download-btn">画像をダウンロード</a>
+                <a href={croppedImageUrl} download="cropped_image.png" className="btn download-btn">ダウンロード</a>
               </div>
             </div>
           )}

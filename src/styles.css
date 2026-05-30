@@ -557,16 +557,18 @@ html, body {
 .download-btn {
   display: inline-block;
   margin-top: 1.5rem;
-  background: var(--accent-color);
-  color: #000;
+  background: rgba(0, 162, 255, 0.1);
+  color: #00a2ff;
   text-decoration: none;
   font-weight: 600;
   padding: 0.8rem 1.5rem;
   border-radius: var(--border-radius-sm);
+  border: 1px solid #00a2ff;
 }
 
-.download-btn:hover {
-  background: #fff;
+.btn.download-btn:hover {
+  background: #00a2ff;
+  color: #fff;
 }
 
 /* Custom Checkbox & Options */
