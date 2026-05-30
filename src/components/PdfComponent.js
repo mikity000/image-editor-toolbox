@@ -223,13 +223,13 @@ export default function PdfComponent() {
               <button onClick={deleteSelected} disabled={selectedImages.size === 0 || isAnyLoading} className="btn btn--danger btn-full">
                 選択画像削除
               </button>
-              <button onClick={resetImages} disabled={images.length === 0 || isAnyLoading} className="btn btn-full">
+              <button onClick={resetImages} disabled={images.length === 0 || isAnyLoading} className="btn btn--danger btn-full">
                 リセット
               </button>
-              <button onClick={handleGeneratePdf} disabled={images.length === 0 || isAnyLoading} className="btn btn--success btn-full">
+              <button onClick={handleGeneratePdf} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full">
                 {isProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
               </button>
-              <button onClick={downloadAllImages} disabled={images.length === 0 || isAnyLoading} className="btn btn--success btn-full">
+              <button onClick={downloadAllImages} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full">
                 {isZipping ? 'ダウンロード準備中...' : '画像を一括DL'}
               </button>
             </div>

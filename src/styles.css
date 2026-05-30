@@ -12,6 +12,9 @@
   
   /* Buttons and States */
   --btn-success: #28a745;
+  --btn-success-bg: rgba(40, 167, 69, 0.1);
+  --btn-success2: #00a2ff;
+  --btn-success2-bg: rgba(0, 162, 255, 0.1);
   --btn-danger: #dc3545;
   --btn-warning: #ffc107;
   --btn-hover-opacity: 0.85;
@@ -190,6 +193,7 @@ html, body {
   border-radius: var(--border-radius-sm);
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  text-decoration: none;
 }
 
 .btn:hover:not(:disabled) {
@@ -209,7 +213,7 @@ html, body {
 }
 
 /* Button Variants */
-.btn--success { background: rgba(40, 167, 69, 0.1); border-color: var(--btn-success); color: var(--btn-success); }
+.btn--success { background: var(--btn-success-bg); border-color: var(--btn-success); color: var(--btn-success); }
 .btn--success:hover:not(:disabled) { background: var(--btn-success); color: #fff; }
 
 .btn--danger { background: rgba(220, 53, 69, 0.1); border-color: var(--btn-danger); color: var(--btn-danger); }
@@ -557,17 +561,16 @@ html, body {
 .download-btn {
   display: inline-block;
   margin-top: 1.5rem;
-  background: rgba(0, 162, 255, 0.1);
-  color: #00a2ff;
-  text-decoration: none;
-  font-weight: 600;
-  padding: 0.8rem 1.5rem;
-  border-radius: var(--border-radius-sm);
-  border: 1px solid #00a2ff;
 }
 
-.btn.download-btn:hover {
-  background: #00a2ff;
+.btn--primary {
+  background: var(--btn-success-bg);
+  border-color: var(--btn-success);
+  color: var(--btn-success);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--btn-success);
   color: #fff;
 }
 

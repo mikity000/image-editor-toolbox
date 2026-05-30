@@ -215,13 +215,13 @@ export default function CombinerComponent() {
 
               <div className="btn-full layer-controls-grid">
                 <button className="btn btn--nowrap" onClick={() => adjustLayer('front')}>最前面へ</button>
+                <button className="btn btn--nowrap" onClick={() => adjustLayer('back')}>最背面へ</button>
                 <button className="btn btn--nowrap" onClick={() => adjustLayer('forward')}>前面へ</button>
                 <button className="btn btn--nowrap" onClick={() => adjustLayer('backward')}>背面へ</button>
-                <button className="btn btn--nowrap" onClick={() => adjustLayer('back')}>最背面へ</button>
               </div>
 
               <button className="btn btn--danger btn-full mt-10" onClick={deleteSelected}>選択画像削除</button>
-              <button className="btn btn--success btn-full" onClick={download}>ダウンロード</button>
+              <button className="btn btn--primary btn-full" onClick={download}>ダウンロード</button>
             </div>
 
             <div className="slider-group">
