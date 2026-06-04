@@ -12,7 +12,6 @@ export default function CombinerComponent() {
   const [fabricCanvas, setFabricCanvas] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
   const [guideThickness, setGuideThickness] = useState(1);
-  const [toastMessage, setToastMessage] = useState(null);
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
 
   const { addImages } = useContext(GalleryContext);
@@ -235,11 +234,9 @@ export default function CombinerComponent() {
       });
       
       addImages({
-        name: `combined_${Date.now()}.png`,
+        name: `combined_${Date.now()}`,
         dataUrl: dataURL
       });
-      setToastMessage('共有ギャラリーに保存しました！');
-      setTimeout(() => setToastMessage(null), 3000);
     }
   };
 
@@ -340,22 +337,6 @@ export default function CombinerComponent() {
         </div>
       </div>
       <GalleryTray onSelectImage={addImageFromGallery} actionText="キャンバスに追加" />
-      
-      {toastMessage && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          background: 'var(--btn-success)',
-          color: '#fff',
-          padding: '0.8rem 1.5rem',
-          borderRadius: 'var(--border-radius-sm)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-          zIndex: 10000
-        }}>
-          {toastMessage}
-        </div>
-      )}
     </div>
   );
 }

@@ -13,7 +13,6 @@ export default function CropperComponent() {
   const [pathSmoothing, setPathSmoothing] = useState(20);
   const [invertCrop, setInvertCrop] = useState(false);
   const [exportBoundsCanvas, setExportBoundsCanvas] = useState(null);
-  const [toastMessage, setToastMessage] = useState(null);
   
   const { addImages } = useContext(GalleryContext);
   const { imageLoaded, uploadImage, loadImageFromUrl } = useImageUpload(fabricCanvasRef, setCroppedImageUrl);
@@ -123,11 +122,9 @@ export default function CropperComponent() {
                   onClick={() => {
                     if (!croppedImageUrl) return;
                     addImages({
-                      name: `crop_${Date.now()}.png`,
+                      name: `crop_${Date.now()}`,
                       dataUrl: croppedImageUrl
                     });
-                    setToastMessage('共有ギャラリーに保存しました！');
-                    setTimeout(() => setToastMessage(null), 3000);
                   }} 
                   className="btn btn--success" 
                   style={{ marginLeft: '10px', marginTop: '1.5rem' }}
@@ -263,22 +260,6 @@ export default function CropperComponent() {
       </div>
       
       <GalleryTray onSelectImage={(img) => loadImageFromUrl(img.dataUrl)} actionText="編集する" />
-      
-      {toastMessage && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          background: 'var(--btn-success)',
-          color: '#fff',
-          padding: '0.8rem 1.5rem',
-          borderRadius: 'var(--border-radius-sm)',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-          zIndex: 10000
-        }}>
-          {toastMessage}
-        </div>
-      )}
     </div>
   );
 }
