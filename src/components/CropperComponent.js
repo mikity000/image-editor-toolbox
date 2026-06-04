@@ -1,8 +1,10 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useContext } from 'react';
 import { Canvas } from 'fabric';
 import { useCropperInteraction } from '../hooks/useCropperInteraction';
 import { useImageCrop } from '../hooks/useImageCrop';
 import { useImageUpload } from '../hooks/useImageUpload';
+import { GalleryContext } from '../context/GalleryContext';
+import GalleryTray from './GalleryTray';
 
 export default function CropperComponent() {
   const canvasRef = useRef(null);
@@ -11,8 +13,10 @@ export default function CropperComponent() {
   const [pathSmoothing, setPathSmoothing] = useState(20);
   const [invertCrop, setInvertCrop] = useState(false);
   const [exportBoundsCanvas, setExportBoundsCanvas] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
   
-  const { imageLoaded, uploadImage } = useImageUpload(fabricCanvasRef, setCroppedImageUrl);
+  const { addImages } = useContext(GalleryContext);
+  const { imageLoaded, uploadImage, loadImageFromUrl } = useImageUpload(fabricCanvasRef, setCroppedImageUrl);
 
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
 
@@ -115,6 +119,21 @@ export default function CropperComponent() {
               </div>
               <div>
                 <a href={croppedImageUrl} download="cropped_image.png" className="btn btn--primary download-btn">ダウンロード</a>
+                <button 
+                  onClick={() => {
+                    if (!croppedImageUrl) return;
+                    addImages({
+                      name: `crop_${Date.now()}.png`,
+                      dataUrl: croppedImageUrl
+                    });
+                    setToastMessage('共有ギャラリーに保存しました！');
+                    setTimeout(() => setToastMessage(null), 3000);
+                  }} 
+                  className="btn btn--success" 
+                  style={{ marginLeft: '10px', marginTop: '1.5rem' }}
+                >
+                  共有ギャラリーに保存
+                </button>
               </div>
             </div>
           )}
@@ -242,6 +261,24 @@ export default function CropperComponent() {
           </div>
         </div>
       </div>
+      
+      <GalleryTray onSelectImage={(img) => loadImageFromUrl(img.dataUrl)} actionText="編集する" />
+      
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          background: 'var(--btn-success)',
+          color: '#fff',
+          padding: '0.8rem 1.5rem',
+          borderRadius: 'var(--border-radius-sm)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+          zIndex: 10000
+        }}>
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }

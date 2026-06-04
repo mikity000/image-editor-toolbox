@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useContext } from 'react';
 import { Canvas, Image as FabricImage } from 'fabric';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { useCanvasZoomPan } from '../hooks/useCanvasZoomPan';
 import { useSnappingGuides } from '../hooks/useSnappingGuides';
+import { GalleryContext } from '../context/GalleryContext';
+import GalleryTray from './GalleryTray';
 
 export default function CombinerComponent() {
   const [imageList, setImageList] = useState([]);
@@ -10,13 +12,58 @@ export default function CombinerComponent() {
   const [fabricCanvas, setFabricCanvas] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
   const [guideThickness, setGuideThickness] = useState(1);
+  const [toastMessage, setToastMessage] = useState(null);
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
+
+  const { addImages } = useContext(GalleryContext);
 
   // Custom hooks
   const { saveState, undo, redo } = useUndoRedo(fabricCanvas, setImageList);
   const { zoomLevel } = useCanvasZoomPan(fabricCanvas, isMobile);
   
   useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize, saveState);
+
+  const addImageFromGallery = (image) => {
+    if (!fabricCanvas) return;
+    const vpt = fabricCanvas.viewportTransform;
+    const zoom = fabricCanvas.getZoom();
+    const canvasWidth = fabricCanvas.getWidth();
+    const canvasHeight = fabricCanvas.getHeight();
+    
+    const left = (-vpt[4] + canvasWidth / 2) / zoom;
+    const top = (-vpt[5] + canvasHeight / 2) / zoom;
+
+    const imgEl = new Image();
+    imgEl.crossOrigin = 'anonymous';
+    imgEl.src = image.dataUrl;
+    imgEl.onload = () => {
+      const maxW = canvasWidth * 0.5 / zoom;
+      const maxH = canvasHeight * 0.5 / zoom;
+      let scale = 1;
+      if (imgEl.width > maxW || imgEl.height > maxH) {
+        scale = Math.min(maxW / imgEl.width, maxH / imgEl.height);
+      }
+
+      const fabricImg = new FabricImage(imgEl, {
+        left: left - (imgEl.width * scale) / 2,
+        top: top - (imgEl.height * scale) / 2,
+        scaleX: scale,
+        scaleY: scale,
+        angle: 0,
+        selectable: true,
+        hasControls: true,
+        lockUniScaling: false,
+      });
+      fabricImg.origSrc = image.dataUrl;
+      fabricImg.fileName = image.name;
+      fabricImg.setControlsVisibility({ mtr: false });
+      fabricCanvas.add(fabricImg);
+      fabricCanvas.setActiveObject(fabricImg);
+      fabricCanvas.renderAll();
+      saveState();
+      setImageList(fabricCanvas.getObjects());
+    };
+  };
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -155,6 +202,47 @@ export default function CombinerComponent() {
     }
   };
 
+  const saveToGallery = () => {
+    if (!fabricCanvas) return;
+    const imageObjects = fabricCanvas.getObjects();
+    if (!imageObjects.length) return;
+
+    fabricCanvas.discardActiveObject();
+    fabricCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    imageObjects.forEach(obj => {
+      const l = obj.left, t = obj.top;
+      const w = obj.getScaledWidth(), h = obj.getScaledHeight();
+      minX = Math.min(minX, l);
+      minY = Math.min(minY, t);
+      maxX = Math.max(maxX, l + w);
+      maxY = Math.max(maxY, t + h);
+    });
+
+    const exportWidth = maxX - minX;
+    const exportHeight = maxY - minY;
+
+    if (exportWidth > 0 && exportHeight > 0) {
+      const dataURL = fabricCanvas.toDataURL({
+        format: 'png',
+        quality: 1,
+        left: minX,
+        top: minY,
+        width: exportWidth,
+        height: exportHeight,
+        multiplier: 1,
+      });
+      
+      addImages({
+        name: `combined_${Date.now()}.png`,
+        dataUrl: dataURL
+      });
+      setToastMessage('共有ギャラリーに保存しました！');
+      setTimeout(() => setToastMessage(null), 3000);
+    }
+  };
+
   const clickImageList = imgObj => {
     if (!fabricCanvas) return;
     const centerPoint = imgObj.getCenterPoint();
@@ -222,6 +310,7 @@ export default function CombinerComponent() {
 
               <button className="btn btn--danger btn-full mt-10" onClick={deleteSelected}>選択画像削除</button>
               <button className="btn btn--primary btn-full" onClick={download}>ダウンロード</button>
+              <button className="btn btn--success btn-full" onClick={saveToGallery}>共有ギャラリーに保存</button>
             </div>
 
             <div className="slider-group">
@@ -250,6 +339,23 @@ export default function CombinerComponent() {
           </div>
         </div>
       </div>
+      <GalleryTray onSelectImage={addImageFromGallery} actionText="キャンバスに追加" />
+      
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          background: 'var(--btn-success)',
+          color: '#fff',
+          padding: '0.8rem 1.5rem',
+          borderRadius: 'var(--border-radius-sm)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+          zIndex: 10000
+        }}>
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }

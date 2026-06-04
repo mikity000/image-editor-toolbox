@@ -9,6 +9,7 @@ import { usePdfGenerator } from '../hooks/usePdfGenerator';
 import { usePdfExtractor } from '../hooks/usePdfExtractor';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import GalleryTray from './GalleryTray';
 
 export default function PdfComponent() {
   const [images, setImages] = useState([]);
@@ -19,6 +20,15 @@ export default function PdfComponent() {
 
   const { generatePdf, isProcessing, progress: pdfProgress } = usePdfGenerator();
   const { extractImagesFromPdfs, isExtracting, extractProgress } = usePdfExtractor();
+
+  const addImageFromGallery = (image) => {
+    const newImage = {
+      id: `pdf-page-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: image.name,
+      dataUrl: image.dataUrl
+    };
+    setImages(prev => [...prev, newImage]);
+  };
   // モバイル判定を navigator.userAgent とメディアクエリで判定
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
   const socketRef = useRef(null);
@@ -236,6 +246,7 @@ export default function PdfComponent() {
           </div>
         </div>
       </div>
+      <GalleryTray onSelectImage={addImageFromGallery} actionText="PDFに追加" />
     </div>
   );
 }
