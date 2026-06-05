@@ -1,5 +1,6 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { Canvas, FabricImage, Rect, Circle, Ellipse, Polygon, Point, Path, util } from 'fabric';
+import { convertToWebP } from '../utils/webpConverter';
 
 export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = false, setExportBoundsCanvas) {
   const tempCanvasRef = useRef(null);
@@ -189,7 +190,7 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
       if (exportTop + exportHeight > originalImageHeight) exportHeight = originalImageHeight - exportTop;
     }
 
-    const finalCroppedImage = tempCanvas.toDataURL({
+    const finalCroppedImagePng = tempCanvas.toDataURL({
       format: 'png',
       multiplier: 1,
       left: exportLeft,
@@ -198,7 +199,13 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
       height: exportHeight,
     });
 
-    setCroppedImageUrl(finalCroppedImage);
+    try {
+      const finalCroppedImageWebP = await convertToWebP(finalCroppedImagePng, { quality: 85 });
+      setCroppedImageUrl(finalCroppedImageWebP);
+    } catch (err) {
+      console.error('WebP変換エラー。PNGでフォールバックします:', err);
+      setCroppedImageUrl(finalCroppedImagePng);
+    }
     if (setExportBoundsCanvas) {
       setExportBoundsCanvas({
         left: imageDisplayLeft + exportLeft / scaleFactorX,

@@ -5,6 +5,7 @@ import { useCanvasZoomPan } from '../hooks/useCanvasZoomPan';
 import { useSnappingGuides } from '../hooks/useSnappingGuides';
 import { GalleryContext } from '../context/GalleryContext';
 import GalleryTray from './GalleryTray';
+import { convertToWebP } from '../utils/webpConverter';
 
 export default function CombinerComponent() {
   const [imageList, setImageList] = useState([]);
@@ -163,7 +164,7 @@ export default function CombinerComponent() {
     setImageList([...fabricCanvas.getObjects()]);
   };
 
-  const download = () => {
+  const download = async () => {
     if (!fabricCanvas) return;
     const imageObjects = fabricCanvas.getObjects();
     if (!imageObjects.length) return;
@@ -185,7 +186,7 @@ export default function CombinerComponent() {
     const exportHeight = maxY - minY;
 
     if (exportWidth > 0 && exportHeight > 0) {
-      const dataURL = fabricCanvas.toDataURL({
+      const dataURLPng = fabricCanvas.toDataURL({
         format: 'png',
         quality: 1,
         left: minX,
@@ -194,14 +195,24 @@ export default function CombinerComponent() {
         height: exportHeight,
         multiplier: 1,
       });
-      const link = document.createElement('a');
-      link.href = dataURL;
-      link.download = 'combined_trimmed.png';
-      link.click();
+
+      try {
+        const dataURLWebP = await convertToWebP(dataURLPng, { quality: 85 });
+        const link = document.createElement('a');
+        link.href = dataURLWebP;
+        link.download = 'combined_trimmed.webp';
+        link.click();
+      } catch (err) {
+        console.error('WebP変換エラー。PNGでダウンロードします:', err);
+        const link = document.createElement('a');
+        link.href = dataURLPng;
+        link.download = 'combined_trimmed.png';
+        link.click();
+      }
     }
   };
 
-  const saveToGallery = () => {
+  const saveToGallery = async () => {
     if (!fabricCanvas) return;
     const imageObjects = fabricCanvas.getObjects();
     if (!imageObjects.length) return;
@@ -223,7 +234,7 @@ export default function CombinerComponent() {
     const exportHeight = maxY - minY;
 
     if (exportWidth > 0 && exportHeight > 0) {
-      const dataURL = fabricCanvas.toDataURL({
+      const dataURLPng = fabricCanvas.toDataURL({
         format: 'png',
         quality: 1,
         left: minX,
@@ -232,11 +243,20 @@ export default function CombinerComponent() {
         height: exportHeight,
         multiplier: 1,
       });
-      
-      addImages({
-        name: `combined_${Date.now()}`,
-        dataUrl: dataURL
-      });
+
+      try {
+        const dataURLWebP = await convertToWebP(dataURLPng, { quality: 85 });
+        addImages({
+          name: `combined_${Date.now()}`,
+          dataUrl: dataURLWebP
+        });
+      } catch (err) {
+        console.error('WebP変換エラー。PNGで保存します:', err);
+        addImages({
+          name: `combined_${Date.now()}`,
+          dataUrl: dataURLPng
+        });
+      }
     }
   };
 

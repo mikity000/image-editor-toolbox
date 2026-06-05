@@ -21,11 +21,24 @@ export default function PdfComponent() {
   const { generatePdf, isProcessing, progress: pdfProgress } = usePdfGenerator();
   const { extractImagesFromPdfs, isExtracting, extractProgress } = usePdfExtractor();
 
-  const addImageFromGallery = (image) => {
+  const addImageFromGallery = async (image) => {
+    let dataUrl = image.dataUrl;
+
+    if (!dataUrl.startsWith('data:image/jpeg') && !dataUrl.startsWith('data:image/jpg')) {
+      try {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], image.name, { type: blob.type || 'image/webp' });
+        dataUrl = await compressImage(file);
+      } catch (err) {
+        console.error('ギャラリー画像のJPEG変換に失敗しました:', err);
+      }
+    }
+
     const newImage = {
       id: `pdf-page-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: image.name,
-      dataUrl: image.dataUrl
+      dataUrl: dataUrl
     };
     setImages(prev => [...prev, newImage]);
   };
