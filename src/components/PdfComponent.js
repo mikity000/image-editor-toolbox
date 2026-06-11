@@ -10,6 +10,7 @@ import { usePdfExtractor } from '../hooks/usePdfExtractor';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import GalleryTray from './GalleryTray';
+import { convertToWebP } from '../utils/webpConverter';
 
 export default function PdfComponent() {
   const [images, setImages] = useState([]);
@@ -81,20 +82,48 @@ export default function PdfComponent() {
       setIsUploading(true);
       const totalFiles = imageFiles.length; // 総ファイル数
 
-      // 並列に全ファイルを圧縮して Data URL に変換
+      // 並列に全ファイルをWebP変換し、圧縮して Data URL に変換
       let completed = 0;
-      const compressPromises = imageFiles.map((file) =>
-        compressImage(file).then((dataUrl) => ({
-          id: URL.createObjectURL(file),
-          file,
-          name: file.name,
-          dataUrl,
-        })).finally(() => {
+      const compressPromises = imageFiles.map(async (file) => {
+        try {
+          // 1. ファイルをDataURLに読み込む
+          const originalDataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+
+          // 2. WebP（品質85）に変換
+          const webpDataUrl = await convertToWebP(originalDataUrl, { quality: 85 });
+
+          // 3. WebP DataURL を Blob に戻して compressImage (JPEG化) を実行
+          const res = await fetch(webpDataUrl);
+          const blob = await res.blob();
+          const webpFile = new File([blob], file.name, { type: 'image/webp' });
+          const finalJpegDataUrl = await compressImage(webpFile);
+
+          return {
+            id: URL.createObjectURL(file),
+            file,
+            name: file.name,
+            dataUrl: finalJpegDataUrl,
+          };
+        } catch (err) {
+          console.error('WebP変換エラー。フォールバック処理を実行します:', err);
+          const fallbackDataUrl = await compressImage(file);
+          return {
+            id: URL.createObjectURL(file),
+            file,
+            name: file.name,
+            dataUrl: fallbackDataUrl,
+          };
+        } finally {
           completed++;
           const progressValue = Math.round((completed / totalFiles) * 100); // 一時的な進捗
           setUploadProgress(progressValue);
-        })
-      );
+        }
+      });
 
       const newImages = await Promise.all(compressPromises);
       setImages(prev => [...prev, ...newImages]);

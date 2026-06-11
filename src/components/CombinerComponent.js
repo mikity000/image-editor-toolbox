@@ -164,10 +164,10 @@ export default function CombinerComponent() {
     setImageList([...fabricCanvas.getObjects()]);
   };
 
-  const download = async () => {
-    if (!fabricCanvas) return;
+  const getExportDataURLPng = () => {
+    if (!fabricCanvas) return null;
     const imageObjects = fabricCanvas.getObjects();
-    if (!imageObjects.length) return;
+    if (!imageObjects.length) return null;
 
     fabricCanvas.discardActiveObject();
     fabricCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
@@ -186,77 +186,77 @@ export default function CombinerComponent() {
     const exportHeight = maxY - minY;
 
     if (exportWidth > 0 && exportHeight > 0) {
-      const dataURLPng = fabricCanvas.toDataURL({
+      // multiplier の計算
+      let maxScaleFactor = 1;
+      imageObjects.forEach(obj => {
+        if (obj._element) {
+          const origW = obj._element.naturalWidth || obj._element.width;
+          const origH = obj._element.naturalHeight || obj._element.height;
+          const scaledW = obj.getScaledWidth();
+          const scaledH = obj.getScaledHeight();
+          if (scaledW > 0 && scaledH > 0) {
+            const factorX = origW / scaledW;
+            const factorY = origH / scaledH;
+            maxScaleFactor = Math.max(maxScaleFactor, factorX, factorY);
+          }
+        }
+      });
+
+      const MAX_EXPORT_PIXELS = 4096;
+      const currentMaxDim = Math.max(exportWidth, exportHeight);
+      if (currentMaxDim * maxScaleFactor > MAX_EXPORT_PIXELS) {
+        maxScaleFactor = MAX_EXPORT_PIXELS / currentMaxDim;
+      }
+      maxScaleFactor = Math.max(1, maxScaleFactor);
+
+      return fabricCanvas.toDataURL({
         format: 'png',
         quality: 1,
         left: minX,
         top: minY,
         width: exportWidth,
         height: exportHeight,
-        multiplier: 1,
+        multiplier: maxScaleFactor,
       });
+    }
+    return null;
+  };
 
-      try {
-        const dataURLWebP = await convertToWebP(dataURLPng, { quality: 85 });
-        const link = document.createElement('a');
-        link.href = dataURLWebP;
-        link.download = 'combined_trimmed.webp';
-        link.click();
-      } catch (err) {
-        console.error('WebP変換エラー。PNGでダウンロードします:', err);
-        const link = document.createElement('a');
-        link.href = dataURLPng;
-        link.download = 'combined_trimmed.png';
-        link.click();
-      }
+  const download = async () => {
+    const dataURLPng = getExportDataURLPng();
+    if (!dataURLPng) return;
+
+    try {
+      const dataURLWebP = await convertToWebP(dataURLPng, { quality: 85 });
+      const link = document.createElement('a');
+      link.href = dataURLWebP;
+      link.download = 'combined_trimmed.webp';
+      link.click();
+    } catch (err) {
+      console.error('WebP変換エラー。PNGでダウンロードします:', err);
+      const link = document.createElement('a');
+      link.href = dataURLPng;
+      link.download = 'combined_trimmed.png';
+      link.click();
     }
   };
 
   const saveToGallery = async () => {
-    if (!fabricCanvas) return;
-    const imageObjects = fabricCanvas.getObjects();
-    if (!imageObjects.length) return;
+    const dataURLPng = getExportDataURLPng();
+    if (!dataURLPng) return;
 
-    fabricCanvas.discardActiveObject();
-    fabricCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    imageObjects.forEach(obj => {
-      const l = obj.left, t = obj.top;
-      const w = obj.getScaledWidth(), h = obj.getScaledHeight();
-      minX = Math.min(minX, l);
-      minY = Math.min(minY, t);
-      maxX = Math.max(maxX, l + w);
-      maxY = Math.max(maxY, t + h);
-    });
-
-    const exportWidth = maxX - minX;
-    const exportHeight = maxY - minY;
-
-    if (exportWidth > 0 && exportHeight > 0) {
-      const dataURLPng = fabricCanvas.toDataURL({
-        format: 'png',
-        quality: 1,
-        left: minX,
-        top: minY,
-        width: exportWidth,
-        height: exportHeight,
-        multiplier: 1,
+    try {
+      const dataURLWebP = await convertToWebP(dataURLPng, { quality: 85 });
+      addImages({
+        name: `combined_${Date.now()}`,
+        dataUrl: dataURLWebP
       });
-
-      try {
-        const dataURLWebP = await convertToWebP(dataURLPng, { quality: 85 });
-        addImages({
-          name: `combined_${Date.now()}`,
-          dataUrl: dataURLWebP
-        });
-      } catch (err) {
-        console.error('WebP変換エラー。PNGで保存します:', err);
-        addImages({
-          name: `combined_${Date.now()}`,
-          dataUrl: dataURLPng
-        });
-      }
+    } catch (err) {
+      console.error('WebP変換エラー。PNGで保存します:', err);
+      addImages({
+        name: `combined_${Date.now()}`,
+        dataUrl: dataURLPng
+      });
     }
   };
 
