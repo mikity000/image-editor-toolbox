@@ -3,6 +3,7 @@ import { Image as FabricImage } from 'fabric';
 
 export function useImageUpload(fabricCanvasRef, setCroppedImageUrl) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageName, setImageName] = useState('');
 
   const loadImageFromUrl = (dataURL) => {
     const canvas = fabricCanvasRef.current;
@@ -40,6 +41,7 @@ export function useImageUpload(fabricCanvasRef, setCroppedImageUrl) {
   const uploadImage = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setImageName(file.name);
     const reader = new FileReader();
 
     reader.onload = (event) => {
@@ -48,5 +50,5 @@ export function useImageUpload(fabricCanvasRef, setCroppedImageUrl) {
     reader.readAsDataURL(file);
   };
 
-  return { imageLoaded, uploadImage, loadImageFromUrl, setImageLoaded };
+  return { imageLoaded, uploadImage, loadImageFromUrl, setImageLoaded, imageName, setImageName };
 }

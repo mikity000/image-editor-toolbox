@@ -786,15 +786,16 @@ html, body {
 }
 
 .gallery-tray__content--open {
-  max-height: 240px;
+  max-height: 320px;
   opacity: 1;
   padding: 1rem 1.5rem;
-  overflow-y: hidden;
-  overflow-x: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .gallery-tray__list {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   list-style: none;
   padding: 0;

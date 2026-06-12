@@ -22,3 +22,21 @@ export const compressImage = (file) => {
     });
   });
 };
+
+export const getSequentialName = (baseName, galleryImages) => {
+  const base = baseName.split('.')[0];
+  const regex = new RegExp(`^${base}_(\\d+)$`);
+  let maxNum = 0;
+  
+  galleryImages.forEach(img => {
+    if (img && img.name) {
+      const match = img.name.match(regex);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    }
+  });
+  
+  return `${base}_${maxNum + 1}`;
+};

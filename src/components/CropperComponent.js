@@ -5,6 +5,7 @@ import { useImageCrop } from '../hooks/useImageCrop';
 import { useImageUpload } from '../hooks/useImageUpload';
 import { GalleryContext } from '../context/GalleryContext';
 import GalleryTray from './GalleryTray';
+import { getSequentialName } from '../utils/imageUtils';
 
 export default function CropperComponent() {
   const canvasRef = useRef(null);
@@ -14,8 +15,8 @@ export default function CropperComponent() {
   const [invertCrop, setInvertCrop] = useState(false);
   const [exportBoundsCanvas, setExportBoundsCanvas] = useState(null);
   
-  const { addImages } = useContext(GalleryContext);
-  const { imageLoaded, uploadImage, loadImageFromUrl } = useImageUpload(fabricCanvasRef, setCroppedImageUrl);
+  const { galleryImages, addImages } = useContext(GalleryContext);
+  const { imageLoaded, uploadImage, loadImageFromUrl, imageName, setImageName } = useImageUpload(fabricCanvasRef, setCroppedImageUrl);
 
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
 
@@ -121,8 +122,11 @@ export default function CropperComponent() {
                 <button 
                   onClick={() => {
                     if (!croppedImageUrl) return;
+
+                    const newName = getSequentialName(imageName, galleryImages);
+
                     addImages({
-                      name: `crop_${Date.now()}`,
+                      name: newName,
                       dataUrl: croppedImageUrl
                     });
                   }} 
@@ -259,7 +263,13 @@ export default function CropperComponent() {
         </div>
       </div>
       
-      <GalleryTray onSelectImage={(img) => loadImageFromUrl(img.dataUrl)} actionText="編集する" />
+      <GalleryTray 
+        onSelectImage={(img) => {
+          setImageName(img.name);
+          loadImageFromUrl(img.dataUrl);
+        }} 
+        actionText="編集する" 
+      />
     </div>
   );
 }

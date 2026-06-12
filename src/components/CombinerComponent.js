@@ -6,6 +6,7 @@ import { useSnappingGuides } from '../hooks/useSnappingGuides';
 import { GalleryContext } from '../context/GalleryContext';
 import GalleryTray from './GalleryTray';
 import { convertToWebP } from '../utils/webpConverter';
+import { getSequentialName } from '../utils/imageUtils';
 
 export default function CombinerComponent() {
   const [imageList, setImageList] = useState([]);
@@ -15,7 +16,7 @@ export default function CombinerComponent() {
   const [guideThickness, setGuideThickness] = useState(1);
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
 
-  const { addImages } = useContext(GalleryContext);
+  const { galleryImages, addImages } = useContext(GalleryContext);
 
   // Custom hooks
   const { saveState, undo, redo } = useUndoRedo(fabricCanvas, setImageList);
@@ -245,16 +246,18 @@ export default function CombinerComponent() {
     const dataURLPng = getExportDataURLPng();
     if (!dataURLPng) return;
 
+    const newName = getSequentialName('結合', galleryImages);
+
     try {
       const dataURLWebP = await convertToWebP(dataURLPng, { quality: 85 });
       addImages({
-        name: `combined_${Date.now()}`,
+        name: newName,
         dataUrl: dataURLWebP
       });
     } catch (err) {
       console.error('WebP変換エラー。PNGで保存します:', err);
       addImages({
-        name: `combined_${Date.now()}`,
+        name: newName,
         dataUrl: dataURLPng
       });
     }

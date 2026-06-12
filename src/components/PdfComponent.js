@@ -4,7 +4,7 @@ import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSe
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
 import { SortableContext, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { compressImage } from '../utils';
+import { compressImage } from '../utils/imageUtils';
 import { usePdfGenerator } from '../hooks/usePdfGenerator';
 import { usePdfExtractor } from '../hooks/usePdfExtractor';
 import JSZip from 'jszip';
