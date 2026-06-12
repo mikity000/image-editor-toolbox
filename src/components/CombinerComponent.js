@@ -228,7 +228,7 @@ export default function CombinerComponent() {
     if (!dataURLPng) return;
 
     try {
-      const dataURLWebP = await convertToWebP(dataURLPng, { quality: 85 });
+      const dataURLWebP = await convertToWebP(dataURLPng);
       const link = document.createElement('a');
       link.href = dataURLWebP;
       link.download = 'combined_trimmed.webp';
@@ -249,7 +249,7 @@ export default function CombinerComponent() {
     const newName = getSequentialName('結合', galleryImages);
 
     try {
-      const dataURLWebP = await convertToWebP(dataURLPng, { quality: 85 });
+      const dataURLWebP = await convertToWebP(dataURLPng);
       addImages({
         name: newName,
         dataUrl: dataURLWebP

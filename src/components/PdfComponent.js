@@ -95,7 +95,7 @@ export default function PdfComponent() {
           });
 
           // 2. WebP（品質85）に変換
-          const webpDataUrl = await convertToWebP(originalDataUrl, { quality: 85 });
+          const webpDataUrl = await convertToWebP(originalDataUrl);
 
           // 3. WebP DataURL を Blob に戻して compressImage (JPEG化) を実行
           const res = await fetch(webpDataUrl);

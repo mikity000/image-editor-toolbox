@@ -200,7 +200,7 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
     });
 
     try {
-      const finalCroppedImageWebP = await convertToWebP(finalCroppedImagePng, { quality: 85 });
+      const finalCroppedImageWebP = await convertToWebP(finalCroppedImagePng);
       setCroppedImageUrl(finalCroppedImageWebP);
     } catch (err) {
       console.error('WebP変換エラー。PNGでフォールバックします:', err);
