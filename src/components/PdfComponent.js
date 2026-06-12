@@ -4,7 +4,8 @@ import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSe
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
 import { SortableContext, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { compressImage } from '../utils/imageUtils';
+import { compressImage, fileToDataUrl } from '../utils/imageUtils';
+import { isMobileDevice } from '../utils/deviceUtils';
 import { usePdfGenerator } from '../hooks/usePdfGenerator';
 import { usePdfExtractor } from '../hooks/usePdfExtractor';
 import JSZip from 'jszip';
@@ -44,7 +45,7 @@ export default function PdfComponent() {
     setImages(prev => [...prev, newImage]);
   };
   // モバイル判定を navigator.userAgent とメディアクエリで判定
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
+  const isMobile = isMobileDevice();
   const socketRef = useRef(null);
   const emitListRef = useRef(null);
 
@@ -87,12 +88,7 @@ export default function PdfComponent() {
       const compressPromises = imageFiles.map(async (file) => {
         try {
           // 1. ファイルをDataURLに読み込む
-          const originalDataUrl = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = e => resolve(e.target.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-          });
+          const originalDataUrl = await fileToDataUrl(file);
 
           // 2. WebP（品質85）に変換
           const webpDataUrl = await convertToWebP(originalDataUrl);
@@ -108,15 +104,6 @@ export default function PdfComponent() {
             file,
             name: file.name,
             dataUrl: finalJpegDataUrl,
-          };
-        } catch (err) {
-          console.error('WebP変換エラー。フォールバック処理を実行します:', err);
-          const fallbackDataUrl = await compressImage(file);
-          return {
-            id: URL.createObjectURL(file),
-            file,
-            name: file.name,
-            dataUrl: fallbackDataUrl,
           };
         } finally {
           completed++;

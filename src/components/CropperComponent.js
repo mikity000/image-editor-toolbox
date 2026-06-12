@@ -6,6 +6,7 @@ import { useImageUpload } from '../hooks/useImageUpload';
 import { GalleryContext } from '../context/GalleryContext';
 import GalleryTray from './GalleryTray';
 import { getSequentialName } from '../utils/imageUtils';
+import { isMobileDevice } from '../utils/deviceUtils';
 
 export default function CropperComponent() {
   const canvasRef = useRef(null);
@@ -18,7 +19,7 @@ export default function CropperComponent() {
   const { galleryImages, addImages } = useContext(GalleryContext);
   const { imageLoaded, uploadImage, loadImageFromUrl, imageName, setImageName } = useImageUpload(fabricCanvasRef, setCroppedImageUrl);
 
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
+  const isMobile = isMobileDevice();
 
   const {
     croppingMode, drawingObject, isDrawingPolygon, autoCropCount, activeVertexPos,

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Image as FabricImage } from 'fabric';
+import { fileToDataUrl } from '../utils/imageUtils';
 
 export function useImageUpload(fabricCanvasRef, setCroppedImageUrl) {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -38,16 +39,12 @@ export function useImageUpload(fabricCanvasRef, setCroppedImageUrl) {
     };
   };
 
-  const uploadImage = (e) => {
+  const uploadImage = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setImageName(file.name);
-    const reader = new FileReader();
-
-    reader.onload = (event) => {
-      loadImageFromUrl(event.target.result);
-    };
-    reader.readAsDataURL(file);
+    const dataUrl = await fileToDataUrl(file);
+    loadImageFromUrl(dataUrl);
   };
 
   return { imageLoaded, uploadImage, loadImageFromUrl, setImageLoaded, imageName, setImageName };

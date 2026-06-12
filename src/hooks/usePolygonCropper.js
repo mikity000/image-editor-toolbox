@@ -91,6 +91,19 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     polygonPointsRef.current = tempPointsRef.current.map(p => ({ x: p.x, y: p.y }));
   }, []);
 
+  const updateVertexPosition = useCallback((idx, clampedX, clampedY) => {
+    const pt = tempPointsRef.current[idx];
+    if (!pt) return;
+    pt.x = clampedX;
+    pt.y = clampedY;
+    if (pt.lineIn) pt.lineIn.set({ x2: pt.x, y2: pt.y });
+    if (pt.lineOut) pt.lineOut.set({ x1: pt.x, y1: pt.y });
+    if (pt.closingLine) pt.closingLine.set({ x1: pt.x, y1: pt.y });
+    if (pt.closingLineIn) pt.closingLineIn.set({ x2: pt.x, y2: pt.y });
+    polygonPointsRef.current = tempPointsRef.current.map(p => ({ x: p.x, y: p.y }));
+  }, []);
+
+
   const updateMagneticPreview = useCallback((pointer) => {
     const canvas = fabricCanvasRef.current;
     if (!canvas || !isMagneticModeRef.current || tempPointsRef.current.length === 0 || !pointer) return;
@@ -219,15 +232,7 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     target.setCoords();
 
     const idx = target.pointIndex;
-    const pt = tempPointsRef.current[idx];
-    if (!pt) return;
-    pt.x = clamped.x;
-    pt.y = clamped.y;
-    if (pt.lineIn) pt.lineIn.set({ x2: pt.x, y2: pt.y });
-    if (pt.lineOut) pt.lineOut.set({ x1: pt.x, y1: pt.y });
-    if (pt.closingLine) pt.closingLine.set({ x1: pt.x, y1: pt.y });
-    if (pt.closingLineIn) pt.closingLineIn.set({ x2: pt.x, y2: pt.y });
-    polygonPointsRef.current = tempPointsRef.current.map(p => ({ x: p.x, y: p.y }));
+    updateVertexPosition(idx, clamped.x, clamped.y);
     
     if (tempPointsRef.current.length >= 3) {
       const finalCx = target.left + target.radius;
@@ -236,7 +241,7 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     }
     
     canvas.renderAll();
-  }, [fabricCanvasRef, setActiveVertexPos]);
+  }, [fabricCanvasRef, setActiveVertexPos, updateVertexPosition]);
 
   const finishPolygonDrawing = useCallback(() => {
     const canvas = fabricCanvasRef.current;
@@ -312,15 +317,7 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
       activeObj.setCoords();
 
       const idx = activeObj.pointIndex;
-      const pt = tempPointsRef.current[idx];
-      if (!pt) return;
-      pt.x = clamped.x;
-      pt.y = clamped.y;
-      if (pt.lineIn) pt.lineIn.set({ x2: pt.x, y2: pt.y });
-      if (pt.lineOut) pt.lineOut.set({ x1: pt.x, y1: pt.y });
-      if (pt.closingLine) pt.closingLine.set({ x1: pt.x, y1: pt.y });
-      if (pt.closingLineIn) pt.closingLineIn.set({ x2: pt.x, y2: pt.y });
-      polygonPointsRef.current = tempPointsRef.current.map(p => ({ x: p.x, y: p.y }));
+      updateVertexPosition(idx, clamped.x, clamped.y);
       
       if (tempPointsRef.current.length >= 3) {
         const finalCx = activeObj.left + activeObj.radius;
@@ -331,7 +328,7 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
       canvas.renderAll();
       triggerAutoCrop();
     }
-  }, [fabricCanvasRef, setActiveVertexPos, triggerAutoCrop]);
+  }, [fabricCanvasRef, setActiveVertexPos, triggerAutoCrop, updateVertexPosition]);
 
   const deleteActiveVertex = useCallback((startCropping) => {
     const canvas = fabricCanvasRef.current;

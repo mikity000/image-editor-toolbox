@@ -40,3 +40,17 @@ export const getSequentialName = (baseName, galleryImages) => {
   
   return `${base}_${maxNum + 1}`;
 };
+
+/**
+ * File または Blob オブジェクトを受け取り、DataURL に非同期で変換します。
+ * 
+ * @param {File|Blob} fileOrBlob 変換対象のオブジェクト
+ * @returns {Promise<string>} DataURL の Promise
+ */
+export const fileToDataUrl = (fileOrBlob) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onloadend = () => resolve(reader.result);
+  reader.onerror = reject;
+  reader.readAsDataURL(fileOrBlob);
+});
+

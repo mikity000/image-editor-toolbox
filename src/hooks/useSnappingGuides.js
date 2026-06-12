@@ -151,49 +151,6 @@ export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize,
       }
     };
 
-    const handleObjectMoving = (e) => {
-      const obj = e.target;
-      snapToPixelPosition(obj);
-      snapDuringMoving(obj);
-      updateGuides(obj);
-      const active = fabricCanvas.getActiveObject();
-      if (active instanceof ActiveSelection && active === obj) {
-        const rect = active.getBoundingRect();
-        setSelectedSize({ width: rect.width, height: rect.height });
-      } else {
-        setSelectedSize({ width: obj.getScaledWidth(), height: obj.getScaledHeight() });
-      }
-    };
-
-    const handleObjectScaling = (e) => {
-      const obj = e.target;
-      snapDuringScaling(obj, e);
-      snapToPixelPosition(obj);
-      snapToPixelScale(obj);
-      updateGuides(obj);
-      const active = fabricCanvas.getActiveObject();
-      if (active instanceof ActiveSelection && active === obj) {
-        const rect = active.getBoundingRect();
-        setSelectedSize({ width: rect.width, height: rect.height });
-      } else {
-        setSelectedSize({ width: obj.getScaledWidth(), height: obj.getScaledHeight() });
-      }
-    };
-
-    const handleObjectModified = () => {
-      saveState();
-      updateGuides();
-      const active = fabricCanvas.getActiveObject();
-      if (active) {
-          if (active instanceof ActiveSelection) {
-              const rect = active.getBoundingRect();
-              setSelectedSize({ width: rect.width, height: rect.height });
-          } else {
-              setSelectedSize({ width: active.getScaledWidth(), height: active.getScaledHeight() });
-          }
-      }
-    };
-
     const updateSelectedSizeWrapper = () => {
         const active = fabricCanvas.getActiveObject();
         if (!active) { setSelectedSize(null); return; }
@@ -204,6 +161,30 @@ export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize,
             setSelectedSize({ width: active.getScaledWidth(), height: active.getScaledHeight() });
         }
     }
+
+    const handleObjectMoving = (e) => {
+      const obj = e.target;
+      snapToPixelPosition(obj);
+      snapDuringMoving(obj);
+      updateGuides(obj);
+      updateSelectedSizeWrapper();
+    };
+
+    const handleObjectScaling = (e) => {
+      const obj = e.target;
+      snapDuringScaling(obj, e);
+      snapToPixelPosition(obj);
+      snapToPixelScale(obj);
+      updateGuides(obj);
+      updateSelectedSizeWrapper();
+    };
+
+    const handleObjectModified = () => {
+      saveState();
+      updateGuides();
+      updateSelectedSizeWrapper();
+    };
+
 
     fabricCanvas.on('object:moving', handleObjectMoving);
     fabricCanvas.on('object:scaling', handleObjectScaling);

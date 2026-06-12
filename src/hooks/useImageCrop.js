@@ -199,13 +199,8 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
       height: exportHeight,
     });
 
-    try {
-      const finalCroppedImageWebP = await convertToWebP(finalCroppedImagePng);
-      setCroppedImageUrl(finalCroppedImageWebP);
-    } catch (err) {
-      console.error('WebP変換エラー。PNGでフォールバックします:', err);
-      setCroppedImageUrl(finalCroppedImagePng);
-    }
+    const finalCroppedImage = await convertToWebP(finalCroppedImagePng);
+    setCroppedImageUrl(finalCroppedImage);
     if (setExportBoundsCanvas) {
       setExportBoundsCanvas({
         left: imageDisplayLeft + exportLeft / scaleFactorX,

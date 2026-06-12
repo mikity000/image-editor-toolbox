@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
+import { fileToDataUrl } from '../utils/imageUtils';
 
 export function usePdfExtractor() {
   const [isExtracting, setIsExtracting] = useState(false);
@@ -44,12 +45,7 @@ export function usePdfExtractor() {
             const blob = new Blob([imageBytes], { type: 'image/jpeg' });
             
             // DataURLへの変換
-            const dataUrl = await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result);
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
-            });
+            const dataUrl = await fileToDataUrl(blob);
 
             // アプリ内の形式に合わせるためFileオブジェクトを作成
             const extractedFile = new File([blob], `${i + 1}.jpg`, { type: 'image/jpeg' });

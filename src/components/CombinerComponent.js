@@ -6,7 +6,8 @@ import { useSnappingGuides } from '../hooks/useSnappingGuides';
 import { GalleryContext } from '../context/GalleryContext';
 import GalleryTray from './GalleryTray';
 import { convertToWebP } from '../utils/webpConverter';
-import { getSequentialName } from '../utils/imageUtils';
+import { getSequentialName, fileToDataUrl } from '../utils/imageUtils';
+import { isMobileDevice } from '../utils/deviceUtils';
 
 export default function CombinerComponent() {
   const [imageList, setImageList] = useState([]);
@@ -14,7 +15,7 @@ export default function CombinerComponent() {
   const [fabricCanvas, setFabricCanvas] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
   const [guideThickness, setGuideThickness] = useState(1);
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
+  const isMobile = isMobileDevice();
 
   const { galleryImages, addImages } = useContext(GalleryContext);
 
@@ -92,11 +93,9 @@ export default function CombinerComponent() {
     const top = -vpt[5] / zoom;
 
     const files = Array.from(e.target.files).filter(file => file.type.startsWith('image/'));
-    const loadPromises = files.map(file => {
-      return new Promise(resolve => {
-        const reader = new FileReader();
-        reader.onload = event => {
-          const dataURL = event.target.result;
+    const loadPromises = files.map(async file => {
+        const dataURL = await fileToDataUrl(file);
+        return new Promise(resolve => {
           const imgEl = new Image();
           imgEl.crossOrigin = 'anonymous';
           imgEl.src = dataURL;
@@ -118,9 +117,7 @@ export default function CombinerComponent() {
             resolve();
           };
           imgEl.onerror = () => resolve();
-        }
-        reader.readAsDataURL(file);
-      });
+        });
     });
 
     Promise.all(loadPromises).then(() => {
@@ -227,19 +224,11 @@ export default function CombinerComponent() {
     const dataURLPng = getExportDataURLPng();
     if (!dataURLPng) return;
 
-    try {
-      const dataURLWebP = await convertToWebP(dataURLPng);
-      const link = document.createElement('a');
-      link.href = dataURLWebP;
-      link.download = 'combined_trimmed.webp';
-      link.click();
-    } catch (err) {
-      console.error('WebP変換エラー。PNGでダウンロードします:', err);
-      const link = document.createElement('a');
-      link.href = dataURLPng;
-      link.download = 'combined_trimmed.png';
-      link.click();
-    }
+    const dataURL = await convertToWebP(dataURLPng);
+    const link = document.createElement('a');
+    link.href = dataURL;
+    link.download = 'combined_trimmed.webp';
+    link.click();
   };
 
   const saveToGallery = async () => {
@@ -247,20 +236,11 @@ export default function CombinerComponent() {
     if (!dataURLPng) return;
 
     const newName = getSequentialName('結合', galleryImages);
-
-    try {
-      const dataURLWebP = await convertToWebP(dataURLPng);
-      addImages({
-        name: newName,
-        dataUrl: dataURLWebP
-      });
-    } catch (err) {
-      console.error('WebP変換エラー。PNGで保存します:', err);
-      addImages({
-        name: newName,
-        dataUrl: dataURLPng
-      });
-    }
+    const dataURL = await convertToWebP(dataURLPng);
+    addImages({
+      name: newName,
+      dataUrl: dataURL
+    });
   };
 
   const clickImageList = imgObj => {
