@@ -261,6 +261,7 @@ export default function CombinerComponent() {
   return (
     <div className="editor-container">
       <div className="cropper-layout">
+        <GalleryTray onSelectImage={addImageFromGallery} actionText="キャンバスに追加" />
         <div className="cropper-main">
           <div className="canvas-wrapper" style={{ height: isMobile ? '500px' : '700px' }}>
             <canvas ref={canvasRef} />
@@ -339,7 +340,6 @@ export default function CombinerComponent() {
           </div>
         </div>
       </div>
-      <GalleryTray onSelectImage={addImageFromGallery} actionText="キャンバスに追加" />
     </div>
   );
 }

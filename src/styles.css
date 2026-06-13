@@ -57,10 +57,12 @@ html, body {
 .cropper-main {
   flex: 1;
   min-width: 0;
+  order: 1;
 }
 
 .cropper-sidebar {
   width: 100%;
+  order: 2;
 }
 
 .sidebar-content {
@@ -669,47 +671,6 @@ html, body {
 .mb-0 { margin-bottom: 0; }
 .mb-8 { margin-bottom: 8px; }
 
-/* Desktop Responsive Rules */
-@media (min-width: 768px) {
-  .cropper-layout {
-    flex-direction: row;
-  }
-  
-  .cropper-sidebar {
-    width: 280px;
-    flex-shrink: 0;
-  }
-  
-  .sidebar-sticky-content {
-    position: sticky;
-    top: 2rem;
-  }
-  
-  .sidebar-buttons {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    align-items: stretch;
-  }
-  
-  .sidebar-buttons .btn {
-    width: 100%;
-  }
-
-  .btn-full {
-    grid-column: 1 / -1;
-  }
-}
-
-/* Responsive */
-@media (max-width: 600px) {
-  .app-container { padding: 1rem; }
-  .editor-container { padding: 1rem; }
-  .btn { width: 100%; }
-  .adjustment-box { flex: 1 1 100%; max-width: none; }
-  .main-nav ul { flex-direction: column; gap: 0.5rem; }
-}
-
 /* Gallery Tray Container */
 .gallery-tray {
   margin-top: 2rem;
@@ -722,6 +683,7 @@ html, body {
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   width: 100%;
+  order: 3;
 }
 
 .gallery-tray__header {
@@ -905,4 +867,68 @@ html, body {
   font-size: 0.85rem;
   font-weight: 600;
   text-align: center;
+}
+
+/* Desktop Responsive Rules (Moved to bottom to prevent specificity overriding issues) */
+@media (min-width: 768px) {
+  .app-container {
+    max-width: 1570px;
+  }
+
+  .cropper-layout {
+    flex-direction: row;
+  }
+  
+  .cropper-main {
+    order: 2;
+  }
+  
+  .cropper-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    order: 3;
+  }
+  
+  .sidebar-sticky-content {
+    position: sticky;
+    top: 2rem;
+  }
+  
+  .sidebar-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    align-items: stretch;
+  }
+  
+  .sidebar-buttons .btn {
+    width: 100%;
+  }
+
+  .btn-full {
+    grid-column: 1 / -1;
+  }
+
+  .gallery-tray {
+    width: 350px;
+    flex-shrink: 0;
+    margin-top: 0;
+    order: 1;
+    align-self: flex-start;
+    position: sticky;
+    top: 2rem;
+  }
+
+  .gallery-tray__content--open {
+    max-height: 600px;
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .app-container { padding: 1rem; }
+  .editor-container { padding: 1rem; }
+  .btn { width: 100%; }
+  .adjustment-box { flex: 1 1 100%; max-width: none; }
+  .main-nav ul { flex-direction: column; gap: 0.5rem; }
 }

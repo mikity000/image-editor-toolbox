@@ -220,6 +220,7 @@ export default function PdfComponent() {
       )}
 
       <div className="cropper-layout">
+        <GalleryTray onSelectImage={addImageFromGallery} actionText="PDFに追加" />
         <div className="cropper-main">
           {/* サムネイルリスト DND コンテナ */}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart}
@@ -275,7 +276,6 @@ export default function PdfComponent() {
           </div>
         </div>
       </div>
-      <GalleryTray onSelectImage={addImageFromGallery} actionText="PDFに追加" />
     </div>
   );
 }

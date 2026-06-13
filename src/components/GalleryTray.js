@@ -14,7 +14,7 @@ export default function GalleryTray({ onSelectImage, actionText = '使用する'
         <div className="gallery-tray__controls" onClick={(e) => e.stopPropagation()}>
           {galleryImages.length > 0 && (
             <button className="btn btn--danger" style={{ padding: '0.2rem 0.6rem', fontSize: '0.85rem' }} onClick={clearGallery}>
-              すべてクリア
+              全てクリア
             </button>
           )}
           <button 
@@ -45,7 +45,7 @@ export default function GalleryTray({ onSelectImage, actionText = '使用する'
       <div className={`gallery-tray__content ${isGalleryOpen ? 'gallery-tray__content--open' : ''}`}>
         {galleryImages.length === 0 ? (
           <div className="gallery-tray__empty">
-            ギャラリーは空です。画像をクロップして追加するか、他の画面で追加してください。
+            ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。
           </div>
         ) : (
           <ul className="gallery-tray__list">
