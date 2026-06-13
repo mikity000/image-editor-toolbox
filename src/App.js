@@ -1,4 +1,4 @@
-import { /*BrowserRouter*/ HashRouter as Router, Routes, Route, Link, Navigate  } from 'react-router-dom';
+import { /*BrowserRouter*/ HashRouter as Router, Routes, Route, NavLink, Navigate  } from 'react-router-dom';
 import ImageTrimming from './pages/ImageCrop'; // クロップページ
 import ImageCombine from './pages/ImageCombine';   // 結合ページ
 import ImagePdf from './pages/ImagePdf';   // PDF化ページ
@@ -15,9 +15,9 @@ export default function App() {
             {/* ヘッダーコンテンツ */}
             <nav className="main-nav">
               <ul>
-                <li><Link to={`/pdf`}>画像PDF化</Link></li> {/* ${pjName}/pdf */}
-                <li><Link to={`/crop`}>画像クロップ</Link></li> {/* ${pjName}/crop */}
-                <li><Link to={`/combine`}>画像結合</Link></li> {/* ${pjName}/combine */}
+                <li><NavLink to={`/pdf`}>画像PDF化</NavLink></li> {/* ${pjName}/pdf */}
+                <li><NavLink to={`/crop`}>画像クロップ</NavLink></li> {/* ${pjName}/crop */}
+                <li><NavLink to={`/combine`}>画像結合</NavLink></li> {/* ${pjName}/combine */}
               </ul>
             </nav>
           </header>
