@@ -9,12 +9,14 @@ export default function GalleryTray({ onSelectImage, actionText = '使用する'
       <div className="gallery-tray__header" onClick={() => setIsGalleryOpen(!isGalleryOpen)}>
         <h3 className="gallery-tray__title">
           共有ギャラリー
-          <span className="gallery-tray__count">{galleryImages.length}</span>
         </h3>
         <div className="gallery-tray__controls" onClick={(e) => e.stopPropagation()}>
           {galleryImages.length > 0 && (
-            <button className="btn btn--danger" style={{ padding: '0.2rem 0.6rem', fontSize: '0.85rem' }} onClick={clearGallery}>
-              全てクリア
+            <button className="btn btn--danger" style={{ padding: '0.2rem 0.6rem' }} onClick={clearGallery}>
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.3s ease' }}>
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
             </button>
           )}
           <button 
@@ -64,7 +66,6 @@ export default function GalleryTray({ onSelectImage, actionText = '使用する'
                     e.stopPropagation();
                     removeImage(image.id);
                   }}
-                  title="ギャラリーから削除"
                 >
                   &times;
                 </button>

@@ -261,7 +261,7 @@ export default function CombinerComponent() {
   return (
     <div className="editor-container">
       <div className="cropper-layout">
-        <GalleryTray onSelectImage={addImageFromGallery} actionText="キャンバスに追加" />
+        <GalleryTray onSelectImage={addImageFromGallery} actionText="追加する" />
         <div className="cropper-main">
           <div className="canvas-wrapper" style={{ height: isMobile ? '500px' : '700px' }}>
             <canvas ref={canvasRef} />
@@ -269,7 +269,7 @@ export default function CombinerComponent() {
 
           {imageList.length > 0 && (
             <div className="image-list-container image-list-container--auto">
-              <div className="image-list image-list--horizontal">
+              <div className="image-list">
                 {imageList.map((imgObj, index) => (
                   <div key={index} className="image-preview-item image-preview-item--fixed" onClick={() => clickImageList(imgObj)}>
                     <img src={imgObj.origSrc} className="thumbnail" alt={`canvas-image-${index}`} />
