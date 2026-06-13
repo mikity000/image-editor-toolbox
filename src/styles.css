@@ -315,7 +315,7 @@ html, body {
   background: rgba(0, 0, 0, 0.2);
   border: 1px dashed var(--border-color);
   border-radius: var(--border-radius-lg);
-  padding: 1rem;
+  padding: 0.8rem;
   margin-top: 1rem;
   min-height: 200px;
 }
@@ -731,7 +731,7 @@ html, body {
 .gallery-tray__content--open {
   max-height: 320px;
   opacity: 1;
-  padding: 1rem 1rem;
+  padding: 0.8rem 0.8rem;
   overflow-y: auto;
   overflow-x: hidden;
 }
