@@ -47,20 +47,20 @@ html, body {
   min-height: 100vh;
 }
 
-/* Cropper Split Layout */
-.cropper-layout {
+/* Editor Split Layout */
+.editor-layout {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.cropper-main {
+.editor-main {
   flex: 1;
   min-width: 0;
   order: 1;
 }
 
-.cropper-sidebar {
+.editor-sidebar {
   width: 100%;
   order: 2;
 }
@@ -196,6 +196,7 @@ html, body {
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   text-decoration: none;
+  box-sizing: border-box;
 }
 
 .btn:hover:not(:disabled) {
@@ -299,13 +300,13 @@ html, body {
   font-size: 0.9rem;
 }
 
-.cropper-sidebar .adjustment-group {
+.editor-sidebar .adjustment-group {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 
-.cropper-sidebar .adjustment-box {
+.editor-sidebar .adjustment-box {
   max-width: 100%;
   padding: 0.5rem;
 }
@@ -856,15 +857,15 @@ html, body {
     max-width: 1570px;
   }
 
-  .cropper-layout {
+  .editor-layout {
     flex-direction: row;
   }
   
-  .cropper-main {
+  .editor-main {
     order: 2;
   }
   
-  .cropper-sidebar {
+  .editor-sidebar {
     width: 280px;
     flex-shrink: 0;
     order: 3;

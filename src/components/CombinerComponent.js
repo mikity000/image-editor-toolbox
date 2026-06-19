@@ -260,9 +260,9 @@ export default function CombinerComponent() {
 
   return (
     <div className="editor-container">
-      <div className="cropper-layout">
+      <div className="editor-layout">
         <GalleryTray onSelectImage={addImageFromGallery} actionText="追加する" />
-        <div className="cropper-main">
+        <div className="editor-main">
           <div className="canvas-wrapper" style={{ height: isMobile ? '500px' : '700px' }}>
             <canvas ref={canvasRef} />
           </div>
@@ -290,7 +290,7 @@ export default function CombinerComponent() {
           </div>
         </div>
 
-        <div className="cropper-sidebar">
+        <div className="editor-sidebar">
           <div className="sidebar-sticky-content">
             <div className="file-input">
               <input type="file" accept="image/*" multiple className="file-input__control"

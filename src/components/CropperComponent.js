@@ -77,7 +77,7 @@ export default function CropperComponent() {
 
   return (
     <div className="editor-container">
-      <div className="cropper-layout">
+      <div className="editor-layout">
         <GalleryTray 
           onSelectImage={(img) => {
             setImageName(img.name);
@@ -85,7 +85,7 @@ export default function CropperComponent() {
           }} 
           actionText="編集する" 
         />
-        <div className="cropper-main">
+        <div className="editor-main">
           <div className="canvas-wrapper" style={{ height: isMobile ? '600px' : '800px' }}>
             <canvas ref={canvasRef} />
           </div>
@@ -125,30 +125,12 @@ export default function CropperComponent() {
                   }} />
                 )}
               </div>
-              <div>
-                <a href={croppedImageUrl} download="cropped_image.webp" className="btn btn--primary download-btn">ダウンロード</a>
-                <button 
-                  onClick={() => {
-                    if (!croppedImageUrl) return;
 
-                    const newName = getSequentialName(imageName, galleryImages);
-
-                    addImages({
-                      name: newName,
-                      dataUrl: croppedImageUrl
-                    });
-                  }} 
-                  className="btn btn--success" 
-                  style={{ marginLeft: '10px', marginTop: '1.5rem' }}
-                >
-                  共有ギャラリーに保存
-                </button>
-              </div>
             </div>
           )}
         </div>
 
-        <div className="cropper-sidebar">
+        <div className="editor-sidebar">
           <div className="sidebar-sticky-content">
             <div className="file-input">
               <input type="file" accept="image/*" className="file-input__control" onClick={e => e.target.value = null} onChange={uploadImage} />
@@ -212,12 +194,33 @@ export default function CropperComponent() {
               {drawingObject && drawingObject.type === 'polygon' && (
                 <button onClick={editPolygonVertices} className="btn btn--warning btn-full">頂点を再編集</button>
               )}
-              
               {drawingObject && (
                 <button onClick={deleteActiveShape} className="btn btn--danger btn-full">削除</button>
               )}
-
               <button onClick={reset} className="btn btn--danger btn-full">リセット</button>
+
+              {croppedImageUrl && (
+                <>
+                  <a 
+                    href={croppedImageUrl} 
+                    download="cropped_image.webp" 
+                    className="btn btn--primary btn-full"
+                    style={{ textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}
+                  >
+                    ダウンロード
+                  </a>
+                  <button 
+                    onClick={() => {
+                      if (!croppedImageUrl) return;
+                      const newName = getSequentialName(imageName, galleryImages);
+                      addImages({ name: newName, dataUrl: croppedImageUrl });
+                    }} 
+                    className="btn btn--success btn-full"
+                  >
+                    共有ギャラリーに保存
+                  </button>
+                </>
+              )}
             </div>
 
             {drawingObject && drawingObject.type === 'path' && (

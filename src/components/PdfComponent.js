@@ -219,9 +219,9 @@ export default function PdfComponent() {
         </div>
       )}
 
-      <div className="cropper-layout">
+      <div className="editor-layout">
         <GalleryTray onSelectImage={addImageFromGallery} actionText="追加する" />
-        <div className="cropper-main">
+        <div className="editor-main">
           {/* サムネイルリスト DND コンテナ */}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart}
             onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
@@ -249,7 +249,7 @@ export default function PdfComponent() {
           </div>
         </div>
 
-        <div className="cropper-sidebar">
+        <div className="editor-sidebar">
           <div className="sidebar-sticky-content">
             {/* ファイル入力セクション（画像・PDF両対応） */}
             <div className="file-input">
