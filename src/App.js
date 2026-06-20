@@ -22,7 +22,7 @@ export default function App() {
             </nav>
           </header>
 
-          <div> {/* メインコンテンツのコンテナ */}
+          <div className="app-body"> {/* メインコンテンツのコンテナ */}
             <main className="main-content">
               <Routes>
                 <Route path={`/`} element={<Navigate to="crop" replace />} /> {/* / */}
@@ -32,11 +32,6 @@ export default function App() {
               </Routes>
             </main>
           </div>
-
-          <footer className="app-footer">
-            {/* フッターコンテンツ */}
-            <p>&copy; 2025 My Image App</p>
-          </footer>
         </div>
       </Router>
     </GalleryProvider>

@@ -221,12 +221,12 @@ export default function PdfComponent() {
 
       <div className="editor-layout">
         <GalleryTray onSelectImage={addImageFromGallery} actionText="追加する" />
-        <div className="editor-main">
+        <div className="editor-main pdf-main-content">
           {/* サムネイルリスト DND コンテナ */}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart}
             onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
             <SortableContext items={images.map(img => img.id)}>
-              <div className="image-list-container">
+              <div className="image-list-container" style={{ position: 'relative' }}>
                 {images.length > 0 && (
                   <div className="image-list">
                     {images.map((image, index) => (
@@ -237,16 +237,15 @@ export default function PdfComponent() {
                     ))}
                   </div>
                 )}
+
+                <div className="instructions">
+                  <small className="instructions__text">
+                    {isMobile ? "長押しで順番を入れ替えられます。" : "ドラッグで順番を入れ替えられます。"}
+                  </small>
+                </div>
               </div>
             </SortableContext>
           </DndContext>
-
-          {/* サムネイルの順番入れ替えの操作説明 */}
-          <div className="instructions">
-            <small className="instructions__text">
-              {isMobile ? "長押しで順番を入れ替えられます。" : "ドラッグで順番を入れ替えられます。"}
-            </small>
-          </div>
         </div>
 
         <div className="editor-sidebar">

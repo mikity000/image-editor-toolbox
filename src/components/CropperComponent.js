@@ -86,48 +86,61 @@ export default function CropperComponent() {
           actionText="編集する" 
         />
         <div className="editor-main">
-          <div className="canvas-wrapper" style={{ height: isMobile ? '600px' : '800px' }}>
-            <canvas ref={canvasRef} />
-          </div>
+          <div className="cropper-workspace">
+            <div className="canvas-wrapper-container">
+              <div className="canvas-wrapper">
+                <canvas ref={canvasRef} />
+              </div>
+            </div>
 
-          {croppedImageUrl && (
-            <div className="result-container">
-              <h2 className="result-title">トリミング結果</h2>
-              <div className="result-image-wrapper">
-                <img 
-                  src={croppedImageUrl} 
-                  alt="Cropped Result" 
-                  id="croppedResult" 
-                  onClick={handleCroppedImageClick}
-                  className="result-image"
-                />
-                {isDrawingPolygon && activeVertexPos && exportBoundsCanvas && (
-                  <div style={{
-                    position: 'absolute',
-                    left: `${((activeVertexPos.x - exportBoundsCanvas.left) / exportBoundsCanvas.width) * 100}%`,
-                    top: `${((activeVertexPos.y - exportBoundsCanvas.top) / exportBoundsCanvas.height) * 100}%`,
-                    width: '12px',
-                    height: '12px',
-                    borderRadius: '50%',
-                    backgroundColor: 'rgba(50, 205, 50, 0.9)',
-                    border: '1px solid rgba(0, 0, 0, 0.6)',
-                    transform: (() => {
-                      const ratioX = (activeVertexPos.x - exportBoundsCanvas.left) / exportBoundsCanvas.width;
-                      const ratioY = (activeVertexPos.y - exportBoundsCanvas.top) / exportBoundsCanvas.height;
-                      const dx = ratioX - 0.5;
-                      const dy = ratioY - 0.5;
-                      const len = Math.sqrt(dx * dx + dy * dy) || 1;
-                      return `translate(calc(-50% + ${(dx / len) * 50}%), calc(-50% + ${(dy / len) * 50}%))`;
-                    })(),
-                    pointerEvents: 'none',
-                    boxShadow: '0 0 4px rgba(255, 255, 255, 0.8)',
-                    zIndex: 10
-                  }} />
+            <div className="result-container-wrapper">
+              <div className="result-container">
+                {croppedImageUrl ? (
+                  <div className="result-image-wrapper">
+                    <img 
+                      src={croppedImageUrl} 
+                      alt="Cropped Result" 
+                      id="croppedResult" 
+                      onClick={handleCroppedImageClick}
+                      className="result-image"
+                    />
+                    {isDrawingPolygon && activeVertexPos && exportBoundsCanvas && (
+                      <div style={{
+                        position: 'absolute',
+                        left: `${((activeVertexPos.x - exportBoundsCanvas.left) / exportBoundsCanvas.width) * 100}%`,
+                        top: `${((activeVertexPos.y - exportBoundsCanvas.top) / exportBoundsCanvas.height) * 100}%`,
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(50, 205, 50, 0.9)',
+                        border: '1px solid rgba(0, 0, 0, 0.6)',
+                        transform: (() => {
+                          const ratioX = (activeVertexPos.x - exportBoundsCanvas.left) / exportBoundsCanvas.width;
+                          const ratioY = (activeVertexPos.y - exportBoundsCanvas.top) / exportBoundsCanvas.height;
+                          const dx = ratioX - 0.5;
+                          const dy = ratioY - 0.5;
+                          const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                          return `translate(calc(-50% + ${(dx / len) * 50}%), calc(-50% + ${(dy / len) * 50}%))`;
+                        })(),
+                        pointerEvents: 'none',
+                        boxShadow: '0 0 4px rgba(255, 255, 255, 0.8)',
+                        zIndex: 10
+                      }} />
+                    )}
+                  </div>
+                ) : (
+                  <div className="result-placeholder">
+                    <svg viewBox="0 0 24 24" width="134" height="134" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3, marginBottom: '1rem' }}>
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                      <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <p>ここにクロップ結果が表示されます</p>
+                  </div>
                 )}
               </div>
-
             </div>
-          )}
+          </div>
         </div>
 
         <div className="editor-sidebar">
@@ -241,8 +254,10 @@ export default function CropperComponent() {
                   {['top', 'right', 'left', 'bottom'].map((side) => (
                     <div key={side} className="adjustment-box">
                       <h4>{{ 'top': '上辺', 'right': '右辺', 'left': '左辺', 'bottom': '下辺' }[side]}</h4>
-                      <button onClick={() => adjustCroppingShape(side, -0.5)} className="btn">-</button>
-                      <button onClick={() => adjustCroppingShape(side, 0.5)} className="btn">+</button>
+                      <div className="adjustment-buttons">
+                        <button onClick={() => adjustCroppingShape(side, -0.5)} className="btn">-</button>
+                        <button onClick={() => adjustCroppingShape(side, 0.5)} className="btn">+</button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -255,13 +270,17 @@ export default function CropperComponent() {
                 <div className="adjustment-group">
                   <div className="adjustment-box">
                     <h4>X軸 (左右)</h4>
-                    <button onClick={() => adjustActiveVertex(-0.5, 0)} className="btn">←</button>
-                    <button onClick={() => adjustActiveVertex(0.5, 0)} className="btn">→</button>
+                    <div className="adjustment-buttons">
+                      <button onClick={() => adjustActiveVertex(-0.5, 0)} className="btn">←</button>
+                      <button onClick={() => adjustActiveVertex(0.5, 0)} className="btn">→</button>
+                    </div>
                   </div>
                   <div className="adjustment-box">
                     <h4>Y軸 (上下)</h4>
-                    <button onClick={() => adjustActiveVertex(0, -0.5)} className="btn">↑</button>
-                    <button onClick={() => adjustActiveVertex(0, 0.5)} className="btn">↓</button>
+                    <div className="adjustment-buttons">
+                      <button onClick={() => adjustActiveVertex(0, -0.5)} className="btn">↑</button>
+                      <button onClick={() => adjustActiveVertex(0, 0.5)} className="btn">↓</button>
+                    </div>
                   </div>
                   <div className="adjustment-box" style={{ gridColumn: '1 / -1' }}>
                     <h4>削除</h4>

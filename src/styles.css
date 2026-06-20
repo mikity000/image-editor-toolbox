@@ -38,31 +38,59 @@ html, body {
   font-family: 'Inter', sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* App Layout & Header */
 .app-layout {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* Editor Split Layout */
 .editor-layout {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .editor-main {
   flex: 1;
   min-width: 0;
   order: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 .editor-sidebar {
   width: 100%;
   order: 2;
+  box-sizing: border-box;
 }
 
 .sidebar-content {
@@ -77,8 +105,6 @@ html, body {
   flex-direction: column;
   gap: 1rem;
 }
-
-
 
 .app-header {
   background: var(--bg-surface);
@@ -115,9 +141,16 @@ html, body {
 
 /* Main Container */
 .app-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .app-title {
@@ -135,15 +168,22 @@ html, body {
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
 
-/* Editor Container (Glassmorphism) */
+/* Editor Container (Glassmorphism disabled for full-bleed) */
 .editor-container {
-  background: var(--bg-surface-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--border-radius-lg);
-  padding: 2rem;
-  box-shadow: var(--shadow-deep);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* File Input */
@@ -274,7 +314,7 @@ html, body {
   color: var(--text-color);
 }
 
-.adjustment-box button {
+.editor-sidebar .adjustment-box button {
   width: 40px;
   height: 40px;
   padding: 0;
@@ -854,7 +894,7 @@ html, body {
 /* Desktop Responsive Rules (Moved to bottom to prevent specificity overriding issues) */
 @media (min-width: 768px) {
   .app-container {
-    max-width: 1570px;
+    max-width: none;
   }
 
   .editor-layout {
@@ -863,17 +903,38 @@ html, body {
   
   .editor-main {
     order: 2;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #0f1015;
   }
   
   .editor-sidebar {
-    width: 280px;
+    width: 300px;
     flex-shrink: 0;
     order: 3;
+    background: #18191c;
+    border-left: 1px solid var(--border-color);
+    padding: 1.5rem 1rem;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+  }
+
+  .editor-sidebar .btn {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.85rem;
   }
   
   .sidebar-sticky-content {
-    position: sticky;
-    top: 2rem;
+    position: static;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
   }
   
   .sidebar-buttons {
@@ -896,21 +957,265 @@ html, body {
     flex-shrink: 0;
     margin-top: 0;
     order: 1;
-    align-self: flex-start;
-    position: sticky;
-    top: 2rem;
+    align-self: stretch;
+    position: static;
+    background: #18191c;
+    border-right: 1px solid var(--border-color);
+    border-radius: 0;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .gallery-tray__content {
+    /* デスクトップでは常に表示またはスクロール対応 */
+    display: flex;
+    flex-direction: column;
   }
 
   .gallery-tray__content--open {
-    max-height: 600px;
+    max-height: none;
+    flex: 1;
+    overflow-y: auto;
   }
 }
 
 /* Responsive */
-@media (max-width: 600px) {
-  .app-container { padding: 1rem; }
-  .editor-container { padding: 1rem; }
+@media (max-width: 767px) {
+  .app-layout {
+    overflow-y: auto;
+    height: auto;
+  }
+  .app-body {
+    overflow: visible;
+    height: auto;
+  }
+  .main-content {
+    overflow: visible;
+    height: auto;
+  }
+  .app-container {
+    height: auto;
+    overflow: visible;
+  }
+  .editor-container {
+    height: auto;
+    overflow: visible;
+  }
+  .editor-layout {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+  .editor-main {
+    order: 2;
+    height: auto;
+    overflow: visible;
+  }
+  .editor-sidebar {
+    width: 100%;
+    order: 3;
+    padding: 1rem;
+  }
+  .gallery-tray {
+    width: 100%;
+    order: 1;
+  }
   .btn { width: 100%; }
   .adjustment-box { flex: 1 1 100%; max-width: none; }
   .main-nav ul { flex-direction: column; gap: 0.5rem; }
+}
+
+/* Cropper Workspace Styles */
+.cropper-workspace {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+  gap: 0;
+  background: #0f1015;
+}
+
+/* Adjustment Buttons for horizontal alignment */
+.adjustment-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.canvas-wrapper-container {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-sizing: border-box;
+  border-right: 1px solid var(--border-color);
+}
+
+.canvas-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0b0c10;
+  border-radius: 0;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+  border: none;
+  position: relative;
+  margin-bottom: 0;
+}
+
+.result-container-wrapper {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-sizing: border-box;
+  background: #0b0c10;
+  overflow: hidden;
+}
+
+.result-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  margin: 0;
+}
+
+.result-image-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-sizing: border-box;
+  padding: 3px; /* クロップ画像結果の緑枠線と同じ太さ */
+}
+
+.result-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--border-radius-sm);
+}
+
+.result-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color);
+  opacity: 0.5;
+  font-size: 1.2rem;
+  text-align: center;
+  height: 100%;
+}
+
+/* Combiner Adjustment */
+.combiner-main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.combiner-main .canvas-wrapper {
+  flex: 1;
+  margin-bottom: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.combiner-main .image-list-container {
+  flex-shrink: 0;
+  max-height: 160px;
+  overflow-y: auto;
+  margin-top: 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  background: #121316;
+  padding: 0.5rem;
+  min-height: auto;
+}
+
+/* PDF Adjustment */
+.pdf-main-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.pdf-main-content .image-list-container {
+  flex: 1;
+  margin-top: 0;
+  border: none;
+  border-radius: 0;
+  background: #0f1015;
+  overflow-y: auto;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+/* Floating instructions styled as badges on canvas/list */
+.instructions {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(11, 12, 16, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 6px 12px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+  margin: 0 !important;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.instructions__text {
+  color: #ffffff !important;
+  font-size: 0.8rem !important;
+  font-weight: 500;
+  display: block;
+}
+
+/* Responsive adjustments for cropper workspace */
+@media (max-width: 767px) {
+  .cropper-workspace {
+    flex-direction: column;
+    height: auto;
+  }
+  .canvas-wrapper-container {
+    height: 500px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .result-container-wrapper {
+    height: auto;
+    padding: 1rem;
+  }
 }

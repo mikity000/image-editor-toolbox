@@ -262,9 +262,15 @@ export default function CombinerComponent() {
     <div className="editor-container">
       <div className="editor-layout">
         <GalleryTray onSelectImage={addImageFromGallery} actionText="追加する" />
-        <div className="editor-main">
-          <div className="canvas-wrapper" style={{ height: isMobile ? '500px' : '700px' }}>
+        <div className="editor-main combiner-main">
+          <div className="canvas-wrapper">
             <canvas ref={canvasRef} />
+            <div className="instructions">
+              <small className="instructions__text">
+                {isMobile ? "ピンチでズーム、二本指ドラッグでパンが可能です。"
+                  : "スクロールでズーム、Altキー + ドラッグでパンできます。"}
+              </small>
+            </div>
           </div>
 
           {imageList.length > 0 && (
@@ -281,13 +287,6 @@ export default function CombinerComponent() {
               </div>
             </div>
           )}
-
-          <div className="instructions">
-            <small className="instructions__text">
-              {isMobile ? "ピンチでズーム、二本指ドラッグでパンが可能です。"
-                : "スクロールでズーム、Altキー + ドラッグでパンできます。"}
-            </small>
-          </div>
         </div>
 
         <div className="editor-sidebar">
