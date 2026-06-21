@@ -4,7 +4,7 @@ import { useCropperInteraction } from '../hooks/useCropperInteraction';
 import { useImageCrop } from '../hooks/useImageCrop';
 import { useImageUpload } from '../hooks/useImageUpload';
 import { GalleryContext } from '../context/GalleryContext';
-import GalleryTray from './GalleryTray';
+import SidebarTray from './SidebarTray';
 import { getSequentialName } from '../utils/imageUtils';
 import { isMobileDevice } from '../utils/deviceUtils';
 
@@ -16,7 +16,7 @@ export default function CropperComponent() {
   const [invertCrop, setInvertCrop] = useState(false);
   const [exportBoundsCanvas, setExportBoundsCanvas] = useState(null);
   
-  const { galleryImages, addImages } = useContext(GalleryContext);
+  const { galleryImages, addImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useContext(GalleryContext);
   const { imageLoaded, uploadImage, loadImageFromUrl, imageName, setImageName } = useImageUpload(fabricCanvasRef, setCroppedImageUrl);
 
   const isMobile = isMobileDevice();
@@ -79,12 +79,24 @@ export default function CropperComponent() {
     <div className="editor-container">
       <div className="editor-layout">
         <div className="editor-left-sidebar">
-          <GalleryTray 
-            onSelectImage={(img) => {
+          <SidebarTray
+            title="共有ギャラリー"
+            isOpen={isGalleryOpen}
+            onToggle={() => setIsGalleryOpen(!isGalleryOpen)}
+            emptyMessage={<>ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。</>}
+            items={galleryImages.map(img => ({
+              id: img.id,
+              name: img.name,
+              dataUrl: img.dataUrl,
+              rawItem: img
+            }))}
+            onClickItem={(img) => {
               setImageName(img.name);
               loadImageFromUrl(img.dataUrl);
-            }} 
-            actionText="編集する" 
+            }}
+            onDeleteItems={removeImage}
+            onRenameItem={renameImage}
+            actionText="編集する"
           />
         </div>
         <div className="editor-main">

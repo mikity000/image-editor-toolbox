@@ -18,9 +18,17 @@ export function GalleryProvider({ children }) {
     setGalleryImages((prev) => [...prev, ...formattedImages]);
   };
 
-  // 画像の削除
-  const removeImage = (id) => {
-    setGalleryImages((prev) => prev.filter((img) => img.id !== id));
+  // 画像の削除（単一ID、またはIDの配列を受け取る）
+  const removeImage = (idOrIds) => {
+    const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+    setGalleryImages((prev) => prev.filter((img) => !ids.includes(img.id)));
+  };
+
+  // 画像名の変更
+  const renameImage = (id, newName) => {
+    setGalleryImages((prev) =>
+      prev.map((img) => (img.id === id ? { ...img, name: newName } : img))
+    );
   };
 
   // ギャラリーのクリア
@@ -29,7 +37,7 @@ export function GalleryProvider({ children }) {
   };
 
   return (
-    <GalleryContext.Provider value={{ galleryImages, addImages, removeImage, clearGallery, isGalleryOpen, setIsGalleryOpen }}>
+    <GalleryContext.Provider value={{ galleryImages, addImages, removeImage, renameImage, clearGallery, isGalleryOpen, setIsGalleryOpen }}>
       {children}
     </GalleryContext.Provider>
   );

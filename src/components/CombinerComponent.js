@@ -4,9 +4,7 @@ import { useUndoRedo } from '../hooks/useUndoRedo';
 import { useCanvasZoomPan } from '../hooks/useCanvasZoomPan';
 import { useSnappingGuides } from '../hooks/useSnappingGuides';
 import { GalleryContext } from '../context/GalleryContext';
-import GalleryTray from './GalleryTray';
-import CollapsibleTray from './CollapsibleTray';
-import TrayItem from './TrayItem';
+import SidebarTray from './SidebarTray';
 import { convertToWebP } from '../utils/webpConverter';
 import { getSequentialName, fileToDataUrl } from '../utils/imageUtils';
 import { isMobileDevice } from '../utils/deviceUtils';
@@ -20,7 +18,7 @@ export default function CombinerComponent() {
   const [guideThickness, setGuideThickness] = useState(1);
   const isMobile = isMobileDevice();
 
-  const { galleryImages, addImages } = useContext(GalleryContext);
+  const { galleryImages, addImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useContext(GalleryContext);
 
   // Custom hooks
   const { saveState, undo, redo } = useUndoRedo(fabricCanvas, setImageList);
@@ -59,6 +57,7 @@ export default function CombinerComponent() {
         hasControls: true,
         lockUniScaling: false,
       });
+      fabricImg.id = `canvas-img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       fabricImg.origSrc = image.dataUrl;
       fabricImg.fileName = image.name;
       fabricImg.setControlsVisibility({ mtr: false });
@@ -113,6 +112,7 @@ export default function CombinerComponent() {
               hasControls: true,
               lockUniScaling: false,
             });
+            fabricImg.id = `canvas-img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             fabricImg.origSrc = dataURL;
             fabricImg.fileName = file.name;
             fabricImg.setControlsVisibility({ mtr: false });
@@ -139,6 +139,30 @@ export default function CombinerComponent() {
     fabricCanvas.requestRenderAll();
     saveState();
     setImageList(fabricCanvas.getObjects());
+  };
+
+  const deleteCanvasImages = (ids) => {
+    if (!fabricCanvas) return;
+    const objects = fabricCanvas.getObjects();
+    const toDelete = objects.filter(obj => ids.includes(obj.id));
+    if (toDelete.length === 0) return;
+    
+    toDelete.forEach(obj => fabricCanvas.remove(obj));
+    fabricCanvas.discardActiveObject();
+    fabricCanvas.requestRenderAll();
+    saveState();
+    setImageList(fabricCanvas.getObjects());
+  };
+
+  const renameCanvasImage = (id, newName) => {
+    if (!fabricCanvas) return;
+    const objects = fabricCanvas.getObjects();
+    const target = objects.find(obj => obj.id === id);
+    if (target) {
+      target.fileName = newName;
+      saveState();
+      setImageList([...fabricCanvas.getObjects()]);
+    }
   };
 
   const adjustLayer = (action) => {
@@ -261,27 +285,48 @@ export default function CombinerComponent() {
     fabricCanvas.renderAll();
   };
 
+  const normalizedCanvasItems = imageList.map((imgObj) => {
+    if (!imgObj.id) {
+      imgObj.id = `canvas-img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+    return {
+      id: imgObj.id,
+      name: imgObj.fileName || '不明なファイル名',
+      dataUrl: imgObj.origSrc,
+      rawItem: imgObj
+    };
+  });
+
   return (
     <div className="editor-container">
       <div className="editor-layout">
         <div className="editor-left-sidebar">
-          <GalleryTray onSelectImage={addImageFromGallery} actionText="追加する" />
+          <SidebarTray
+            title="共有ギャラリー"
+            isOpen={isGalleryOpen}
+            onToggle={() => setIsGalleryOpen(!isGalleryOpen)}
+            emptyMessage={<>ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。</>}
+            items={galleryImages.map(img => ({
+              id: img.id,
+              name: img.name,
+              dataUrl: img.dataUrl,
+              rawItem: img
+            }))}
+            onClickItem={addImageFromGallery}
+            onDeleteItems={removeImage}
+            onRenameItem={renameImage}
+            actionText="追加する"
+          />
           
-          <CollapsibleTray
+          <SidebarTray
             title="画像一覧"
             isOpen={isCanvasListOpen}
             onToggle={() => setIsCanvasListOpen(!isCanvasListOpen)}
             emptyMessage={<>キャンバスは空です。<br />画像をアップロードするか、ギャラリーから追加してください。</>}
-            items={imageList}
-            renderItem={(imgObj, index) => (
-              <TrayItem
-                key={index}
-                src={imgObj.origSrc}
-                alt={imgObj.fileName || 'canvas-image'}
-                name={imgObj.fileName || '不明なファイル名'}
-                onClick={() => clickImageList(imgObj)}
-              />
-            )}
+            items={normalizedCanvasItems}
+            onClickItem={clickImageList}
+            onDeleteItems={deleteCanvasImages}
+            onRenameItem={renameCanvasImage}
           />
         </div>
 

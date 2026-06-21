@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useContext } from 'react';
 import { setupListSync } from '../syncService';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
@@ -10,10 +10,12 @@ import { usePdfGenerator } from '../hooks/usePdfGenerator';
 import { usePdfExtractor } from '../hooks/usePdfExtractor';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import GalleryTray from './GalleryTray';
+import SidebarTray from './SidebarTray';
+import { GalleryContext } from '../context/GalleryContext';
 import { convertToWebP } from '../utils/webpConverter';
 
 export default function PdfComponent() {
+  const { galleryImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useContext(GalleryContext);
   const [images, setImages] = useState([]);
   const [selectedImages, setSelectedImages] = useState(new Set());
   const [activeId, setActiveId] = useState(null); // ドラッグ中のアイテムIDを管理
@@ -221,7 +223,22 @@ export default function PdfComponent() {
 
       <div className="editor-layout">
         <div className="editor-left-sidebar">
-          <GalleryTray onSelectImage={addImageFromGallery} actionText="追加する" />
+          <SidebarTray
+            title="共有ギャラリー"
+            isOpen={isGalleryOpen}
+            onToggle={() => setIsGalleryOpen(!isGalleryOpen)}
+            emptyMessage={<>ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。</>}
+            items={galleryImages.map(img => ({
+              id: img.id,
+              name: img.name,
+              dataUrl: img.dataUrl,
+              rawItem: img
+            }))}
+            onClickItem={addImageFromGallery}
+            onDeleteItems={removeImage}
+            onRenameItem={renameImage}
+            actionText="追加する"
+          />
         </div>
         <div className="editor-main pdf-main-content">
           {/* サムネイルリスト DND コンテナ */}
