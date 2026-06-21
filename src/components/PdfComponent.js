@@ -220,7 +220,9 @@ export default function PdfComponent() {
       )}
 
       <div className="editor-layout">
-        <GalleryTray onSelectImage={addImageFromGallery} actionText="追加する" />
+        <div className="editor-left-sidebar">
+          <GalleryTray onSelectImage={addImageFromGallery} actionText="追加する" />
+        </div>
         <div className="editor-main pdf-main-content">
           {/* サムネイルリスト DND コンテナ */}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart}

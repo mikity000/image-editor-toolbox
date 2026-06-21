@@ -5,12 +5,15 @@ import { useCanvasZoomPan } from '../hooks/useCanvasZoomPan';
 import { useSnappingGuides } from '../hooks/useSnappingGuides';
 import { GalleryContext } from '../context/GalleryContext';
 import GalleryTray from './GalleryTray';
+import CollapsibleTray from './CollapsibleTray';
+import TrayItem from './TrayItem';
 import { convertToWebP } from '../utils/webpConverter';
 import { getSequentialName, fileToDataUrl } from '../utils/imageUtils';
 import { isMobileDevice } from '../utils/deviceUtils';
 
 export default function CombinerComponent() {
   const [imageList, setImageList] = useState([]);
+  const [isCanvasListOpen, setIsCanvasListOpen] = useState(true);
   const canvasRef = useRef(null);
   const [fabricCanvas, setFabricCanvas] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
@@ -261,7 +264,27 @@ export default function CombinerComponent() {
   return (
     <div className="editor-container">
       <div className="editor-layout">
-        <GalleryTray onSelectImage={addImageFromGallery} actionText="追加する" />
+        <div className="editor-left-sidebar">
+          <GalleryTray onSelectImage={addImageFromGallery} actionText="追加する" />
+          
+          <CollapsibleTray
+            title="画像一覧"
+            isOpen={isCanvasListOpen}
+            onToggle={() => setIsCanvasListOpen(!isCanvasListOpen)}
+            emptyMessage={<>キャンバスは空です。<br />画像をアップロードするか、ギャラリーから追加してください。</>}
+            items={imageList}
+            renderItem={(imgObj, index) => (
+              <TrayItem
+                key={index}
+                src={imgObj.origSrc}
+                alt={imgObj.fileName || 'canvas-image'}
+                name={imgObj.fileName || '不明なファイル名'}
+                onClick={() => clickImageList(imgObj)}
+              />
+            )}
+          />
+        </div>
+
         <div className="editor-main combiner-main">
           <div className="canvas-wrapper">
             <canvas ref={canvasRef} />
@@ -272,21 +295,6 @@ export default function CombinerComponent() {
               </small>
             </div>
           </div>
-
-          {imageList.length > 0 && (
-            <div className="image-list-container image-list-container--auto">
-              <div className="image-list">
-                {imageList.map((imgObj, index) => (
-                  <div key={index} className="image-preview-item image-preview-item--fixed" onClick={() => clickImageList(imgObj)}>
-                    <img src={imgObj.origSrc} className="thumbnail" alt={`canvas-image-${index}`} />
-                    <div className="image-info">
-                       <p className="file-name">{imgObj.fileName || '不明なファイル名'}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="editor-sidebar">

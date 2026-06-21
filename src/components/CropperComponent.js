@@ -78,13 +78,15 @@ export default function CropperComponent() {
   return (
     <div className="editor-container">
       <div className="editor-layout">
-        <GalleryTray 
-          onSelectImage={(img) => {
-            setImageName(img.name);
-            loadImageFromUrl(img.dataUrl);
-          }} 
-          actionText="編集する" 
-        />
+        <div className="editor-left-sidebar">
+          <GalleryTray 
+            onSelectImage={(img) => {
+              setImageName(img.name);
+              loadImageFromUrl(img.dataUrl);
+            }} 
+            actionText="編集する" 
+          />
+        </div>
         <div className="editor-main">
           <div className="cropper-workspace">
             <div className="canvas-wrapper-container">
