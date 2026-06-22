@@ -123,14 +123,14 @@ export default function SidebarTray({
       onKeyDown={handleKeyDown}
       tabIndex={0}
       style={{ outline: 'none' }}
-      className={`gallery-tray ${isOpen ? 'gallery-tray--open' : ''}`}
+      className={`sidebar-tray ${isOpen ? 'sidebar-tray--open' : ''}`}
     >
-      <div className="gallery-tray__header" onClick={onToggle}>
-        <h3 className="gallery-tray__title">{title}</h3>
-        <div className="gallery-tray__controls" onClick={(e) => e.stopPropagation()}>
-          <button className="gallery-tray__toggle-btn" onClick={onToggle}>
+      <div className="sidebar-tray__header" onClick={onToggle}>
+        <h3 className="sidebar-tray__title">{title}</h3>
+        <div className="sidebar-tray__controls" onClick={(e) => e.stopPropagation()}>
+          <button className="sidebar-tray__toggle-btn" onClick={onToggle}>
             <svg
-              className={isOpen ? 'gallery-tray__toggle-btn--open' : ''}
+              className={isOpen ? 'sidebar-tray__toggle-btn--open' : ''}
               viewBox="0 0 24 24"
               width="20"
               height="20"
@@ -147,11 +147,11 @@ export default function SidebarTray({
         </div>
       </div>
 
-      <div className={`gallery-tray__content ${isOpen ? 'gallery-tray__content--open' : ''}`}>
+      <div className={`sidebar-tray__content ${isOpen ? 'sidebar-tray__content--open' : ''}`}>
         {items.length === 0 ? (
-          <div className="gallery-tray__empty">{emptyMessage}</div>
+          <div className="sidebar-tray__empty">{emptyMessage}</div>
         ) : (
-          <ul className="gallery-tray__list">
+          <ul className="sidebar-tray__list">
             {items.map((item, index) => {
               const isSelected = selectedIds.has(item.id);
               const isEditing = editingId === item.id;
@@ -159,14 +159,14 @@ export default function SidebarTray({
               return (
                 <li
                   key={item.id}
-                  className={`gallery-item ${isSelected ? 'selected' : ''}`}
+                  className={`tray-item ${isSelected ? 'selected' : ''}`}
                   onClick={(e) => handleItemClick(e, item)}
                   onContextMenu={(e) => handleContextMenu(e, item)}
                 >
-                  <img src={item.dataUrl} alt={item.name} className="gallery-item__thumbnail" />
+                  <img src={item.dataUrl} alt={item.name} className="tray-item__thumbnail" />
                   {actionText && !isEditing && (
-                    <div className="gallery-item__action-overlay">
-                      <span className="gallery-item__action-text">{actionText}</span>
+                    <div className="tray-item__action-overlay">
+                      <span className="tray-item__action-text">{actionText}</span>
                     </div>
                   )}
                   {isEditing ? (
@@ -177,11 +177,11 @@ export default function SidebarTray({
                       onBlur={handleRenameSubmit}
                       onKeyDown={handleRenameKeyDown}
                       autoFocus
-                      className="gallery-item__rename-input"
+                      className="tray-item__rename-input"
                       onClick={(e) => e.stopPropagation()}
                     />
                   ) : (
-                    <p className="gallery-item__name">{item.name}</p>
+                    <p className="tray-item__name">{item.name}</p>
                   )}
                 </li>
               );
