@@ -245,7 +245,7 @@ export default function PdfComponent() {
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart}
             onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
             <SortableContext items={images.map(img => img.id)}>
-              <div className="image-list-container" style={{ position: 'relative' }}>
+              <div className="image-list-container">
                 {images.length > 0 && (
                   <div className="image-list">
                     {images.map((image, index) => (
