@@ -1,6 +1,6 @@
 {
   "files": {
-    "main.css": "/image-editor-toolbox/static/css/main.c1c797c2.css",
+    "main.css": "/image-editor-toolbox/static/css/main.f0814363.css",
     "main.js": "/image-editor-toolbox/static/js/main.1cf5d2be.js",
     "static/js/464.7d5b94bc.chunk.js": "/image-editor-toolbox/static/js/464.7d5b94bc.chunk.js",
     "static/js/224.2ff50672.chunk.js": "/image-editor-toolbox/static/js/224.2ff50672.chunk.js",
@@ -8,14 +8,14 @@
     "static/media/webp_enc_simd.wasm": "/image-editor-toolbox/static/media/webp_enc_simd.f728dc876b39e5273411.wasm",
     "static/media/webp_enc.wasm": "/image-editor-toolbox/static/media/webp_enc.dd5d52671a5763720504.wasm",
     "index.html": "/image-editor-toolbox/index.html",
-    "main.c1c797c2.css.map": "/image-editor-toolbox/static/css/main.c1c797c2.css.map",
+    "main.f0814363.css.map": "/image-editor-toolbox/static/css/main.f0814363.css.map",
     "main.1cf5d2be.js.map": "/image-editor-toolbox/static/js/main.1cf5d2be.js.map",
     "464.7d5b94bc.chunk.js.map": "/image-editor-toolbox/static/js/464.7d5b94bc.chunk.js.map",
     "224.2ff50672.chunk.js.map": "/image-editor-toolbox/static/js/224.2ff50672.chunk.js.map",
     "886.e0dae89e.chunk.js.map": "/image-editor-toolbox/static/js/886.e0dae89e.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.c1c797c2.css",
+    "static/css/main.f0814363.css",
     "static/js/main.1cf5d2be.js"
   ]
 }
