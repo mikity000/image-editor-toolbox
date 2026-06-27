@@ -396,7 +396,6 @@ html, body {
 
 .image-preview-item.selected {
   border-color: var(--accent-color);
-  background: rgba(102, 252, 241, 0.05);
   box-shadow: 0 0 10px rgba(102, 252, 241, 0.2);
 }
 
@@ -572,7 +571,6 @@ html, body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: transparent;
 }
 
 .app-footer {
