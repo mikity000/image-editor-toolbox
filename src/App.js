@@ -6,7 +6,6 @@ import { GalleryProvider } from './context/GalleryContext';
 import './styles.css';
 
 export default function App() {
-  //const pjName = require('../package.json').name;
   return (
     <GalleryProvider>
       <Router>
@@ -15,9 +14,9 @@ export default function App() {
             {/* ヘッダーコンテンツ */}
             <nav className="main-nav">
               <ul>
-                <li><NavLink to={`/pdf`}>画像PDF化</NavLink></li> {/* ${pjName}/pdf */}
-                <li><NavLink to={`/crop`}>画像クロップ</NavLink></li> {/* ${pjName}/crop */}
-                <li><NavLink to={`/combine`}>画像結合</NavLink></li> {/* ${pjName}/combine */}
+                <li><NavLink to="/pdf">画像PDF化</NavLink></li>
+                <li><NavLink to="/crop">画像クロップ</NavLink></li>
+                <li><NavLink to="/combine">画像結合</NavLink></li>
               </ul>
             </nav>
           </header>
@@ -25,10 +24,10 @@ export default function App() {
           <div className="app-body"> {/* メインコンテンツのコンテナ */}
             <main className="main-content">
               <Routes>
-                <Route path={`/`} element={<Navigate to="crop" replace />} /> {/* / */}
-                <Route path={`/pdf`} element={<ImagePdf />} /> {/* ${pjName}/pdf */}
-                <Route path={`/crop`} element={<ImageTrimming />} /> {/* ${pjName}/crop */}
-                <Route path={`/combine`} element={<ImageCombine />} /> {/* ${pjName}/combine */}
+                <Route path="/" element={<Navigate to="crop" replace />} />
+                <Route path="/pdf" element={<ImagePdf />} />
+                <Route path="/crop" element={<ImageTrimming />} />
+                <Route path="/combine" element={<ImageCombine />} />
               </Routes>
             </main>
           </div>

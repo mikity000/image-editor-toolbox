@@ -8,6 +8,7 @@ import SidebarTray from './SidebarTray';
 import { convertToWebP } from '../utils/webpConverter';
 import { getSequentialName, fileToDataUrl } from '../utils/imageUtils';
 import { isMobileDevice } from '../utils/deviceUtils';
+import { Constants } from '../constants/Constants';
 
 export default function CombinerComponent() {
   const [imageList, setImageList] = useState([]);
@@ -79,7 +80,13 @@ export default function CombinerComponent() {
       selection: true,
       selectionKey: 'ctrlKey',
     });
+
+    // グリッド線（マス目）を描画するイベントハンドラーの追加
+    canvas.on('before:render', (opt) => drawGrid(canvas, opt.ctx));
+
     setFabricCanvas(canvas);
+    // 初期表示時にグリッド線を描画するために、強制再レンダリングを実行
+    canvas.requestRenderAll();
 
     return () => {
       canvas.dispose();
@@ -195,6 +202,10 @@ export default function CombinerComponent() {
     if (!imageObjects.length) return null;
 
     fabricCanvas.discardActiveObject();
+    
+    // エクスポート中はグリッド線の描画をオフにする
+    fabricCanvas.isExporting = true;
+
     fabricCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -210,6 +221,7 @@ export default function CombinerComponent() {
     const exportWidth = maxX - minX;
     const exportHeight = maxY - minY;
 
+    let result = null;
     if (exportWidth > 0 && exportHeight > 0) {
       // multiplier の計算
       let maxScaleFactor = 1;
@@ -234,7 +246,7 @@ export default function CombinerComponent() {
       }
       maxScaleFactor = Math.max(1, maxScaleFactor);
 
-      return fabricCanvas.toDataURL({
+      result = fabricCanvas.toDataURL({
         format: 'png',
         quality: 1,
         left: minX,
@@ -244,7 +256,12 @@ export default function CombinerComponent() {
         multiplier: maxScaleFactor,
       });
     }
-    return null;
+
+    // エクスポート終了後にグリッド描画を戻し、キャンバスを再描画
+    fabricCanvas.isExporting = false;
+    fabricCanvas.requestRenderAll();
+
+    return result;
   };
 
   const download = async () => {
@@ -394,4 +411,59 @@ export default function CombinerComponent() {
       </div>
     </div>
   );
+}
+
+/**
+ * キャンバスにグリッド線（マス目）を描画します。
+ * @param {Canvas} canvas Fabric Canvasインスタンス
+ * @param {CanvasRenderingContext2D} ctx キャンバスコンテキスト
+ */
+function drawGrid(canvas, ctx) {
+  if (canvas.isExporting) return;
+  ctx.save();
+  
+  const vpt = canvas.viewportTransform;
+  // ビューポート変換（ズーム・パン）を適用してワールド座標系で描画
+  ctx.transform(vpt[0], vpt[1], vpt[2], vpt[3], vpt[4], vpt[5]);
+  
+  const zoom = canvas.getZoom();
+  const width = canvas.getWidth();
+  const height = canvas.getHeight();
+  
+  // 画面上の表示領域をワールド座標に変換
+  const minX = -vpt[4] / zoom;
+  const minY = -vpt[5] / zoom;
+  const maxX = (width - vpt[4]) / zoom;
+  const maxY = (height - vpt[5]) / zoom;
+  
+  // ズームに応じた適切なグリッドサイズ（ワールド座標）を動的に計算する
+  const rawGridSize = Constants.TARGET_SCREEN_SIZE / zoom;
+  const exponent = Math.floor(Math.log10(rawGridSize));
+  const base = Math.pow(10, exponent);
+  const ratio = rawGridSize / base;
+
+  const gridSize = ratio < 1.5 ? base
+                 : ratio < 3.5 ? 2 * base
+                 : ratio < 7.5 ? 5 * base
+                 : 10 * base;
+  
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.lineWidth = 1 / zoom; // ズーム倍率によらず線の太さを一定（1px相当）に保つ
+  
+  // 縦線の描画
+  const startX = Math.floor(minX / gridSize) * gridSize;
+  ctx.beginPath();
+  for (let x = startX; x <= maxX; x += gridSize) {
+    ctx.moveTo(x, minY);
+    ctx.lineTo(x, maxY);
+  }
+  
+  // 横線の描画
+  const startY = Math.floor(minY / gridSize) * gridSize;
+  for (let y = startY; y <= maxY; y += gridSize) {
+    ctx.moveTo(minX, y);
+    ctx.lineTo(maxX, y);
+  }
+  ctx.stroke();
+  ctx.restore();
 }
