@@ -123,7 +123,10 @@ export default function PdfComponent() {
   };
 
   // ドラッグ開始時の処理
-  const dragStart = useCallback((e) => setActiveId(e.active.id), []);
+  const dragStart = useCallback((e) => {
+    setActiveId(e.active.id);
+    document.body.classList.add('is-dragging');
+  }, []);
 
   // ドラッグ中のリアルタイム並び替え処理
   const dragOver = useCallback((e) => {
@@ -153,6 +156,7 @@ export default function PdfComponent() {
 
   const dragEnd = (e) => {
     setActiveId(null); // ドラッグ終了時にactiveIdをリセット
+    document.body.classList.remove('is-dragging');
   };
 
   // 複数アイテムをまとめて移動するヘルパー

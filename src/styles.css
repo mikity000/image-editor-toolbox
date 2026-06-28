@@ -375,6 +375,12 @@ html, body {
 ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-secondary); }
 
+/* ドラッグ中はカーソルを grabbing に固定 */
+body.is-dragging,
+body.is-dragging * {
+  cursor: grabbing !important;
+}
+
 /* Image Preview Cards */
 .image-preview-item {
   background: var(--bg-surface);
