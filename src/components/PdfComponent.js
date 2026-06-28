@@ -125,21 +125,34 @@ export default function PdfComponent() {
   // ドラッグ開始時の処理
   const dragStart = useCallback((e) => setActiveId(e.active.id), []);
 
-  const dragEnd = (e) => {
-    setActiveId(null); // ドラッグ終了時にactiveIdをリセット
+  // ドラッグ中のリアルタイム並び替え処理
+  const dragOver = useCallback((e) => {
     const { active, over } = e;
-    if (active.id === over.id || selectedImages.has(over.id)) return;
+    if (!over) return;
+    if (active.id === over.id) return;
+
+    // active が選択されている複数ドラッグかどうか
+    const isActiveSelected = selectedImages.has(active.id);
+    
+    // over が選択中の場合は、そのグループ内での並び替えは無視する（ガタつき防止）
+    if (isActiveSelected && selectedImages.has(over.id)) return;
+
     setImages((items) => {
-      // 通常の「単一ドラッグ」での並び替えインデックスを計算
       const oldIndex = items.findIndex((item) => item.id === active.id);
       const newIndex = items.findIndex((item) => item.id === over.id);
-      // active が選択中に含まれるかチェック
-      const newList = selectedImages.has(active.id) ? arrayMoveMultiple(items, selectedImages, over.id, oldIndex, newIndex)
-                                                     : arrayMove(items, oldIndex, newIndex);
-      // ドラッグ順序変更を同期
-      //emitListRef.current?.(newList);
-      return newList;
+      
+      if (oldIndex === -1 || newIndex === -1) return items;
+
+      if (isActiveSelected) {
+        return arrayMoveMultiple(items, selectedImages, over.id, oldIndex, newIndex);
+      } else {
+        return arrayMove(items, oldIndex, newIndex);
+      }
     });
+  }, [selectedImages]);
+
+  const dragEnd = (e) => {
+    setActiveId(null); // ドラッグ終了時にactiveIdをリセット
   };
 
   // 複数アイテムをまとめて移動するヘルパー
@@ -243,7 +256,7 @@ export default function PdfComponent() {
         <div className="editor-main pdf-main-content">
           {/* サムネイルリスト DND コンテナ */}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart}
-            onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
+            onDragOver={dragOver} onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
             <SortableContext items={images.map(img => img.id)}>
               <div className="image-list-container">
                 {images.length > 0 && (
@@ -302,20 +315,52 @@ function SortableImagePreview({ image, images, index, isSelected, onSelect, acti
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: image.id });
   // グループドラッグ（選択アイテムが複数あり、そのうちの1つがドラッグされている）がアクティブか
   const isGroupDragActive = selectedImages.has(activeId) && selectedImages.size > 1;
-  // このアイテムが、ドラッグされているグループの一員だが、activeなアイテムではない場合
-  const isPassiveFollower = isGroupDragActive && isSelected && !isDragging;
-  const style = {
-    transform: CSS.Transform.toString(transform),
+  
+  // このアイテムがプレースホルダーとして描画されるべきか
+  // （単一ドラッグ時の本人、または複数ドラッグ時の選択されたグループ全員）
+  const showPlaceholder = isDragging || (selectedImages.has(activeId) && isSelected);
+
+  const wrapperStyle = {
+    // プレースホルダーとして表示する要素は、現在のリスト内位置に静止させたいので transform を適用しない
+    transform: showPlaceholder ? undefined : CSS.Transform.toString(transform),
     transition,
-    opacity: isPassiveFollower ? 0 : 1, // グループドラッグ中の、ドラッグされていない選択済みアイテムは非表示にする
-    zIndex: isDragging ? 10 : 'auto', // ドラッグ中のアイテムは最前面に表示
+    zIndex: isDragging ? 10 : 'auto',
+    position: 'relative',
   };
 
+  // ドラッグ中の実体（マウスに追従する要素）のスタイル
+  const dragFloatingStyle = isDragging ? {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    transform: CSS.Transform.toString(transform),
+    pointerEvents: 'none',
+    zIndex: 100,
+  } : null;
+
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <ImagePreview image={image} index={index} isSelected={isSelected} onSelect={onSelect} />
-      <DraggedItemStack isDragging={isDragging} isGroupDragActive={isGroupDragActive} selectedImages={selectedImages} id={image.id} images={images} />
-      {isDragging && isGroupDragActive && <span className="count-badge">{selectedImages.size}</span>}
+    <div ref={setNodeRef} style={wrapperStyle} {...attributes} {...listeners}>
+      {showPlaceholder ? (
+        <div className="image-preview-item placeholder-card">
+          <div className="thumbnail-placeholder"></div>
+          <div className="image-info" style={{ visibility: 'hidden' }}>
+            <p className="file-name">placeholder</p>
+            <p className="page-number">placeholder</p>
+          </div>
+        </div>
+      ) : (
+        <ImagePreview image={image} index={index} isSelected={isSelected} onSelect={onSelect} />
+      )}
+
+      {isDragging && (
+        <div style={dragFloatingStyle}>
+          <ImagePreview image={image} index={index} isSelected={isSelected} onSelect={onSelect} />
+          <DraggedItemStack isDragging={isDragging} isGroupDragActive={isGroupDragActive} selectedImages={selectedImages} id={image.id} images={images} />
+          {isGroupDragActive && <span className="count-badge">{selectedImages.size}</span>}
+        </div>
+      )}
     </div>
   );
 }
