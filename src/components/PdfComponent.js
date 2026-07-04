@@ -19,6 +19,10 @@ export default function PdfComponent() {
   const [images, setImages] = useState([]);
   const [selectedImages, setSelectedImages] = useState(new Set());
   const [activeId, setActiveId] = useState(null); // ドラッグ中のアイテムIDを管理
+  const [dragStartRect, setDragStartRect] = useState(null); // ドラッグ開始時のカードの境界矩形
+  const dragStartOffsetRef = useRef({ x: 0, y: 0 }); // カード左上に対する掴み位置のオフセット
+  const dragPreviewRef = useRef(null); // ドラッグプレビュー要素への参照
+  const dragCleanupRef = useRef(null); // ドラッグ終了時のイベントリスナー解除用
   const [isUploading, setIsUploading] = useState(false); // 画像アップロード中
   const [uploadProgress, setUploadProgress] = useState(0); // アップロード進捗
 
@@ -124,8 +128,63 @@ export default function PdfComponent() {
 
   // ドラッグ開始時の処理
   const dragStart = useCallback((e) => {
-    setActiveId(e.active.id);
+    const { active } = e;
+    setActiveId(active.id);
     document.body.classList.add('is-dragging');
+
+    // ドラッグ開始時の要素の位置とサイズを取得
+    const element = document.getElementById(`preview-${active.id}`);
+    if (element) {
+      const rect = element.getBoundingClientRect();
+      setDragStartRect({
+        width: rect.width,
+        height: rect.height
+      });
+
+      // ドラッグ開始時のポインター位置を取得してオフセットを計算
+      const activatorEvent = e.activatorEvent;
+      if (activatorEvent) {
+        const clientX = activatorEvent.clientX ?? (activatorEvent.touches?.[0]?.clientX);
+        const clientY = activatorEvent.clientY ?? (activatorEvent.touches?.[0]?.clientY);
+
+        if (clientX !== undefined && clientY !== undefined) {
+          dragStartOffsetRef.current = {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+          };
+          
+          // マウント直後の初期位置を requestAnimationFrame で即座に反映
+          requestAnimationFrame(() => {
+            if (dragPreviewRef.current) {
+              const top = clientY - dragStartOffsetRef.current.y;
+              const left = clientX - dragStartOffsetRef.current.x;
+              dragPreviewRef.current.style.top = `${top}px`;
+              dragPreviewRef.current.style.left = `${left}px`;
+            }
+          });
+        }
+      }
+    }
+
+    // ドラッグ中のポインター移動を監視するリスナー (DOMを直接操作して再レンダリングを防ぐ)
+    const handlePointerMove = (event) => {
+      const clientX = event.clientX ?? (event.touches?.[0]?.clientX);
+      const clientY = event.clientY ?? (event.touches?.[0]?.clientY);
+      if (clientX !== undefined && clientY !== undefined && dragPreviewRef.current) {
+        const top = clientY - dragStartOffsetRef.current.y;
+        const left = clientX - dragStartOffsetRef.current.x;
+        dragPreviewRef.current.style.top = `${top}px`;
+        dragPreviewRef.current.style.left = `${left}px`;
+      }
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('touchmove', handlePointerMove, { passive: true });
+
+    dragCleanupRef.current = () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('touchmove', handlePointerMove);
+    };
   }, []);
 
   // ドラッグ中のリアルタイム並び替え処理
@@ -156,7 +215,13 @@ export default function PdfComponent() {
 
   const dragEnd = (e) => {
     setActiveId(null); // ドラッグ終了時にactiveIdをリセット
+    setDragStartRect(null);
+    dragStartOffsetRef.current = { x: 0, y: 0 };
     document.body.classList.remove('is-dragging');
+    if (dragCleanupRef.current) {
+      dragCleanupRef.current();
+      dragCleanupRef.current = null;
+    }
   };
 
   // 複数アイテムをまとめて移動するヘルパー
@@ -222,6 +287,20 @@ export default function PdfComponent() {
   const isAnyLoading = isUploading || isProcessing || isExtracting || isZipping;
   const currentProgress = isUploading ? uploadProgress : (isExtracting ? extractProgress : pdfProgress);
   const loadingText = isUploading ? '画像をアップロード中...' : (isExtracting ? 'PDFから画像を抽出中...' : (isZipping ? '画像をZIPに圧縮中...' : 'PDFを生成中...'));
+
+  const dragActiveItem = images.find(img => img.id === activeId);
+  const dragActiveIndex = images.findIndex(img => img.id === activeId);
+  const isGroupDragActive = selectedImages.has(activeId) && selectedImages.size > 1;
+
+  const dragPreviewStyle = dragStartRect ? {
+    position: 'fixed',
+    top: '-9999px',
+    left: '-9999px',
+    width: dragStartRect.width,
+    height: dragStartRect.height,
+    pointerEvents: 'none',
+    zIndex: 9999,
+  } : null;
 
   return (
     <div className="editor-container">
@@ -311,14 +390,21 @@ export default function PdfComponent() {
           </div>
         </div>
       </div>
+
+      {/* カスタムドラッグプレビュー */}
+      {activeId && dragActiveItem && dragPreviewStyle && (
+        <div ref={dragPreviewRef} style={dragPreviewStyle}>
+          <ImagePreview image={dragActiveItem} index={dragActiveIndex} isSelected={selectedImages.has(activeId)} onSelect={() => {}} />
+          <DraggedItemStack isDragging={true} isGroupDragActive={isGroupDragActive} selectedImages={selectedImages} id={activeId} images={images} />
+          {isGroupDragActive && <span className="count-badge">{selectedImages.size}</span>}
+        </div>
+      )}
     </div>
   );
 }
 
 function SortableImagePreview({ image, images, index, isSelected, onSelect, activeId, selectedImages }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: image.id });
-  // グループドラッグ（選択アイテムが複数あり、そのうちの1つがドラッグされている）がアクティブか
-  const isGroupDragActive = selectedImages.has(activeId) && selectedImages.size > 1;
   
   // このアイテムがプレースホルダーとして描画されるべきか
   // （単一ドラッグ時の本人、または複数ドラッグ時の選択されたグループ全員）
@@ -332,37 +418,20 @@ function SortableImagePreview({ image, images, index, isSelected, onSelect, acti
     position: 'relative',
   };
 
-  // ドラッグ中の実体（マウスに追従する要素）のスタイル
-  const dragFloatingStyle = isDragging ? {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    transform: CSS.Transform.toString(transform),
-    pointerEvents: 'none',
-    zIndex: 100,
-  } : null;
-
   return (
-    <div ref={setNodeRef} style={wrapperStyle} {...attributes} {...listeners}>
-      {showPlaceholder ? (
-        <div className="image-preview-item placeholder-card">
-          <div className="thumbnail-placeholder"></div>
-          <div className="image-info" style={{ visibility: 'hidden' }}>
-            <p className="file-name">placeholder</p>
-            <p className="page-number">placeholder</p>
-          </div>
-        </div>
-      ) : (
+    <div
+      ref={setNodeRef}
+      style={wrapperStyle}
+      {...attributes}
+      {...listeners}
+      id={`preview-${image.id}`}
+    >
+      <div style={{ visibility: showPlaceholder ? 'hidden' : 'visible' }}>
         <ImagePreview image={image} index={index} isSelected={isSelected} onSelect={onSelect} />
-      )}
-
-      {isDragging && (
-        <div style={dragFloatingStyle}>
-          <ImagePreview image={image} index={index} isSelected={isSelected} onSelect={onSelect} />
-          <DraggedItemStack isDragging={isDragging} isGroupDragActive={isGroupDragActive} selectedImages={selectedImages} id={image.id} images={images} />
-          {isGroupDragActive && <span className="count-badge">{selectedImages.size}</span>}
+      </div>
+      {showPlaceholder && (
+        <div className="image-preview-item placeholder-card" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <div className="thumbnail-placeholder"></div>
         </div>
       )}
     </div>
