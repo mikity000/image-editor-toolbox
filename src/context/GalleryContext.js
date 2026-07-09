@@ -37,8 +37,8 @@ export function GalleryProvider({ children }) {
   };
 
   return (
-    <GalleryContext.Provider value={{ galleryImages, addImages, removeImage, renameImage, clearGallery, isGalleryOpen, setIsGalleryOpen }}>
+    <GalleryContext value={{ galleryImages, addImages, removeImage, renameImage, clearGallery, isGalleryOpen, setIsGalleryOpen }}>
       {children}
-    </GalleryContext.Provider>
+    </GalleryContext>
   );
 }

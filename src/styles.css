@@ -1313,3 +1313,23 @@ body.is-dragging * {
   background: rgba(102, 252, 241, 0.1);
   box-shadow: 0 0 8px rgba(102, 252, 241, 0.3);
 }
+
+/* 画面切り替え時の状態保持用 */
+.tab-content-wrapper {
+  height: 100%;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-content-wrapper.is-hidden {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+  width: 100%;
+  height: 100%;
+  visibility: hidden;
+  pointer-events: none;
+}

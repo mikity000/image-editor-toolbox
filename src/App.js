@@ -1,37 +1,60 @@
-import { /*BrowserRouter*/ HashRouter as Router, Routes, Route, NavLink, Navigate  } from 'react-router-dom';
+import { /*BrowserRouter*/ HashRouter as Router, Routes, Route, NavLink, Navigate, useLocation  } from 'react-router-dom';
 import ImageTrimming from './pages/ImageCrop'; // クロップページ
 import ImageCombine from './pages/ImageCombine';   // 結合ページ
 import ImagePdf from './pages/ImagePdf';   // PDF化ページ
 import { GalleryProvider } from './context/GalleryContext';
 import './styles.css';
 
+function AppContent() {
+  const location = useLocation();
+  const currentPath = location.pathname;
+
+  const isPdf = currentPath === '/pdf';
+  const isCrop = currentPath === '/crop';
+  const isCombine = currentPath === '/combine';
+
+  return (
+    <div className="app-layout"> {/* アプリケーション全体のレイアウト用コンテナ */}
+      <header className="app-header">
+        {/* ヘッダーコンテンツ */}
+        <nav className="main-nav">
+          <ul>
+            <li><NavLink to="/pdf" className={isPdf ? 'active' : ''}>画像PDF化</NavLink></li>
+            <li><NavLink to="/crop" className={isCrop ? 'active' : ''}>画像クロップ</NavLink></li>
+            <li><NavLink to="/combine" className={isCombine ? 'active' : ''}>画像結合</NavLink></li>
+          </ul>
+        </nav>
+      </header>
+
+      <div className="app-body"> {/* メインコンテンツのコンテナ */}
+        <main className="main-content" style={{ position: 'relative', height: '100%' }}>
+          <div className={`tab-content-wrapper ${isPdf ? '' : 'is-hidden'}`}>
+            <ImagePdf />
+          </div>
+          <div className={`tab-content-wrapper ${isCrop ? '' : 'is-hidden'}`}>
+            <ImageTrimming />
+          </div>
+          <div className={`tab-content-wrapper ${isCombine ? '' : 'is-hidden'}`}>
+            <ImageCombine />
+          </div>
+
+          <Routes>
+            <Route path="/" element={<Navigate to="/crop" replace />} />
+            <Route path="/pdf" element={null} />
+            <Route path="/crop" element={null} />
+            <Route path="/combine" element={null} />
+          </Routes>
+        </main>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <GalleryProvider>
       <Router>
-        <div className="app-layout"> {/* アプリケーション全体のレイアウト用コンテナ */}
-          <header className="app-header">
-            {/* ヘッダーコンテンツ */}
-            <nav className="main-nav">
-              <ul>
-                <li><NavLink to="/pdf">画像PDF化</NavLink></li>
-                <li><NavLink to="/crop">画像クロップ</NavLink></li>
-                <li><NavLink to="/combine">画像結合</NavLink></li>
-              </ul>
-            </nav>
-          </header>
-
-          <div className="app-body"> {/* メインコンテンツのコンテナ */}
-            <main className="main-content">
-              <Routes>
-                <Route path="/" element={<Navigate to="crop" replace />} />
-                <Route path="/pdf" element={<ImagePdf />} />
-                <Route path="/crop" element={<ImageTrimming />} />
-                <Route path="/combine" element={<ImageCombine />} />
-              </Routes>
-            </main>
-          </div>
-        </div>
+        <AppContent />
       </Router>
     </GalleryProvider>
   );
