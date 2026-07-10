@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useContext } from 'react';
+import { useRef, useEffect, useState, useContext, useMemo } from 'react';
 import { Canvas } from 'fabric';
 import { useCropperInteraction } from '../hooks/useCropperInteraction';
 import { useImageCrop } from '../hooks/useImageCrop';
@@ -18,6 +18,15 @@ export default function CropperComponent() {
   
   const { galleryImages, addImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useContext(GalleryContext);
   const { imageLoaded, uploadImage, loadImageFromUrl, imageName, setImageName } = useImageUpload(fabricCanvasRef, setCroppedImageUrl);
+
+  const galleryItems = useMemo(() => {
+    return galleryImages.map(img => ({
+      id: img.id,
+      name: img.name,
+      dataUrl: img.dataUrl,
+      rawItem: img
+    }));
+  }, [galleryImages]);
 
   const isMobile = isMobileDevice();
 
@@ -84,12 +93,7 @@ export default function CropperComponent() {
             isOpen={isGalleryOpen}
             onToggle={() => setIsGalleryOpen(!isGalleryOpen)}
             emptyMessage={<>ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。</>}
-            items={galleryImages.map(img => ({
-              id: img.id,
-              name: img.name,
-              dataUrl: img.dataUrl,
-              rawItem: img
-            }))}
+            items={galleryItems}
             onClickItem={(img) => {
               setImageName(img.name);
               loadImageFromUrl(img.dataUrl);

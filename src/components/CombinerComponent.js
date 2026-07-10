@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useContext } from 'react';
+import { useEffect, useRef, useState, useContext, useMemo } from 'react';
 import { Canvas, Image as FabricImage } from 'fabric';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { useCanvasZoomPan } from '../hooks/useCanvasZoomPan';
@@ -20,6 +20,15 @@ export default function CombinerComponent() {
   const isMobile = isMobileDevice();
 
   const { galleryImages, addImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useContext(GalleryContext);
+
+  const galleryItems = useMemo(() => {
+    return galleryImages.map(img => ({
+      id: img.id,
+      name: img.name,
+      dataUrl: img.dataUrl,
+      rawItem: img
+    }));
+  }, [galleryImages]);
 
   // Custom hooks
   const { saveState, undo, redo } = useUndoRedo(fabricCanvas, setImageList);
@@ -323,12 +332,7 @@ export default function CombinerComponent() {
             isOpen={isGalleryOpen}
             onToggle={() => setIsGalleryOpen(!isGalleryOpen)}
             emptyMessage={<>ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。</>}
-            items={galleryImages.map(img => ({
-              id: img.id,
-              name: img.name,
-              dataUrl: img.dataUrl,
-              rawItem: img
-            }))}
+            items={galleryItems}
             onClickItem={addImageFromGallery}
             onDeleteItems={removeImage}
             onRenameItem={renameImage}

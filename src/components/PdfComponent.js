@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useContext } from 'react';
+import { useState, useCallback, useRef, useEffect, useContext, useMemo } from 'react';
 import { setupListSync } from '../syncService';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
@@ -16,6 +16,14 @@ import { convertToWebP } from '../utils/webpConverter';
 
 export default function PdfComponent() {
   const { galleryImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useContext(GalleryContext);
+  const galleryItems = useMemo(() => {
+    return galleryImages.map(img => ({
+      id: img.id,
+      name: img.name,
+      dataUrl: img.dataUrl,
+      rawItem: img
+    }));
+  }, [galleryImages]);
   const [images, setImages] = useState([]);
   const [selectedImages, setSelectedImages] = useState(new Set());
   const [activeId, setActiveId] = useState(null); // ドラッグ中のアイテムIDを管理
@@ -324,12 +332,7 @@ export default function PdfComponent() {
             isOpen={isGalleryOpen}
             onToggle={() => setIsGalleryOpen(!isGalleryOpen)}
             emptyMessage={<>ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。</>}
-            items={galleryImages.map(img => ({
-              id: img.id,
-              name: img.name,
-              dataUrl: img.dataUrl,
-              rawItem: img
-            }))}
+            items={galleryItems}
             onClickItem={addImageFromGallery}
             onDeleteItems={removeImage}
             onRenameItem={renameImage}

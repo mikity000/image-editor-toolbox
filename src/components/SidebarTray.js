@@ -163,7 +163,7 @@ export default function SidebarTray({
                   onClick={(e) => handleItemClick(e, item)}
                   onContextMenu={(e) => handleContextMenu(e, item)}
                 >
-                  <img src={item.dataUrl} alt={item.name} className="tray-item__thumbnail" />
+                  <img src={item.dataUrl} alt={item.name} className="tray-item__thumbnail" decoding="sync" />
                   {actionText && !isEditing && (
                     <div className="tray-item__action-overlay">
                       <span className="tray-item__action-text">{actionText}</span>
