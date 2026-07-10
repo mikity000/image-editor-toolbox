@@ -1,4 +1,4 @@
-import { Image as FabricImage, Point, util } from 'fabric';
+import { FabricImage, Point } from 'fabric';
 import io from 'socket.io-client';
 
 // ─────────────────────────────────────
@@ -33,7 +33,7 @@ export function serializeImages(canvas, options = { includeBackground: true, inc
       .forEach(o => {
         const matrix = o.calcTransformMatrix();
         const p1 = new Point(0, 0), p2 = new Point(o.width ?? 0, o.height ?? 0);
-        const t1 = util.transformPoint(p1, matrix), t2 = util.transformPoint(p2, matrix);
+        const t1 = p1.transform(matrix), t2 = p2.transform(matrix);
         const width = Math.abs(t2.x - t1.x);
         const height = Math.abs(t2.y - t1.y);
         const rect = o.getBoundingRect(true);

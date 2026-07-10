@@ -10,7 +10,7 @@ export function GalleryProvider({ children }) {
   const addImages = (newImages) => {
     const imagesArray = Array.isArray(newImages) ? newImages : [newImages];
     const formattedImages = imagesArray.map(img => ({
-      id: img.id || `gallery-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: img.id || `gallery-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       name: img.name || '名称未設定',
       dataUrl: img.dataUrl,
       createdAt: new Date().toISOString()

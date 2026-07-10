@@ -1,5 +1,5 @@
 import { useCallback, useRef, useEffect } from 'react';
-import { Canvas, FabricImage, Rect, Circle, Ellipse, Polygon, Point, Path, util } from 'fabric';
+import { Canvas, FabricImage, Rect, Circle, Ellipse, Polygon, Point, Path } from 'fabric';
 import { convertToWebP } from '../utils/webpConverter';
 
 export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = false, setExportBoundsCanvas) {
@@ -88,7 +88,7 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
           const pathOffsetX = targetObj.pathOffset ? targetObj.pathOffset.x : 0;
           const pathOffsetY = targetObj.pathOffset ? targetObj.pathOffset.y : 0;
           const localPoint = new Point(p.x - pathOffsetX, p.y - pathOffsetY);
-          const absolutePoint = util.transformPoint(localPoint, matrix);
+          const absolutePoint = localPoint.transform(matrix);
           
           const origX = (absolutePoint.x - imageDisplayLeft) * scaleFactorX;
           const origY = (absolutePoint.y - imageDisplayTop) * scaleFactorY;

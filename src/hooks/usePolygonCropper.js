@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { Polygon, Line, Circle, Point, util } from 'fabric';
+import { Polygon, Line, Circle, Point } from 'fabric';
 import { clampPointToImageBounds } from '../utils/fabricBounds';
 import { initEdgeDetectionCanvas, clearEdgeDetectionCanvas, findClosestEdge } from '../utils/edgeDetection';
 import { Constants } from '../constants/Constants';
@@ -283,7 +283,7 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
         const pathOffsetX = drawingObject.pathOffset ? drawingObject.pathOffset.x : 0;
         const pathOffsetY = drawingObject.pathOffset ? drawingObject.pathOffset.y : 0;
         const localPoint = new Point(p.x - pathOffsetX, p.y - pathOffsetY);
-        const absPoint = util.transformPoint(localPoint, matrix);
+        const absPoint = localPoint.transform(matrix);
         return { x: absPoint.x, y: absPoint.y };
     });
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useContext, useMemo } from 'react';
-import { Canvas, Image as FabricImage } from 'fabric';
+import { Canvas, FabricImage } from 'fabric';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { useCanvasZoomPan } from '../hooks/useCanvasZoomPan';
 import { useSnappingGuides } from '../hooks/useSnappingGuides';
@@ -67,7 +67,7 @@ export default function CombinerComponent() {
         hasControls: true,
         lockUniScaling: false,
       });
-      fabricImg.id = `canvas-img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      fabricImg.id = `canvas-img-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
       fabricImg.origSrc = image.dataUrl;
       fabricImg.fileName = image.name;
       fabricImg.setControlsVisibility({ mtr: false });
@@ -128,7 +128,7 @@ export default function CombinerComponent() {
               hasControls: true,
               lockUniScaling: false,
             });
-            fabricImg.id = `canvas-img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            fabricImg.id = `canvas-img-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
             fabricImg.origSrc = dataURL;
             fabricImg.fileName = file.name;
             fabricImg.setControlsVisibility({ mtr: false });
@@ -313,7 +313,7 @@ export default function CombinerComponent() {
 
   const normalizedCanvasItems = imageList.map((imgObj) => {
     if (!imgObj.id) {
-      imgObj.id = `canvas-img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      imgObj.id = `canvas-img-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     }
     return {
       id: imgObj.id,

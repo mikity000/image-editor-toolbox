@@ -52,7 +52,7 @@ export default function PdfComponent() {
     }
 
     const newImage = {
-      id: `pdf-page-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `pdf-page-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       name: image.name,
       dataUrl: dataUrl
     };

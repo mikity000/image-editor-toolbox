@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Image as FabricImage } from 'fabric';
+import { FabricImage } from 'fabric';
 import { fileToDataUrl } from '../utils/imageUtils';
 
 export function useImageUpload(fabricCanvasRef, setCroppedImageUrl) {

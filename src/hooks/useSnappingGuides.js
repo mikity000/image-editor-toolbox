@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Line, ActiveSelection, Image as FabricImage } from 'fabric';
+import { Line, ActiveSelection, FabricImage } from 'fabric';
 
 export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize, saveState) {
   useEffect(() => {
