@@ -15,9 +15,14 @@ const getDistanceToSegment = (p, v, w) => {
   return Math.sqrt(Math.pow(p.x - projX, 2) + Math.pow(p.y - projY, 2));
 };
 
-export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAutoCrop, setActiveVertexPos, isDrawingPolygon, setIsDrawingPolygon, setCroppingMode) {
+export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAutoCrop, setActiveVertices, isDrawingPolygon, setIsDrawingPolygon, setCroppingMode) {
   const polygonPointsRef = useRef([]);
   const tempPointsRef = useRef([]);
+
+  const updateActiveVertices = useCallback(() => {
+    const selectedPoints = tempPointsRef.current.filter(p => p.isSelected);
+    setActiveVertices(selectedPoints.map(p => ({ x: p.x, y: p.y })));
+  }, [setActiveVertices]);
   
   const [isMagneticMode, setIsMagneticMode] = useState(false);
   const [magneticThreshold, setMagneticThreshold] = useState(Constants.MAGNETIC_THRESHOLD_DEFAULT);
@@ -69,10 +74,12 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
         canvas.add(line);
       }
       const circle = new Circle({
-          radius: 5, fill: 'red', left: p.x - 5, top: p.y - 5,
+          radius: 5, fill: p.isSelected ? '#32cd32' : 'red', left: p.x - 5, top: p.y - 5,
+          strokeWidth: p.isSelected ? 1 : 0, stroke: p.isSelected ? '#000' : null,
           selectable: true, evented: true, hasControls: false, hasBorders: false, hoverCursor: 'pointer',
           isDrawingTemp: true, isDrawingTempCircle: true, pointIndex: index, padding: Constants.VERTEX_HIT_PADDING
       });
+      circle.isSelected = p.isSelected;
       p.circle = circle;
       canvas.add(circle);
     });
@@ -151,7 +158,7 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     }
 
     if (initialPoints.length > 0) {
-      tempPointsRef.current = initialPoints.map(p => ({ x: p.x, y: p.y }));
+      tempPointsRef.current = initialPoints.map(p => ({ x: p.x, y: p.y, isSelected: false }));
       rebuildTempShapes(canvas);
       
       magneticPreviewLineRef.current = null;
@@ -198,7 +205,7 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
       }
     }
 
-    tempPointsRef.current.splice(insertIndex, 0, ptObj);
+    tempPointsRef.current.splice(insertIndex, 0, { ...ptObj, isSelected: false });
     rebuildTempShapes(canvas);
     
     if (magneticPreviewLineRef.current) {
@@ -231,17 +238,41 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     target.set({ left: clamped.x - target.radius, top: clamped.y - target.radius });
     target.setCoords();
 
+    // 移動差分（デルタ）を計算
+    const dx = target.left - (target.startLeft !== undefined ? target.startLeft : target.left);
+    const dy = target.top - (target.startTop !== undefined ? target.startTop : target.top);
+
+    // 選択されているすべての他の頂点も同期して移動させる
+    tempPointsRef.current.forEach((pt, idx) => {
+      if (pt.isSelected && idx !== target.pointIndex && pt.circle) {
+        const circle = pt.circle;
+        const startLeft = circle.startLeft !== undefined ? circle.startLeft : circle.left;
+        const startTop = circle.startTop !== undefined ? circle.startTop : circle.top;
+        const newLeft = startLeft + dx;
+        const newTop = startTop + dy;
+        
+        // 画像境界内にクランプ
+        const ncx = newLeft + circle.radius;
+        const ncy = newTop + circle.radius;
+        const clampedOther = clampPointToImageBounds({ x: ncx, y: ncy }, canvas);
+        
+        circle.set({ left: clampedOther.x - circle.radius, top: clampedOther.y - circle.radius });
+        circle.setCoords();
+        
+        // 頂点座標配列を更新
+        updateVertexPosition(idx, clampedOther.x, clampedOther.y);
+      }
+    });
+
     const idx = target.pointIndex;
     updateVertexPosition(idx, clamped.x, clamped.y);
     
     if (tempPointsRef.current.length >= 3) {
-      const finalCx = target.left + target.radius;
-      const finalCy = target.top + target.radius;
-      setActiveVertexPos({ x: finalCx, y: finalCy });
+      updateActiveVertices();
     }
     
     canvas.renderAll();
-  }, [fabricCanvasRef, setActiveVertexPos, updateVertexPosition]);
+  }, [fabricCanvasRef, updateActiveVertices, updateVertexPosition]);
 
   const finishPolygonDrawing = useCallback(() => {
     const canvas = fabricCanvasRef.current;
@@ -307,37 +338,50 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
   const adjustActiveVertex = useCallback((dx, dy) => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
-    const activeObj = canvas.getActiveObject();
-    if (activeObj && activeObj.isDrawingTempCircle) {
-      const cx = activeObj.left + activeObj.radius + dx;
-      const cy = activeObj.top + activeObj.radius + dy;
-      const clamped = clampPointToImageBounds({ x: cx, y: cy }, canvas);
-      
-      activeObj.set({ left: clamped.x - activeObj.radius, top: clamped.y - activeObj.radius });
-      activeObj.setCoords();
-
-      const idx = activeObj.pointIndex;
-      updateVertexPosition(idx, clamped.x, clamped.y);
-      
-      if (tempPointsRef.current.length >= 3) {
-        const finalCx = activeObj.left + activeObj.radius;
-        const finalCy = activeObj.top + activeObj.radius;
-        setActiveVertexPos({ x: finalCx, y: finalCy });
+    
+    let representativeCircle = null;
+    tempPointsRef.current.forEach((pt, idx) => {
+      if (pt.isSelected && pt.circle) {
+        const circle = pt.circle;
+        const cx = circle.left + circle.radius + dx;
+        const cy = circle.top + circle.radius + dy;
+        const clamped = clampPointToImageBounds({ x: cx, y: cy }, canvas);
+        
+        circle.set({ left: clamped.x - circle.radius, top: clamped.y - circle.radius });
+        circle.setCoords();
+        
+        updateVertexPosition(idx, clamped.x, clamped.y);
+        representativeCircle = circle;
       }
+    });
 
-      canvas.renderAll();
-      triggerAutoCrop();
+    if (representativeCircle && tempPointsRef.current.length >= 3) {
+      updateActiveVertices();
     }
-  }, [fabricCanvasRef, setActiveVertexPos, triggerAutoCrop, updateVertexPosition]);
+
+    canvas.renderAll();
+    triggerAutoCrop();
+  }, [fabricCanvasRef, triggerAutoCrop, updateActiveVertices, updateVertexPosition]);
 
   const deleteActiveVertex = useCallback((startCropping) => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
-    const activeObj = canvas.getActiveObject();
-    if (activeObj && activeObj.isDrawingTempCircle) {
-      const idx = activeObj.pointIndex;
+    
+    // 選択されている頂点のインデックスを取得
+    const selectedIndices = tempPointsRef.current
+      .map((p, i) => p.isSelected ? i : -1)
+      .filter(idx => idx !== -1);
+      
+    if (selectedIndices.length === 0) {
+      const activeObj = canvas.getActiveObject();
+      if (activeObj && activeObj.isDrawingTempCircle) {
+        selectedIndices.push(activeObj.pointIndex);
+      }
+    }
+    
+    if (selectedIndices.length > 0) {
       const updatedPoints = tempPointsRef.current
-        .filter((_, i) => i !== idx)
+        .filter((_, i) => !selectedIndices.includes(i))
         .map(p => ({ x: p.x, y: p.y }));
       
       startCropping('polygon', updatedPoints);
@@ -367,15 +411,103 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     });
 
     if (closestCircle && minDistance <= 20) {
+      const idx = closestCircle.pointIndex;
+      tempPointsRef.current.forEach((pt, i) => {
+        const isCurrent = (i === idx);
+        pt.isSelected = isCurrent;
+        if (pt.circle) {
+          pt.circle.isSelected = isCurrent;
+          pt.circle.set({
+            fill: isCurrent ? '#32cd32' : 'red',
+            strokeWidth: isCurrent ? 1 : 0,
+            stroke: isCurrent ? '#000' : null
+          });
+        }
+      });
+      
+      updateActiveVertices();
+      
       canvas.setActiveObject(closestCircle);
       canvas.renderAll();
     }
-  }, [fabricCanvasRef]);
+  }, [fabricCanvasRef, updateActiveVertices]);
+
+  const handlePolygonVertexMouseDown = useCallback((target, e) => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas || !target || !target.isDrawingTempCircle) return;
+    
+    const idx = target.pointIndex;
+    const isCtrl = e && (e.ctrlKey || e.metaKey);
+    
+    if (isCtrl) {
+      const newValue = !tempPointsRef.current[idx].isSelected;
+      tempPointsRef.current[idx].isSelected = newValue;
+      target.isSelected = newValue;
+      target.set({
+        fill: newValue ? '#32cd32' : 'red',
+        strokeWidth: newValue ? 1 : 0,
+        stroke: newValue ? '#000' : null
+      });
+    } else {
+      tempPointsRef.current.forEach((pt, i) => {
+        const isCurrent = (i === idx);
+        pt.isSelected = isCurrent;
+        if (pt.circle) {
+          pt.circle.isSelected = isCurrent;
+          pt.circle.set({
+            fill: isCurrent ? '#32cd32' : 'red',
+            strokeWidth: isCurrent ? 1 : 0,
+            stroke: isCurrent ? '#000' : null
+          });
+        }
+      });
+    }
+    
+    tempPointsRef.current.forEach(pt => {
+      if (pt.circle && pt.isSelected) {
+        pt.circle.startLeft = pt.circle.left;
+        pt.circle.startTop = pt.circle.top;
+      }
+    });
+    
+    updateActiveVertices();
+    
+    canvas.renderAll();
+  }, [fabricCanvasRef, updateActiveVertices]);
+
+  const clearVertexSelection = useCallback((e) => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+    
+    const isCtrl = e && (e.ctrlKey || e.metaKey);
+    if (!isCtrl) {
+      let changed = false;
+      tempPointsRef.current.forEach(pt => {
+        if (pt.isSelected) {
+          pt.isSelected = false;
+          changed = true;
+          if (pt.circle) {
+            pt.circle.isSelected = false;
+            pt.circle.set({
+              fill: 'red',
+              strokeWidth: 0,
+              stroke: null
+            });
+          }
+        }
+      });
+      if (changed) {
+        updateActiveVertices();
+        canvas.renderAll();
+      }
+    }
+  }, [fabricCanvasRef, updateActiveVertices]);
 
   return {
     polygonPointsRef, tempPointsRef,
     isMagneticMode, setIsMagneticMode, magneticThreshold, setMagneticThreshold,
     startPolygonDrawing, handlePolygonMouseDown, handlePolygonMouseMove, handlePolygonVertexMoving,
-    finishPolygonDrawing, editPolygonVertices, adjustActiveVertex, deleteActiveVertex, selectVertexAtPosition, getTempPolygon
+    finishPolygonDrawing, editPolygonVertices, adjustActiveVertex, deleteActiveVertex, selectVertexAtPosition, getTempPolygon,
+    handlePolygonVertexMouseDown, clearVertexSelection
   };
 }

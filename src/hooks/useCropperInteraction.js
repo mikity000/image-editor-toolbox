@@ -10,7 +10,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
   const [isDrawingPolygon, setIsDrawingPolygon] = useState(false);
   const [adjustmentAmount] = useState(1);
   const [autoCropCount, setAutoCropCount] = useState(0);
-  const [activeVertexPos, setActiveVertexPos] = useState(null);
+  const [activeVertices, setActiveVertices] = useState([]);
 
   const triggerAutoCrop = useCallback(() => setAutoCropCount(c => c + 1), []);
 
@@ -19,8 +19,9 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     finishPolygonDrawing, editPolygonVertices: rawEditPolygonVertices,
     adjustActiveVertex, deleteActiveVertex: rawDeleteActiveVertex,
     selectVertexAtPosition, getTempPolygon,
-    isMagneticMode, setIsMagneticMode, magneticThreshold, setMagneticThreshold
-  } = usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAutoCrop, setActiveVertexPos, isDrawingPolygon, setIsDrawingPolygon, setCroppingMode);
+    isMagneticMode, setIsMagneticMode, magneticThreshold, setMagneticThreshold,
+    handlePolygonVertexMouseDown, clearVertexSelection
+  } = usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAutoCrop, setActiveVertices, isDrawingPolygon, setIsDrawingPolygon, setCroppingMode);
 
   const { enableFreehand, disableFreehand } = useFreehandCropper(fabricCanvasRef, setDrawingObject, triggerAutoCrop, pathSmoothing);
 
@@ -52,27 +53,11 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     disableFreehand();
 
     const handleSelection = (e) => {
-      if (e.deselected) {
-        e.deselected.forEach(obj => {
-          if (obj.isDrawingTempCircle) {
-            obj.set({ fill: 'red', strokeWidth: 0, radius: 5 });
-            setActiveVertexPos(null);
-          }
-        });
-      }
       if (e.selected && e.selected.length > 0) {
         const obj = e.selected[0];
         if (obj.isCroppingShape) {
           setDrawingObject(obj);
         }
-        e.selected.forEach(obj => {
-          if (obj.isDrawingTempCircle) {
-            obj.set({ fill: '#32cd32', strokeWidth: 1, stroke: '#000', radius: 5 });
-            const cx = obj.left + obj.radius;
-            const cy = obj.top + obj.radius;
-            setActiveVertexPos({ x: cx, y: cy });
-          }
-        });
       } else if (!canvas.getActiveObject()) {
         setDrawingObject(null);
       }
@@ -98,7 +83,12 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
       const pointer = canvas.getPointer(options.e);
 
       if (mode === 'polygon') {
-        handlePolygonMouseDown(pointer, options.target);
+        if (options.target && options.target.isDrawingTempCircle) {
+          handlePolygonVertexMouseDown(options.target, options.e);
+        } else {
+          clearVertexSelection(options.e);
+          handlePolygonMouseDown(pointer, options.target);
+        }
       } else if (mode === 'rect' || mode === 'circle') {
         startPoint = pointer;
         currentShape = startDrawing(mode, startPoint);
@@ -144,7 +134,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
       if (target && (target.isCroppingShape || target.isDrawingTempCircle)) triggerAutoCrop();
     });
 
-  }, [fabricCanvasRef, imageLoaded, disableFreehand, startPolygonDrawing, enableFreehand, handlePolygonMouseDown, handlePolygonMouseMove, startDrawing, updateDrawing, finishDrawing, handlePolygonVertexMoving, triggerAutoCrop]);
+  }, [fabricCanvasRef, imageLoaded, disableFreehand, startPolygonDrawing, enableFreehand, handlePolygonMouseDown, handlePolygonMouseMove, startDrawing, updateDrawing, finishDrawing, handlePolygonVertexMoving, triggerAutoCrop, handlePolygonVertexMouseDown, clearVertexSelection]);
 
   const editPolygonVertices = useCallback(() => {
     rawEditPolygonVertices(drawingObject, startCropping);
@@ -185,7 +175,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
     setCroppingMode(null);
     setDrawingObject(null);
     setIsDrawingPolygon(false);
-    setActiveVertexPos(null);
+    setActiveVertices([]);
     startPolygonDrawing([]); // Reset points internally
   }, [fabricCanvasRef, setCroppedImageUrl, startPolygonDrawing]);
 
@@ -194,7 +184,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
   }, [adjustCroppingShape, drawingObject]);
 
   return {
-    croppingMode, drawingObject, isDrawingPolygon, autoCropCount, activeVertexPos,
+    croppingMode, drawingObject, isDrawingPolygon, autoCropCount, activeVertices,
     isMagneticMode, setIsMagneticMode, magneticThreshold, setMagneticThreshold,
     startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape: wrappedAdjustCroppingShape, adjustActiveVertex, deleteActiveVertex, deleteActiveShape, getTempPolygon, selectVertexAtPosition, reset
   };

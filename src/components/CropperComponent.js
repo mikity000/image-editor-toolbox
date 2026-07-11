@@ -31,7 +31,7 @@ export default function CropperComponent() {
   const isMobile = isMobileDevice();
 
   const {
-    croppingMode, drawingObject, isDrawingPolygon, autoCropCount, activeVertexPos,
+    drawingObject, isDrawingPolygon, autoCropCount, activeVertices,
     isMagneticMode, setIsMagneticMode, magneticThreshold, setMagneticThreshold,
     startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, deleteActiveShape, getTempPolygon, selectVertexAtPosition, reset
   } = useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedImageUrl, pathSmoothing);
@@ -116,36 +116,34 @@ export default function CropperComponent() {
               <div className="result-container">
                 {croppedImageUrl ? (
                   <div className="result-image-wrapper">
-                    <img 
-                      src={croppedImageUrl} 
-                      alt="Cropped Result" 
-                      id="croppedResult" 
-                      onClick={handleCroppedImageClick}
-                      className="result-image"
-                    />
-                    {isDrawingPolygon && activeVertexPos && exportBoundsCanvas && (
-                      <div style={{
-                        position: 'absolute',
-                        left: `${((activeVertexPos.x - exportBoundsCanvas.left) / exportBoundsCanvas.width) * 100}%`,
-                        top: `${((activeVertexPos.y - exportBoundsCanvas.top) / exportBoundsCanvas.height) * 100}%`,
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(50, 205, 50, 0.9)',
-                        border: '1px solid rgba(0, 0, 0, 0.6)',
-                        transform: (() => {
-                          const ratioX = (activeVertexPos.x - exportBoundsCanvas.left) / exportBoundsCanvas.width;
-                          const ratioY = (activeVertexPos.y - exportBoundsCanvas.top) / exportBoundsCanvas.height;
-                          const dx = ratioX - 0.5;
-                          const dy = ratioY - 0.5;
-                          const len = Math.sqrt(dx * dx + dy * dy) || 1;
-                          return `translate(calc(-50% + ${(dx / len) * 50}%), calc(-50% + ${(dy / len) * 50}%))`;
-                        })(),
-                        pointerEvents: 'none',
-                        boxShadow: '0 0 4px rgba(255, 255, 255, 0.8)',
-                        zIndex: 10
-                      }} />
-                    )}
+                    <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%', maxHeight: '100%' }}>
+                      <img 
+                        src={croppedImageUrl} 
+                        alt="Cropped Result" 
+                        id="croppedResult" 
+                        onClick={handleCroppedImageClick}
+                        className="result-image"
+                        style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }}
+                      />
+                      {isDrawingPolygon && activeVertices && activeVertices.length > 0 && exportBoundsCanvas && (
+                        activeVertices.map((vertex, idx) => (
+                          <div key={idx} style={{
+                            position: 'absolute',
+                            left: `${((vertex.x - exportBoundsCanvas.left) / exportBoundsCanvas.width) * 100}%`,
+                            top: `${((vertex.y - exportBoundsCanvas.top) / exportBoundsCanvas.height) * 100}%`,
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(50, 205, 50, 0.9)',
+                            border: '1px solid rgba(0, 0, 0, 0.6)',
+                            transform: 'translate(-50%, -50%)',
+                            pointerEvents: 'none',
+                            boxShadow: '0 0 4px rgba(255, 255, 255, 0.8)',
+                            zIndex: 10
+                          }} />
+                        ))
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="result-placeholder">
