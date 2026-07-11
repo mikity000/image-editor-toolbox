@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { GalleryContext } from '../context/GalleryContext';
 
 export default function SidebarTray({
   title,
@@ -10,12 +11,16 @@ export default function SidebarTray({
   onDeleteItems,
   onRenameItem,
   actionText,
+  trayType = 'gallery', // 'gallery' | 'list'
 }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [editingId, setEditingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [contextMenu, setContextMenu] = useState(null); // { x, y, id }
   const [lastClickedId, setLastClickedId] = useState(null);
+  const { galleryViewMode, setGalleryViewMode, listViewMode, setListViewMode } = useContext(GalleryContext);
+  const viewMode = trayType === 'list' ? listViewMode : galleryViewMode;
+  const setViewMode = trayType === 'list' ? setListViewMode : setGalleryViewMode;
   const trayRef = useRef(null);
 
   // コンテキストメニューを閉じる
@@ -123,24 +128,30 @@ export default function SidebarTray({
       onKeyDown={handleKeyDown}
       tabIndex={0}
       style={{ outline: 'none' }}
-      className={`sidebar-tray ${isOpen ? 'sidebar-tray--open' : ''}`}
+      className={`sidebar-tray ${isOpen ? 'sidebar-tray--open' : ''} sidebar-tray--${viewMode}`}
     >
       <div className="sidebar-tray__header" onClick={onToggle}>
         <h3 className="sidebar-tray__title">{title}</h3>
         <div className="sidebar-tray__controls" onClick={(e) => e.stopPropagation()}>
+          <div className="sidebar-tray__view-buttons">
+            <button className={`sidebar-tray__view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+              </svg>
+            </button>
+            <button className={`sidebar-tray__view-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+          </div>
           <button className="sidebar-tray__toggle-btn" onClick={onToggle}>
-            <svg
-              className={isOpen ? 'sidebar-tray__toggle-btn--open' : ''}
-              viewBox="0 0 24 24"
-              width="20"
-              height="20"
-              stroke="currentColor"
-              strokeWidth="2"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ transition: 'transform 0.3s ease' }}
-            >
+            <svg className={isOpen ? 'sidebar-tray__toggle-btn--open' : ''} viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.3s ease' }}>
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
           </button>

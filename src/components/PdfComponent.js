@@ -329,6 +329,7 @@ export default function PdfComponent() {
         <div className="editor-left-sidebar">
           <SidebarTray
             title="共有ギャラリー"
+            trayType="gallery"
             isOpen={isGalleryOpen}
             onToggle={() => setIsGalleryOpen(!isGalleryOpen)}
             emptyMessage={<>ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。</>}
@@ -459,7 +460,7 @@ function DraggedItemStack ({ isDragging, isGroupDragActive, selectedImages, id, 
   // 自分以外の選択済みアイテムIDを最大2つまで取得して幻影として表示
   const otherSelectedIds = [...selectedImages].filter(selId => selId !== id).slice(0, 2);
   return otherSelectedIds.map((selId, i) => {
-    const url = images.find(img => img.id == selId).dataUrl;
+    const url = images.find(img => img.id === selId).dataUrl;
     return (
       <div key={i} className="image-preview-item selected stack"
         // 背後に表示、少しずらす

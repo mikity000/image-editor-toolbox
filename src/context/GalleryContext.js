@@ -5,6 +5,22 @@ export const GalleryContext = createContext();
 export function GalleryProvider({ children }) {
   const [galleryImages, setGalleryImages] = useState([]);
   const [isGalleryOpen, setIsGalleryOpen] = useState(true);
+  const [galleryViewMode, setGalleryViewModeState] = useState(() => {
+    return localStorage.getItem('sidebar_gallery_view_mode') || 'grid';
+  });
+  const [listViewMode, setListViewModeState] = useState(() => {
+    return localStorage.getItem('sidebar_list_view_mode') || 'grid';
+  });
+
+  const setGalleryViewMode = (mode) => {
+    setGalleryViewModeState(mode);
+    localStorage.setItem('sidebar_gallery_view_mode', mode);
+  };
+
+  const setListViewMode = (mode) => {
+    setListViewModeState(mode);
+    localStorage.setItem('sidebar_list_view_mode', mode);
+  };
 
   // 画像の追加（単一オブジェクト、またはオブジェクトの配列を受け取る）
   const addImages = (newImages) => {
@@ -37,7 +53,7 @@ export function GalleryProvider({ children }) {
   };
 
   return (
-    <GalleryContext value={{ galleryImages, addImages, removeImage, renameImage, clearGallery, isGalleryOpen, setIsGalleryOpen }}>
+    <GalleryContext value={{ galleryImages, addImages, removeImage, renameImage, clearGallery, isGalleryOpen, setIsGalleryOpen, galleryViewMode, setGalleryViewMode, listViewMode, setListViewMode }}>
       {children}
     </GalleryContext>
   );

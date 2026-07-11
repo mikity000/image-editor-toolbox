@@ -766,7 +766,6 @@ body.is-dragging * {
 .sidebar-tray__controls {
   display: flex;
   align-items: center;
-  gap: 12px;
 }
 
 .sidebar-tray__toggle-btn {
@@ -812,6 +811,68 @@ body.is-dragging * {
   padding-bottom: 8px;
 }
 
+/* 表示切り替えボタンのスタイル */
+.sidebar-tray__view-buttons {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 2px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-right: 4px;
+}
+
+.sidebar-tray__view-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.5;
+}
+
+.sidebar-tray__view-btn:hover {
+  opacity: 1;
+  color: var(--accent-color);
+  background: rgba(102, 252, 241, 0.08);
+}
+
+.sidebar-tray__view-btn.active {
+  opacity: 1;
+  color: var(--accent-color);
+  background: rgba(102, 252, 241, 0.15);
+}
+
+/* リスト表示モード (ファイル名のみ) */
+.sidebar-tray--list .sidebar-tray__list {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.sidebar-tray--list .tray-item {
+  flex: 0 0 auto;
+  width: 100%;
+  flex-direction: row;
+  align-items: center;
+  padding: 0.4rem 0.8rem;
+  box-sizing: border-box;
+}
+
+.sidebar-tray--list .tray-item__thumbnail {
+  display: none;
+}
+
+.sidebar-tray--list .tray-item__name {
+  text-align: left;
+  font-size: 0.85rem;
+}
+
 .tray-item {
   position: relative;
   flex: 0 0 100px;
@@ -820,7 +881,7 @@ body.is-dragging * {
   border-radius: var(--border-radius-sm);
   padding: 0.5rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   display: flex;
   flex-direction: column;
   align-items: center;

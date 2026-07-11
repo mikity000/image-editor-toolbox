@@ -90,6 +90,7 @@ export default function CropperComponent() {
         <div className="editor-left-sidebar">
           <SidebarTray
             title="共有ギャラリー"
+            trayType="gallery"
             isOpen={isGalleryOpen}
             onToggle={() => setIsGalleryOpen(!isGalleryOpen)}
             emptyMessage={<>ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。</>}

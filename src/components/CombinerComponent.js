@@ -329,6 +329,7 @@ export default function CombinerComponent() {
         <div className="editor-left-sidebar">
           <SidebarTray
             title="共有ギャラリー"
+            trayType="gallery"
             isOpen={isGalleryOpen}
             onToggle={() => setIsGalleryOpen(!isGalleryOpen)}
             emptyMessage={<>ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。</>}
@@ -341,6 +342,7 @@ export default function CombinerComponent() {
           
           <SidebarTray
             title="画像一覧"
+            trayType="list"
             isOpen={isCanvasListOpen}
             onToggle={() => setIsCanvasListOpen(!isCanvasListOpen)}
             emptyMessage={<>キャンバスは空です。<br />画像をアップロードするか、ギャラリーから追加してください。</>}
