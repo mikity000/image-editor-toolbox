@@ -620,7 +620,11 @@ body.is-dragging * {
 }
 
 #croppedResult {
+  width: 100%;
+  height: 100%;
   max-width: 100%;
+  max-height: 100%;
+  box-sizing: border-box;
   border-radius: var(--border-radius-sm);
   box-shadow: var(--shadow-deep);
   /* border: 1px solid var(--border-color); */
@@ -1220,13 +1224,16 @@ body.is-dragging * {
   justify-content: center;
   position: relative;
   box-sizing: border-box;
-  padding: 3px; /* クロップ画像結果の緑枠線と同じ太さ */
+  padding: 3px; /* クロッププレビュー画像の緑枠線と同じ太さ */
 }
 
 .result-image {
+  width: 100%;
+  height: 100%;
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  box-sizing: border-box;
   border-radius: var(--border-radius-sm);
 }
 

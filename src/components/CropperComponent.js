@@ -6,7 +6,6 @@ import { useImageUpload } from '../hooks/useImageUpload';
 import { GalleryContext } from '../context/GalleryContext';
 import SidebarTray from './SidebarTray';
 import { getSequentialName } from '../utils/imageUtils';
-import { isMobileDevice } from '../utils/deviceUtils';
 
 export default function CropperComponent() {
   const canvasRef = useRef(null);
@@ -15,6 +14,7 @@ export default function CropperComponent() {
   const [pathSmoothing, setPathSmoothing] = useState(20);
   const [invertCrop, setInvertCrop] = useState(false);
   const [exportBoundsCanvas, setExportBoundsCanvas] = useState(null);
+  const [cropAspectRatio, setCropAspectRatio] = useState(null);
   
   const { galleryImages, addImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useContext(GalleryContext);
   const { imageLoaded, uploadImage, loadImageFromUrl, imageName, setImageName } = useImageUpload(fabricCanvasRef, setCroppedImageUrl);
@@ -27,8 +27,6 @@ export default function CropperComponent() {
       rawItem: img
     }));
   }, [galleryImages]);
-
-  const isMobile = isMobileDevice();
 
   const {
     drawingObject, isDrawingPolygon, autoCropCount, activeVertices,
@@ -116,14 +114,23 @@ export default function CropperComponent() {
               <div className="result-container">
                 {croppedImageUrl ? (
                   <div className="result-image-wrapper">
-                    <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%', maxHeight: '100%' }}>
+                    <div style={{ 
+                      position: 'relative', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      maxWidth: '100%', 
+                      maxHeight: '100%',
+                      aspectRatio: cropAspectRatio
+                    }}>
                       <img 
                         src={croppedImageUrl} 
                         alt="Cropped Result" 
                         id="croppedResult" 
+                        onLoad={(e) => setCropAspectRatio(e.target.naturalWidth / e.target.naturalHeight)}
                         onClick={handleCroppedImageClick}
                         className="result-image"
-                        style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }}
+                        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'fill' }}
                       />
                       {isDrawingPolygon && activeVertices && activeVertices.length > 0 && exportBoundsCanvas && (
                         activeVertices.map((vertex, idx) => (
