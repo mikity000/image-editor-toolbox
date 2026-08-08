@@ -503,11 +503,15 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     }
   }, [fabricCanvasRef, updateActiveVertices]);
 
+  const getTempPoints = useCallback(() => {
+    return tempPointsRef.current.map(p => ({ x: p.x, y: p.y, isSelected: !!p.isSelected }));
+  }, []);
+
   return {
     polygonPointsRef, tempPointsRef,
     isMagneticMode, setIsMagneticMode, magneticThreshold, setMagneticThreshold,
     startPolygonDrawing, handlePolygonMouseDown, handlePolygonMouseMove, handlePolygonVertexMoving,
-    finishPolygonDrawing, editPolygonVertices, adjustActiveVertex, deleteActiveVertex, selectVertexAtPosition, getTempPolygon,
+    finishPolygonDrawing, editPolygonVertices, adjustActiveVertex, deleteActiveVertex, selectVertexAtPosition, getTempPolygon, getTempPoints,
     handlePolygonVertexMouseDown, clearVertexSelection
   };
 }

@@ -31,10 +31,38 @@ export default function CropperComponent() {
   const {
     drawingObject, isDrawingPolygon, autoCropCount, activeVertices,
     isMagneticMode, setIsMagneticMode, magneticThreshold, setMagneticThreshold,
-    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, deleteActiveShape, getTempPolygon, selectVertexAtPosition, reset
+    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape, adjustActiveVertex, deleteActiveVertex, deleteActiveShape, getTempPolygon, selectVertexAtPosition, reset,
+    undo, redo, canUndo, canRedo
   } = useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedImageUrl, pathSmoothing);
 
   const { crop } = useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop, setExportBoundsCanvas);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isCmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+      if (isCmdOrCtrl && !e.altKey) {
+        if (e.key.toLowerCase() === 'z') {
+          if (e.shiftKey) {
+            e.preventDefault();
+            if (canRedo) redo();
+          } else {
+            e.preventDefault();
+            if (canUndo) undo();
+          }
+        } else if (e.key.toLowerCase() === 'y' && !isMac) {
+          e.preventDefault();
+          if (canRedo) redo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, canUndo, canRedo]);
 
   const handleCroppedImageClick = (e) => {
     if (!isDrawingPolygon) return;
@@ -185,6 +213,31 @@ export default function CropperComponent() {
             </div>
 
             <div className="button-group sidebar-buttons">
+              <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '8px', marginBottom: '4px' }}>
+                <button 
+                  onClick={undo} 
+                  disabled={!canUndo} 
+                  className="btn btn-full"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '8px 12px' }}
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                    <path d="M3 7v6h6"></path>
+                    <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+                  </svg>
+                </button>
+                <button 
+                  onClick={redo} 
+                  disabled={!canRedo} 
+                  className="btn btn-full"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '8px 12px' }}
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                    <path d="M21 7v6h-6"></path>
+                    <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
+                  </svg>
+                </button>
+              </div>
+
               <button onClick={() => startCropping('rect')} className="btn shape-btn" disabled={!imageLoaded}>
                 <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
