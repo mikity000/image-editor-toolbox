@@ -244,11 +244,20 @@ export default function PdfComponent() {
     return others.toSpliced(insertionIndex, 0, ...selectedItems);
   }
 
-  const selectImage = useCallback((id) => {
+  const selectImage = useCallback((id, event) => {
+    const isMultiSelect = event && (event.ctrlKey || event.metaKey);
     setSelectedImages((prevSelected) => {
-      const newSelected = new Set(prevSelected);
-      newSelected.has(id) ? newSelected.delete(id) : newSelected.add(id);
-      return newSelected;
+      if (isMultiSelect) {
+        const newSelected = new Set(prevSelected);
+        if (newSelected.has(id)) {
+          newSelected.delete(id);
+        } else {
+          newSelected.add(id);
+        }
+        return newSelected;
+      } else {
+        return new Set([id]);
+      }
     });
   }, []);
 
@@ -444,7 +453,7 @@ function SortableImagePreview({ image, images, index, isSelected, onSelect, acti
 
 function ImagePreview({ image, index, isSelected, onSelect }) {
   return (
-    <div className={`image-preview-item ${isSelected ? 'selected' : ''}`} onClick={() => onSelect(image.id)}>
+    <div className={`image-preview-item ${isSelected ? 'selected' : ''}`} onClick={(e) => onSelect(image.id, e)}>
       <img src={image.dataUrl} alt={image.name} className="thumbnail" /> {/* サムネイルサイズをブロックに合わせて最大化し、下マージンを詰める */}
       <div className="image-info" style={{ marginTop: '0px' }}> {/* 情報とサムネイル間の隙間を詰める */}
         <p className="file-name">{image.name}</p>
