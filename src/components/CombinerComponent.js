@@ -453,7 +453,8 @@ function drawGrid(canvas, ctx) {
                  : ratio < 7.5 ? 5 * base
                  : 10 * base;
   
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.18)' : 'rgba(255, 255, 255, 0.15)';
   ctx.lineWidth = 1 / zoom; // ズーム倍率によらず線の太さを一定（1px相当）に保つ
   
   // 縦線の描画
