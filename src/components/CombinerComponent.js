@@ -93,11 +93,22 @@ export default function CombinerComponent() {
     // グリッド線（マス目）を描画するイベントハンドラーの追加
     canvas.on('before:render', (opt) => drawGrid(canvas, opt.ctx));
 
+    // テーマ（data-theme）の変更を監視し、即座にCanvasを再描画する
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.attributeName === 'data-theme') {
+          canvas.requestRenderAll();
+        }
+      }
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
     setFabricCanvas(canvas);
     // 初期表示時にグリッド線を描画するために、強制再レンダリングを実行
     canvas.requestRenderAll();
 
     return () => {
+      observer.disconnect();
       canvas.dispose();
       setFabricCanvas(null);
     };

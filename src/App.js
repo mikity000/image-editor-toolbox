@@ -42,8 +42,6 @@ function AppContent() {
         <button
           className="theme-toggle-btn"
           onClick={toggleTheme}
-          aria-label={theme === 'dark' ? 'ライトモードに切替' : 'ダークモードに切替'}
-          title={theme === 'dark' ? 'ライトモードに切替' : 'ダークモードに切替'}
         >
           {theme === 'dark' ? (
             /* ダークテーマ時：太陽アイコンを表示 */
