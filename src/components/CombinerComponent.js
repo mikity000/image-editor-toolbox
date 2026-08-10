@@ -367,12 +367,12 @@ export default function CombinerComponent() {
         <div className="editor-main combiner-main">
           <div className="canvas-wrapper">
             <canvas ref={canvasRef} />
-            <div className="instructions">
+            {/* <div className="instructions">
               <small className="instructions__text">
                 {isMobile ? "ピンチでズーム、二本指ドラッグでパンが可能です。"
                   : "スクロールでズーム、Altキー + ドラッグでパンできます。"}
               </small>
-            </div>
+            </div> */}
           </div>
         </div>
 

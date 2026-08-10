@@ -366,11 +366,11 @@ export default function PdfComponent() {
                   </div>
                 )}
 
-                <div className="instructions">
+                {/* <div className="instructions">
                   <small className="instructions__text">
                     {isMobile ? "長押しで順番を入れ替えられます。" : "ドラッグで順番を入れ替えられます。"}
                   </small>
-                </div>
+                </div> */}
               </div>
             </SortableContext>
           </DndContext>
