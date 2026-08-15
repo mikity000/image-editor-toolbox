@@ -1,5 +1,4 @@
 import PdfComponent from '../components/PdfComponent';
-import '../styles.css';
 
 const ImagePdf = () => {
   return (
@@ -9,4 +8,4 @@ const ImagePdf = () => {
   );
 };
 
-export default ImagePdf;
+export default ImagePdf;

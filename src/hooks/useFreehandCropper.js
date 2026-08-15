@@ -1,10 +1,26 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { PencilBrush } from 'fabric';
+import { CROP_CONFIG } from '../constants/Constants';
 
 export function useFreehandCropper(fabricCanvasRef, setDrawingObject, triggerAutoCrop, pathSmoothing) {
+  const pathCreatedHandlerRef = useRef(null);
+
+  const disableFreehand = useCallback(() => {
+    const canvas = fabricCanvasRef.current;
+    if (canvas) {
+      canvas.isDrawingMode = false;
+      if (pathCreatedHandlerRef.current) {
+        canvas.off('path:created', pathCreatedHandlerRef.current);
+        pathCreatedHandlerRef.current = null;
+      }
+    }
+  }, [fabricCanvasRef]);
+
   const enableFreehand = useCallback(() => {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
+
+    disableFreehand();
 
     canvas.isDrawingMode = true;
     if (!canvas.freeDrawingBrush) {
@@ -14,15 +30,19 @@ export function useFreehandCropper(fabricCanvasRef, setDrawingObject, triggerAut
     canvas.freeDrawingBrush.width = 2;
     canvas.freeDrawingBrush.decimate = pathSmoothing;
 
-    canvas.on('path:created', (opt) => {
+    const handlePathCreated = (opt) => {
       const pathObj = opt.path;
+      if (!pathObj) return;
+
       canvas.isDrawingMode = false;
 
       const bounds = pathObj.getBoundingRect();
-      if (bounds.width < 10 || bounds.height < 10) {
+      if (bounds.width < CROP_CONFIG.MIN_SHAPE_SIZE || bounds.height < CROP_CONFIG.MIN_SHAPE_SIZE) {
         canvas.remove(pathObj);
         return;
       }
+
+
 
       pathObj.set({
         fill: 'transparent',
@@ -36,19 +56,15 @@ export function useFreehandCropper(fabricCanvasRef, setDrawingObject, triggerAut
         isCroppingShape: true
       });
       pathObj.setControlsVisibility({ mtr: false });
-      setDrawingObject(pathObj);
+      setDrawingObject?.(pathObj);
       canvas.setActiveObject(pathObj);
-      triggerAutoCrop();
-    });
-  }, [fabricCanvasRef, pathSmoothing, setDrawingObject, triggerAutoCrop]);
+      triggerAutoCrop?.();
+    };
 
-  const disableFreehand = useCallback(() => {
-    const canvas = fabricCanvasRef.current;
-    if (canvas) {
-      canvas.isDrawingMode = false;
-      canvas.off('path:created');
-    }
-  }, [fabricCanvasRef]);
+    pathCreatedHandlerRef.current = handlePathCreated;
+    canvas.on('path:created', handlePathCreated);
+  }, [fabricCanvasRef, pathSmoothing, setDrawingObject, triggerAutoCrop, disableFreehand]);
 
   return { enableFreehand, disableFreehand };
 }
+

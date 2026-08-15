@@ -1,7 +1,6 @@
 import CropperComponent from '../components/CropperComponent';
-import '../styles.css';
 
-const ImageTrimming = () => {
+const ImageCrop = () => {
   return (
     <div className="app-container">
       <CropperComponent />
@@ -9,4 +8,4 @@ const ImageTrimming = () => {
   );
 };
 
-export default ImageTrimming;
+export default ImageCrop;

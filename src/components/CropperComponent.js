@@ -1,24 +1,26 @@
-import { useRef, useEffect, useState, useContext, useMemo } from 'react';
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { Image as ImageIcon, Undo2, Redo2, Square, Circle, Pentagon, Pencil, Check, Edit3, Trash2, RotateCcw, Download, FolderPlus } from 'lucide-react';
 
 import { Canvas } from 'fabric';
 import { useCropperInteraction } from '../hooks/useCropperInteraction';
 import { useImageCrop } from '../hooks/useImageCrop';
 import { useImageUpload } from '../hooks/useImageUpload';
-import { GalleryContext } from '../context/GalleryContext';
+import { useGallery } from '../context/GalleryContext';
 import SidebarTray from './SidebarTray';
 import { getSequentialName } from '../utils/imageUtils';
+import { CROP_CONFIG } from '../constants/Constants';
 
 export default function CropperComponent() {
   const canvasRef = useRef(null);
   const fabricCanvasRef = useRef(null);
   const [croppedImageUrl, setCroppedImageUrl] = useState(null);
-  const [pathSmoothing, setPathSmoothing] = useState(20);
+  const [pathSmoothing, setPathSmoothing] = useState(CROP_CONFIG.PATH_SMOOTHING_DEFAULT);
   const [invertCrop, setInvertCrop] = useState(false);
   const [exportBoundsCanvas, setExportBoundsCanvas] = useState(null);
   const [cropAspectRatio, setCropAspectRatio] = useState(null);
+
   
-  const { galleryImages, addImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useContext(GalleryContext);
+  const { galleryImages, addImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useGallery();
   const { imageLoaded, uploadImage, loadImageFromUrl, imageName, setImageName } = useImageUpload(fabricCanvasRef, setCroppedImageUrl);
 
   const galleryItems = useMemo(() => {
@@ -66,10 +68,11 @@ export default function CropperComponent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo, canUndo, canRedo]);
 
-  const handleCroppedImageClick = (e) => {
+  const handleCroppedImageClick = useCallback((e) => {
     if (!isDrawingPolygon) return;
 
     const rect = e.target.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
     const xRatio = (e.clientX - rect.left) / rect.width;
     const yRatio = (e.clientY - rect.top) / rect.height;
 
@@ -79,7 +82,18 @@ export default function CropperComponent() {
       
       selectVertexAtPosition(canvasX, canvasY);
     }
-  };
+  }, [isDrawingPolygon, exportBoundsCanvas, selectVertexAtPosition]);
+
+  const handleSaveToGallery = useCallback(() => {
+    if (!croppedImageUrl) return;
+    const newName = getSequentialName(imageName, galleryImages);
+    addImages({ name: newName, dataUrl: croppedImageUrl });
+  }, [croppedImageUrl, imageName, galleryImages, addImages]);
+
+  const handleGalleryItemClick = useCallback((img) => {
+    setImageName(img.name);
+    loadImageFromUrl(img.dataUrl);
+  }, [setImageName, loadImageFromUrl]);
 
   useEffect(() => {
     if (autoCropCount > 0) {
@@ -99,6 +113,8 @@ export default function CropperComponent() {
   useEffect(() => {
     if (!canvasRef.current) return;
     const wrapperEl = canvasRef.current.parentElement;
+    if (!wrapperEl) return;
+
     const canvas = new Canvas(canvasRef.current, {
       selection: false,
       hoverCursor: 'default',
@@ -107,10 +123,31 @@ export default function CropperComponent() {
     });
     fabricCanvasRef.current = canvas;
 
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          canvas.setDimensions({ width, height });
+          canvas.requestRenderAll();
+        }
+      }
+    });
+    resizeObserver.observe(wrapperEl);
+
     return () => {
+      resizeObserver.disconnect();
       canvas.dispose();
+      fabricCanvasRef.current = null;
     };
   }, []);
+
+  const {
+    MAGNETIC_THRESHOLD_MIN,
+    MAGNETIC_THRESHOLD_MAX,
+    PATH_SMOOTHING_MIN,
+    PATH_SMOOTHING_MAX,
+  } = CROP_CONFIG;
+
 
   return (
     <div className="editor-container">
@@ -123,10 +160,7 @@ export default function CropperComponent() {
             onToggle={() => setIsGalleryOpen(!isGalleryOpen)}
             emptyMessage={<>ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。</>}
             items={galleryItems}
-            onClickItem={(img) => {
-              setImageName(img.name);
-              loadImageFromUrl(img.dataUrl);
-            }}
+            onClickItem={handleGalleryItemClick}
             onDeleteItems={removeImage}
             onRenameItem={renameImage}
             actionText="編集する"
@@ -177,7 +211,13 @@ export default function CropperComponent() {
         <div className="editor-sidebar">
           <div className="sidebar-sticky-content">
             <div className="file-input">
-              <input type="file" accept="image/*" className="file-input__control" onClick={e => e.target.value = null} onChange={uploadImage} />
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="file-input__control" 
+                onClick={e => (e.target.value = null)} 
+                onChange={uploadImage} 
+              />
             </div>
 
             <div className="setting-box">
@@ -193,24 +233,24 @@ export default function CropperComponent() {
 
             <div className="button-group sidebar-buttons">
               <div className="undo-redo-wrapper">
-                <button onClick={undo} disabled={!canUndo} className="btn btn-undo-redo">
+                <button onClick={undo} disabled={!canUndo} className="btn btn-undo-redo" aria-label="元に戻す">
                   <Undo2 size={18} />
                 </button>
-                <button onClick={redo} disabled={!canRedo} className="btn btn-undo-redo">
+                <button onClick={redo} disabled={!canRedo} className="btn btn-undo-redo" aria-label="やり直す">
                   <Redo2 size={18} />
                 </button>
               </div>
 
-              <button onClick={() => startCropping('rect')} className="btn shape-btn" disabled={!imageLoaded}>
+              <button onClick={() => startCropping('rect')} className="btn shape-btn" disabled={!imageLoaded} aria-label="矩形クロップ">
                 <Square size={28} />
               </button>
-              <button onClick={() => startCropping('circle')} className="btn shape-btn" disabled={!imageLoaded}>
+              <button onClick={() => startCropping('circle')} className="btn shape-btn" disabled={!imageLoaded} aria-label="円形クロップ">
                 <Circle size={28} />
               </button>
-              <button onClick={() => startCropping('polygon')} className="btn shape-btn" disabled={!imageLoaded}>
+              <button onClick={() => startCropping('polygon')} className="btn shape-btn" disabled={!imageLoaded} aria-label="多角形クロップ">
                 <Pentagon size={28} />
               </button>
-              <button onClick={() => startCropping('path')} className="btn shape-btn" disabled={!imageLoaded}>
+              <button onClick={() => startCropping('path')} className="btn shape-btn" disabled={!imageLoaded} aria-label="フリーハンドクロップ">
                 <Pencil size={28} />
               </button>
               
@@ -223,10 +263,14 @@ export default function CropperComponent() {
                     </label>
                     {isMagneticMode && (
                       <div className="slider-wrapper">
-                        <input type="range" min="10" max="150" value={magneticThreshold}
+                        <input 
+                          type="range" 
+                          min={MAGNETIC_THRESHOLD_MIN} 
+                          max={MAGNETIC_THRESHOLD_MAX} 
+                          value={magneticThreshold}
                           onChange={e => setMagneticThreshold(parseInt(e.target.value, 10))}
                           className="range-full"
-                          style={{ '--thumb-percent': `${((magneticThreshold - 10) / 140) * 100}%` }}
+                          style={{ '--thumb-percent': `${((magneticThreshold - MAGNETIC_THRESHOLD_MIN) / (MAGNETIC_THRESHOLD_MAX - MAGNETIC_THRESHOLD_MIN)) * 100}%` }}
                         />
                       </div>
                     )}
@@ -261,11 +305,7 @@ export default function CropperComponent() {
                     <Download size={18} />ダウンロード
                   </a>
                   <button 
-                    onClick={() => {
-                      if (!croppedImageUrl) return;
-                      const newName = getSequentialName(imageName, galleryImages);
-                      addImages({ name: newName, dataUrl: croppedImageUrl });
-                    }} 
+                    onClick={handleSaveToGallery} 
                     className="btn btn--success btn-full btn--icon-flex"
                   >
                     <FolderPlus size={18} />共有ギャラリーに保存
@@ -277,13 +317,18 @@ export default function CropperComponent() {
             {drawingObject && drawingObject.type === 'path' && (
               <div className="slider-group">
                 <label>曲線の滑らかさ補正</label>
-                <input type="range" min="0" max="50" value={pathSmoothing}
+                <input 
+                  type="range" 
+                  min={PATH_SMOOTHING_MIN} 
+                  max={PATH_SMOOTHING_MAX} 
+                  value={pathSmoothing}
                   onChange={e => setPathSmoothing(parseInt(e.target.value, 10))}
-                  style={{ '--thumb-percent': `${(pathSmoothing / 50) * 100}%` }}
+                  style={{ '--thumb-percent': `${((pathSmoothing - PATH_SMOOTHING_MIN) / (PATH_SMOOTHING_MAX - PATH_SMOOTHING_MIN)) * 100}%` }}
                 />
                 <span className="slider-group__value">{pathSmoothing}</span>
               </div>
             )}
+
 
             {drawingObject && drawingObject.type !== 'polygon' && drawingObject.type !== 'path' && (
               <div className="adjustment-controls">
@@ -334,4 +379,4 @@ export default function CropperComponent() {
       </div>
     </div>
   );
-}
+}

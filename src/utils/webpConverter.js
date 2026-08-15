@@ -1,3 +1,6 @@
+import { fileToDataUrl } from './imageUtils';
+import { IMAGE_CONFIG } from '../constants/Constants';
+
 // Web Worker のインスタンスをシングルトンとして管理
 let webpWorker = null;
 
@@ -18,6 +21,10 @@ function dataUrlToImageData(dataUrl) {
       canvas.width = img.width;
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('2Dコンテキストの取得に失敗しました。'));
+        return;
+      }
       ctx.drawImage(img, 0, 0);
       try {
         const imageData = ctx.getImageData(0, 0, img.width, img.height);
@@ -26,7 +33,7 @@ function dataUrlToImageData(dataUrl) {
         reject(err);
       }
     };
-    img.onerror = (err) => reject(err);
+    img.onerror = (err) => reject(new Error('画像の読み込みに失敗しました。'));
     img.src = dataUrl;
   });
 }
@@ -34,6 +41,9 @@ function dataUrlToImageData(dataUrl) {
 // CanvasからImageDataを取得する
 function canvasToImageData(canvas) {
   const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('2Dコンテキストの取得に失敗しました。');
+  }
   return ctx.getImageData(0, 0, canvas.width, canvas.height);
 }
 
@@ -43,12 +53,19 @@ function canvasToImageData(canvas) {
  * 
  * @param {HTMLCanvasElement|string} canvasOrDataUrl 変換対象のCanvasまたはDataURL
  * @param {object} options オプション
- * @param {number} options.quality 品質（0〜100、デフォルト: 85）
- * @param {function} options.onProgress 進捗コールバック (0〜100の数値を引数に取る)
+ * @param {number} [options.quality] 品質（0〜100）
+ * @param {number} [options.timeout] タイムアウトミリ秒
+ * @param {function} [options.onProgress] 進捗コールバック (0〜100の数値)
  * @returns {Promise<string>} WebP の DataURL
  */
 export async function convertToWebP(canvasOrDataUrl, options = {}) {
-  const { quality = 85, onProgress } = options;
+  const { 
+    quality = IMAGE_CONFIG.DEFAULT_WEBP_QUALITY, 
+    timeout = IMAGE_CONFIG.WEBP_WORKER_TIMEOUT_MS, 
+    onProgress 
+  } = options;
+
+
 
   if (onProgress) onProgress(10);
 
@@ -71,34 +88,55 @@ export async function convertToWebP(canvasOrDataUrl, options = {}) {
   const worker = getWorker();
 
   return new Promise((resolve, reject) => {
-    const messageId = Math.random().toString(36).substring(2, 11);
+    const messageId = Math.random().toString(36).slice(2, 11);
+    let timer = null;
 
-    const handleMessage = (e) => {
-      const { id, type, error, data } = e.data;
+    const cleanup = () => {
+      if (timer) clearTimeout(timer);
+      worker.removeEventListener('message', handleMessage);
+      worker.removeEventListener('error', handleError);
+    };
+
+    const handleMessage = async (e) => {
+      const { id, type, error, data } = e.data || {};
       if (id !== messageId) return;
 
-      worker.removeEventListener('message', handleMessage);
+      cleanup();
 
       if (type === 'SUCCESS') {
         if (onProgress) onProgress(90);
-        const blob = new Blob([data], { type: 'image/webp' });
-        const reader = new FileReader();
-        reader.onloadend = () => {
+        try {
+          const blob = new Blob([data], { type: 'image/webp' });
+          const resultDataUrl = await fileToDataUrl(blob);
           if (onProgress) onProgress(100);
-          resolve(reader.result);
-        };
-        reader.onerror = (err) => {
+          resolve(resultDataUrl);
+        } catch (err) {
           if (onProgress) onProgress(0);
           reject(err);
-        };
-        reader.readAsDataURL(blob);
+        }
       } else {
         if (onProgress) onProgress(0);
         reject(new Error(error || 'WebPへの変換に失敗しました。'));
       }
     };
 
+    const handleError = (err) => {
+      cleanup();
+      if (onProgress) onProgress(0);
+      reject(new Error(err.message || 'Worker処理中にエラーが発生しました。'));
+    };
+
+    // タイムアウト設定
+    if (timeout > 0) {
+      timer = setTimeout(() => {
+        cleanup();
+        if (onProgress) onProgress(0);
+        reject(new Error('WebP変換がタイムアウトしました。'));
+      }, timeout);
+    }
+
     worker.addEventListener('message', handleMessage);
+    worker.addEventListener('error', handleError);
 
     if (onProgress) onProgress(50);
 
@@ -112,3 +150,4 @@ export async function convertToWebP(canvasOrDataUrl, options = {}) {
     }, [imageData.data.buffer]);
   });
 }
+

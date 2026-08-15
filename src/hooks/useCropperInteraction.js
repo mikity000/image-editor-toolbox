@@ -286,9 +286,30 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
   }, [redo, getCurrentSnapshot, fabricCanvasRef, setCroppingMode, setIsDrawingPolygon, setDrawingObject, startPolygonDrawing, triggerAutoCrop, setCroppedImageUrl]);
 
   return {
-    croppingMode, drawingObject, isDrawingPolygon, autoCropCount, activeVertices,
-    isMagneticMode, setIsMagneticMode, magneticThreshold, setMagneticThreshold,
-    startCropping, finishPolygonDrawing, editPolygonVertices, adjustCroppingShape: wrappedAdjustCroppingShape, adjustActiveVertex, deleteActiveVertex, deleteActiveShape, getTempPolygon, selectVertexAtPosition, reset,
-    undo: handleUndo, redo: handleRedo, canUndo, canRedo, clearHistory
+    croppingMode,
+    drawingObject,
+    isDrawingPolygon,
+    autoCropCount,
+    activeVertices,
+    isMagneticMode,
+    setIsMagneticMode,
+    magneticThreshold,
+    setMagneticThreshold,
+    startCropping,
+    finishPolygonDrawing,
+    editPolygonVertices,
+    adjustCroppingShape: wrappedAdjustCroppingShape,
+    adjustActiveVertex,
+    deleteActiveVertex,
+    deleteActiveShape,
+    getTempPolygon,
+    selectVertexAtPosition,
+    reset,
+    undo: handleUndo,
+    redo: handleRedo,
+    canUndo,
+    canRedo,
+    clearHistory
   };
 }
+

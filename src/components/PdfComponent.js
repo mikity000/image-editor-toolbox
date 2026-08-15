@@ -1,7 +1,6 @@
-import { useState, useCallback, useRef, useEffect, useContext, useMemo } from 'react';
+import { useState, useCallback, useRef, useContext, useMemo, memo } from 'react';
 import { Trash2, RotateCcw, FileText, Download } from 'lucide-react';
 
-import { setupListSync } from '../syncService';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
 import { SortableContext, arrayMove, useSortable } from '@dnd-kit/sortable';
@@ -10,14 +9,26 @@ import { compressImage, fileToDataUrl } from '../utils/imageUtils';
 import { isMobileDevice } from '../utils/deviceUtils';
 import { usePdfGenerator } from '../hooks/usePdfGenerator';
 import { usePdfExtractor } from '../hooks/usePdfExtractor';
+import { PDF_CONFIG } from '../constants/Constants';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import SidebarTray from './SidebarTray';
 import { GalleryContext } from '../context/GalleryContext';
 import { convertToWebP } from '../utils/webpConverter';
 
+
+// 複数アイテムをまとめて移動する純粋関数
+function arrayMoveMultiple(items, selectedIds, overId, oldIndex, newIndex) {
+  const others = items.filter(item => !selectedIds.has(item.id));
+  const selectedItems = items.filter(item => selectedIds.has(item.id));
+  const overIndexInOthers = others.findIndex(item => item.id === overId);
+  const insertionIndex = oldIndex < newIndex ? overIndexInOthers + 1 : overIndexInOthers;
+  return others.toSpliced(insertionIndex, 0, ...selectedItems);
+}
+
 export default function PdfComponent() {
   const { galleryImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useContext(GalleryContext);
+  
   const galleryItems = useMemo(() => {
     return galleryImages.map(img => ({
       id: img.id,
@@ -26,20 +37,23 @@ export default function PdfComponent() {
       rawItem: img
     }));
   }, [galleryImages]);
+
   const [images, setImages] = useState([]);
   const [selectedImages, setSelectedImages] = useState(new Set());
-  const [activeId, setActiveId] = useState(null); // ドラッグ中のアイテムIDを管理
-  const [dragStartRect, setDragStartRect] = useState(null); // ドラッグ開始時のカードの境界矩形
-  const dragStartOffsetRef = useRef({ x: 0, y: 0 }); // カード左上に対する掴み位置のオフセット
-  const dragPreviewRef = useRef(null); // ドラッグプレビュー要素への参照
-  const dragCleanupRef = useRef(null); // ドラッグ終了時のイベントリスナー解除用
-  const [isUploading, setIsUploading] = useState(false); // 画像アップロード中
-  const [uploadProgress, setUploadProgress] = useState(0); // アップロード進捗
+  const [activeId, setActiveId] = useState(null);
+  const [dragStartRect, setDragStartRect] = useState(null);
+  const dragStartOffsetRef = useRef({ x: 0, y: 0 });
+  const dragPreviewRef = useRef(null);
+  const dragCleanupRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isZipping, setIsZipping] = useState(false);
 
   const { generatePdf, isProcessing, progress: pdfProgress } = usePdfGenerator();
   const { extractImagesFromPdfs, isExtracting, extractProgress } = usePdfExtractor();
 
-  const addImageFromGallery = async (image) => {
+  // ギャラリーからの画像追加
+  const addImageFromGallery = useCallback(async (image) => {
     let dataUrl = image.dataUrl;
 
     if (!dataUrl.startsWith('data:image/jpeg') && !dataUrl.startsWith('data:image/jpg')) {
@@ -56,93 +70,79 @@ export default function PdfComponent() {
     const newImage = {
       id: `pdf-page-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       name: image.name,
-      dataUrl: dataUrl
+      dataUrl
     };
     setImages(prev => [...prev, newImage]);
-  };
-  // モバイル判定を navigator.userAgent とメディアクエリで判定
-  const isMobile = isMobileDevice();
-  const socketRef = useRef(null);
-  const emitListRef = useRef(null);
+  }, []);
 
-  // @dnd-kitのドラッグイベントリスナーと、通常のonClickイベントリスナーが競合するのでドラッグの開始条件に制約を設ける
+  const isMobile = isMobileDevice();
   const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } });
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
   const sensors = useSensors(isMobile ? touchSensor : pointerSensor);
 
-  // useEffect(() => {
-  //   const { socket, emitListSync } = setupListSync({
-  //     url: 'http://192.000.0.0:3000',
-  //     onReceive: listData => setImages(listData)
-  //   });
-  //   socketRef.current = socket;
-  //   emitListRef.current = emitListSync;
-  // }, []);
-
+  // ファイル入力ハンドラ（画像・PDF両対応）
   const handleFileInput = async (event) => {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 
-    // PDFファイルと画像ファイルに分類
     const pdfFiles = files.filter(f => f.type === 'application/pdf');
     const imageFiles = files.filter(f => f.type.startsWith('image/'));
 
-    // PDFファイルの処理（順次抽出）
+    // PDFファイルからの画像抽出
     if (pdfFiles.length > 0) {
       await extractImagesFromPdfs(pdfFiles, (extractedImages) => {
         setImages(prev => [...prev, ...extractedImages]);
       });
     }
 
-    // 画像ファイルの処理
+    // 画像ファイルの処理（WebP変換による高品質・高圧縮化 + JPEG化）
     if (imageFiles.length > 0) {
       setIsUploading(true);
-      const totalFiles = imageFiles.length; // 総ファイル数
-
-      // 並列に全ファイルをWebP変換し、圧縮して Data URL に変換
+      const totalFiles = imageFiles.length;
       let completed = 0;
+
       const compressPromises = imageFiles.map(async (file) => {
         try {
           // 1. ファイルをDataURLに読み込む
           const originalDataUrl = await fileToDataUrl(file);
 
-          // 2. WebP（品質85）に変換
-          const webpDataUrl = await convertToWebP(originalDataUrl);
+          // 2. WebP（品質85）に変換（高品質・最小サイズ化）
+          const webpDataUrl = await convertToWebP(originalDataUrl, {
+            quality: PDF_CONFIG.DEFAULT_WEBP_QUALITY
+          });
 
-          // 3. WebP DataURL を Blob に戻して compressImage (JPEG化) を実行
+
+          // 3. PDF埋め込み用にBlob経由でJPEG化
           const res = await fetch(webpDataUrl);
           const blob = await res.blob();
           const webpFile = new File([blob], file.name, { type: 'image/webp' });
           const finalJpegDataUrl = await compressImage(webpFile);
 
           return {
-            id: URL.createObjectURL(file),
+            id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
             file,
             name: file.name,
             dataUrl: finalJpegDataUrl,
           };
         } finally {
           completed++;
-          const progressValue = Math.round((completed / totalFiles) * 100); // 一時的な進捗
-          setUploadProgress(progressValue);
+          setUploadProgress(Math.round((completed / totalFiles) * 100));
         }
       });
 
       const newImages = await Promise.all(compressPromises);
       setImages(prev => [...prev, ...newImages]);
-      //emitListRef.current?.(updated);
       setIsUploading(false);
-      setUploadProgress(0); // 完了後に進捗をリセット
+      setUploadProgress(0);
     }
   };
 
-  // ドラッグ開始時の処理
+  // ドラッグ開始
   const dragStart = useCallback((e) => {
     const { active } = e;
     setActiveId(active.id);
     document.body.classList.add('is-dragging');
 
-    // ドラッグ開始時の要素の位置とサイズを取得
     const element = document.getElementById(`preview-${active.id}`);
     if (element) {
       const rect = element.getBoundingClientRect();
@@ -151,7 +151,6 @@ export default function PdfComponent() {
         height: rect.height
       });
 
-      // ドラッグ開始時のポインター位置を取得してオフセットを計算
       const activatorEvent = e.activatorEvent;
       if (activatorEvent) {
         const clientX = activatorEvent.clientX ?? (activatorEvent.touches?.[0]?.clientX);
@@ -163,7 +162,6 @@ export default function PdfComponent() {
             y: clientY - rect.top
           };
           
-          // マウント直後の初期位置を requestAnimationFrame で即座に反映
           requestAnimationFrame(() => {
             if (dragPreviewRef.current) {
               const top = clientY - dragStartOffsetRef.current.y;
@@ -176,7 +174,6 @@ export default function PdfComponent() {
       }
     }
 
-    // ドラッグ中のポインター移動を監視するリスナー (DOMを直接操作して再レンダリングを防ぐ)
     const handlePointerMove = (event) => {
       const clientX = event.clientX ?? (event.touches?.[0]?.clientX);
       const clientY = event.clientY ?? (event.touches?.[0]?.clientY);
@@ -197,16 +194,12 @@ export default function PdfComponent() {
     };
   }, []);
 
-  // ドラッグ中のリアルタイム並び替え処理
+  // ドラッグ中のリアルタイム並び替え
   const dragOver = useCallback((e) => {
     const { active, over } = e;
-    if (!over) return;
-    if (active.id === over.id) return;
+    if (!over || active.id === over.id) return;
 
-    // active が選択されている複数ドラッグかどうか
     const isActiveSelected = selectedImages.has(active.id);
-    
-    // over が選択中の場合は、そのグループ内での並び替えは無視する（ガタつき防止）
     if (isActiveSelected && selectedImages.has(over.id)) return;
 
     setImages((items) => {
@@ -215,16 +208,15 @@ export default function PdfComponent() {
       
       if (oldIndex === -1 || newIndex === -1) return items;
 
-      if (isActiveSelected) {
-        return arrayMoveMultiple(items, selectedImages, over.id, oldIndex, newIndex);
-      } else {
-        return arrayMove(items, oldIndex, newIndex);
-      }
+      return isActiveSelected
+        ? arrayMoveMultiple(items, selectedImages, over.id, oldIndex, newIndex)
+        : arrayMove(items, oldIndex, newIndex);
     });
   }, [selectedImages]);
 
-  const dragEnd = (e) => {
-    setActiveId(null); // ドラッグ終了時にactiveIdをリセット
+  // ドラッグ終了
+  const dragEnd = useCallback(() => {
+    setActiveId(null);
     setDragStartRect(null);
     dragStartOffsetRef.current = { x: 0, y: 0 };
     document.body.classList.remove('is-dragging');
@@ -232,20 +224,9 @@ export default function PdfComponent() {
       dragCleanupRef.current();
       dragCleanupRef.current = null;
     }
-  };
+  }, []);
 
-  // 複数アイテムをまとめて移動するヘルパー
-  function arrayMoveMultiple(items, selectedIds, overId, oldIndex, newIndex) {
-    // 選択中以外のアイテムを先に残す
-    const others = items.filter(item => !selectedIds.has(item.id));
-    // 選択中アイテムだけを取り出す
-    const selectedItems = items.filter(item => selectedIds.has(item.id));
-    // others 上で overId の位置を探し、移動方向に応じて挿入位置を調整
-    const overIndexInOthers = others.findIndex(item => item.id === overId);
-    const insertionIndex = oldIndex < newIndex ? overIndexInOthers + 1 : overIndexInOthers;
-    return others.toSpliced(insertionIndex, 0, ...selectedItems);
-  }
-
+  // 画像選択（単一・Ctrl/Cmd複数選択）
   const selectImage = useCallback((id, event) => {
     const isMultiSelect = event && (event.ctrlKey || event.metaKey);
     setSelectedImages((prevSelected) => {
@@ -257,43 +238,40 @@ export default function PdfComponent() {
           newSelected.add(id);
         }
         return newSelected;
-      } else {
-        return new Set([id]);
       }
+      return new Set([id]);
     });
   }, []);
 
-  const deleteSelected = () => {
-    const updated = images.filter((i) => !selectedImages.has(i.id));
-    setImages(updated);
+  const deleteSelected = useCallback(() => {
+    setImages(prev => prev.filter((i) => !selectedImages.has(i.id)));
     setSelectedImages(new Set());
-    //emitListRef.current?.(updated);
-  };
+  }, [selectedImages]);
 
-  const resetImages = () => {
+  const resetImages = useCallback(() => {
     setImages([]);
-    //emitListRef.current?.([]);
     setSelectedImages(new Set());
-  };
+  }, []);
 
-  const handleGeneratePdf = () => {
+  const handleGeneratePdf = useCallback(() => {
     generatePdf(images);
-  };
+  }, [generatePdf, images]);
 
-  const [isZipping, setIsZipping] = useState(false);
-
-  const downloadAllImages = async () => {
+  // 画像一括ZIPダウンロード（並列フェッチによる高速化）
+  const downloadAllImages = useCallback(async () => {
     if (images.length === 0) return;
     setIsZipping(true);
     try {
       const zip = new JSZip();
-      for (let i = 0; i < images.length; i++) {
-        const image = images[i];
-        // dataUrl から Blob データを取得
-        const res = await fetch(image.dataUrl);
-        const blob = await res.blob();
-        zip.file(image.name, blob);
-      }
+      
+      await Promise.all(
+        images.map(async (image) => {
+          const res = await fetch(image.dataUrl);
+          const blob = await res.blob();
+          zip.file(image.name, blob);
+        })
+      );
+
       const content = await zip.generateAsync({ type: 'blob' });
       saveAs(content, 'images.zip');
     } catch (err) {
@@ -301,29 +279,38 @@ export default function PdfComponent() {
     } finally {
       setIsZipping(false);
     }
-  };
+  }, [images]);
 
   const isAnyLoading = isUploading || isProcessing || isExtracting || isZipping;
   const currentProgress = isUploading ? uploadProgress : (isExtracting ? extractProgress : pdfProgress);
-  const loadingText = isUploading ? '画像をアップロード中...' : (isExtracting ? 'PDFから画像を抽出中...' : (isZipping ? '画像をZIPに圧縮中...' : 'PDFを生成中...'));
+  const loadingText = isUploading 
+    ? '画像をアップロード中...' 
+    : (isExtracting 
+        ? 'PDFから画像を抽出中...' 
+        : (isZipping 
+            ? '画像をZIPに圧縮中...' 
+            : 'PDFを生成中...'));
 
-  const dragActiveItem = images.find(img => img.id === activeId);
-  const dragActiveIndex = images.findIndex(img => img.id === activeId);
+  const dragActiveItem = useMemo(() => images.find(img => img.id === activeId), [images, activeId]);
+  const dragActiveIndex = useMemo(() => images.findIndex(img => img.id === activeId), [images, activeId]);
   const isGroupDragActive = selectedImages.has(activeId) && selectedImages.size > 1;
 
-  const dragPreviewStyle = dragStartRect ? {
-    position: 'fixed',
-    top: '-9999px',
-    left: '-9999px',
-    width: dragStartRect.width,
-    height: dragStartRect.height,
-    pointerEvents: 'none',
-    zIndex: 9999,
-  } : null;
+  const dragPreviewStyle = useMemo(() => {
+    if (!dragStartRect) return null;
+    return {
+      position: 'fixed',
+      top: '-9999px',
+      left: '-9999px',
+      width: dragStartRect.width,
+      height: dragStartRect.height,
+      pointerEvents: 'none',
+      zIndex: 9999,
+    };
+  }, [dragStartRect]);
 
   return (
     <div className="editor-container">
-      {/* Loading Overlay */}
+      {/* ローディングオーバーレイ */}
       {isAnyLoading && (
         <div className="loading-overlay">
           <div className="loading-content">
@@ -351,18 +338,30 @@ export default function PdfComponent() {
             actionText="追加する"
           />
         </div>
+        
         <div className="editor-main pdf-main-content">
-          {/* サムネイルリスト DND コンテナ */}
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart}
-            onDragOver={dragOver} onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
+          <DndContext 
+            sensors={sensors} 
+            collisionDetection={closestCenter} 
+            onDragStart={dragStart}
+            onDragOver={dragOver} 
+            onDragEnd={dragEnd} 
+            modifiers={[restrictToFirstScrollableAncestor]}
+          >
             <SortableContext items={images.map(img => img.id)}>
               <div className="image-list-container">
                 {images.length > 0 && (
                   <div className="image-list">
                     {images.map((image, index) => (
-                      <SortableImagePreview key={image.id} image={image} images={images} index={index}
-                        isSelected={selectedImages.has(image.id)} onSelect={selectImage}
-                        activeId={activeId} selectedImages={selectedImages}
+                      <SortableImagePreview 
+                        key={image.id} 
+                        image={image} 
+                        images={images} 
+                        index={index}
+                        isSelected={selectedImages.has(image.id)} 
+                        onSelect={selectImage}
+                        activeId={activeId} 
+                        selectedImages={selectedImages}
                       />
                     ))}
                   </div>
@@ -380,25 +379,47 @@ export default function PdfComponent() {
 
         <div className="editor-sidebar">
           <div className="sidebar-sticky-content">
-            {/* ファイル入力セクション（画像・PDF両対応） */}
+            {/* ファイル入力セクション */}
             <div className="file-input">
-              <input type="file" accept="image/*,application/pdf" multiple className="file-input__control" disabled={isAnyLoading}
-                onClick={e => e.target.value = null} onChange={handleFileInput}
+              <input 
+                type="file" 
+                accept="image/*,application/pdf" 
+                multiple 
+                className="file-input__control" 
+                disabled={isAnyLoading}
+                onClick={e => { e.target.value = null; }} 
+                onChange={handleFileInput}
               />
             </div>
 
             {/* 操作ボタン群 */}
             <div className="button-group sidebar-buttons">
-              <button onClick={deleteSelected} disabled={selectedImages.size === 0 || isAnyLoading} className="btn btn--danger btn-full btn--icon-flex">
+              <button 
+                onClick={deleteSelected} 
+                disabled={selectedImages.size === 0 || isAnyLoading} 
+                className="btn btn--danger btn-full btn--icon-flex"
+              >
                 <Trash2 size={18} />選択画像削除
               </button>
-              <button onClick={resetImages} disabled={images.length === 0 || isAnyLoading} className="btn btn--danger btn-full btn--icon-flex">
+              <button 
+                onClick={resetImages} 
+                disabled={images.length === 0 || isAnyLoading} 
+                className="btn btn--danger btn-full btn--icon-flex"
+              >
                 <RotateCcw size={18} />リセット
               </button>
-              <button onClick={handleGeneratePdf} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full btn--icon-flex">
+              <button 
+                onClick={handleGeneratePdf} 
+                disabled={images.length === 0 || isAnyLoading} 
+                className="btn btn--primary btn-full btn--icon-flex"
+              >
                 <FileText size={18} />{isProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
               </button>
-              <button onClick={downloadAllImages} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full btn--icon-flex">
+              <button 
+                onClick={downloadAllImages} 
+                disabled={images.length === 0 || isAnyLoading} 
+                className="btn btn--primary btn-full btn--icon-flex"
+              >
                 <Download size={18} />{isZipping ? 'ダウンロード準備中...' : '画像を一括DL'}
               </button>
             </div>
@@ -418,15 +439,12 @@ export default function PdfComponent() {
   );
 }
 
-function SortableImagePreview({ image, images, index, isSelected, onSelect, activeId, selectedImages }) {
+const SortableImagePreview = memo(function SortableImagePreview({ image, images, index, isSelected, onSelect, activeId, selectedImages }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: image.id });
   
-  // このアイテムがプレースホルダーとして描画されるべきか
-  // （単一ドラッグ時の本人、または複数ドラッグ時の選択されたグループ全員）
   const showPlaceholder = isDragging || (selectedImages.has(activeId) && isSelected);
 
   const wrapperStyle = {
-    // プレースホルダーとして表示する要素は、現在のリスト内位置に静止させたいので transform を適用しない
     transform: showPlaceholder ? undefined : CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 10 : 'auto',
@@ -451,34 +469,36 @@ function SortableImagePreview({ image, images, index, isSelected, onSelect, acti
       )}
     </div>
   );
-}
+});
 
-function ImagePreview({ image, index, isSelected, onSelect }) {
+const ImagePreview = memo(function ImagePreview({ image, index, isSelected, onSelect }) {
   return (
     <div className={`image-preview-item ${isSelected ? 'selected' : ''}`} onClick={(e) => onSelect(image.id, e)}>
-      <img src={image.dataUrl} alt={image.name} className="thumbnail" /> {/* サムネイルサイズをブロックに合わせて最大化し、下マージンを詰める */}
-      <div className="image-info image-info--no-margin"> {/* 情報とサムネイル間の隙間を詰める */}
+      <img src={image.dataUrl} alt={image.name} className="thumbnail" />
+      <div className="image-info image-info--no-margin">
         <p className="file-name">{image.name}</p>
         <p className="page-number">{index + 1} ページ</p>
       </div>
     </div>
   );
-}
+});
 
-// 自分がドラッグされていて、かつそれがグループドラッグの場合に、他の選択アイテムの幻影を表示するコンポーネント
-function DraggedItemStack ({ isDragging, isGroupDragActive, selectedImages, id, images }) {
+// 複数ドラッグ時のスタック幻影
+const DraggedItemStack = memo(function DraggedItemStack({ isDragging, isGroupDragActive, selectedImages, id, images }) {
   if (!isDragging || !isGroupDragActive) return null;
-  // 自分以外の選択済みアイテムIDを最大2つまで取得して幻影として表示
   const otherSelectedIds = [...selectedImages].filter(selId => selId !== id).slice(0, 2);
+  
   return otherSelectedIds.map((selId, i) => {
-    const url = images.find(img => img.id === selId).dataUrl;
+    const target = images.find(img => img.id === selId);
+    if (!target) return null;
     return (
-      <div key={i} className="image-preview-item selected stack"
-        // 背後に表示、少しずらす
-        style={{ zIndex: -(i + 1), transform: `translate(${(i + 1) * 5}px, ${(i + 1) * 5}px)` }}>
-        {/* 見た目だけをクローン */}
-        <img src={url} alt="" className="thumbnail" />
+      <div 
+        key={selId} 
+        className="image-preview-item selected stack"
+        style={{ zIndex: -(i + 1), transform: `translate(${(i + 1) * 5}px, ${(i + 1) * 5}px)` }}
+      >
+        <img src={target.dataUrl} alt="" className="thumbnail" />
       </div>
     );
   });
-};
+});

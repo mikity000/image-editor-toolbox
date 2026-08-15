@@ -1,19 +1,27 @@
-import { useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import { serializeImages, restoreImages } from '../syncService';
+import { APP_CONFIG } from '../constants/Constants';
+
+const MAX_HISTORY_STACK = APP_CONFIG.MAX_HISTORY_STACK;
+
+
 
 export function useUndoRedo(fabricCanvas, onRestore) {
   const undoStack = useRef([[]]);
   const redoStack = useRef([]);
   const isRestoring = useRef(false);
 
-  const saveState = () => {
+  const saveState = useCallback(() => {
     if (isRestoring.current || !fabricCanvas) return;
     const imgStates = serializeImages(fabricCanvas);
     undoStack.current.push(imgStates);
+    if (undoStack.current.length > MAX_HISTORY_STACK) {
+      undoStack.current.shift();
+    }
     redoStack.current = [];
-  };
+  }, [fabricCanvas]);
 
-  const undo = async () => {
+  const undo = useCallback(async () => {
     if (!fabricCanvas || undoStack.current.length <= 1) return;
     const current = undoStack.current.pop();
     redoStack.current.push(current);
@@ -28,9 +36,9 @@ export function useUndoRedo(fabricCanvas, onRestore) {
     } finally {
       isRestoring.current = false;
     }
-  };
+  }, [fabricCanvas, onRestore]);
 
-  const redo = async () => {
+  const redo = useCallback(async () => {
     if (!fabricCanvas || redoStack.current.length === 0) return;
     const state = redoStack.current.pop();
     undoStack.current.push(state);
@@ -44,7 +52,8 @@ export function useUndoRedo(fabricCanvas, onRestore) {
     } finally {
       isRestoring.current = false;
     }
-  };
+  }, [fabricCanvas, onRestore]);
 
   return { saveState, undo, redo };
 }
+

@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState, useContext, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Undo2, Redo2, ChevronsUp, ChevronsDown, ChevronUp, ChevronDown, Trash2, Download, FolderPlus } from 'lucide-react';
 
 import { Canvas, FabricImage } from 'fabric';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { useCanvasZoomPan } from '../hooks/useCanvasZoomPan';
 import { useSnappingGuides } from '../hooks/useSnappingGuides';
-import { GalleryContext } from '../context/GalleryContext';
+import { useGallery } from '../context/GalleryContext';
 import SidebarTray from './SidebarTray';
 import { convertToWebP } from '../utils/webpConverter';
-import { getSequentialName, fileToDataUrl } from '../utils/imageUtils';
+import { getSequentialName, fileToDataUrl, generateUniqueId } from '../utils/imageUtils';
 import { isMobileDevice } from '../utils/deviceUtils';
-import { Constants } from '../constants/Constants';
+import { COMBINE_CONFIG, IMAGE_CONFIG } from '../constants/Constants';
 
 export default function CombinerComponent() {
   const [imageList, setImageList] = useState([]);
@@ -18,10 +18,12 @@ export default function CombinerComponent() {
   const canvasRef = useRef(null);
   const [fabricCanvas, setFabricCanvas] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
-  const [guideThickness, setGuideThickness] = useState(1);
+  const [guideThickness, setGuideThickness] = useState(COMBINE_CONFIG.GUIDE_THICKNESS_DEFAULT);
   const isMobile = isMobileDevice();
 
-  const { galleryImages, addImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useContext(GalleryContext);
+
+  const { galleryImages, addImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useGallery();
+
 
   const galleryItems = useMemo(() => {
     return galleryImages.map(img => ({
@@ -32,15 +34,16 @@ export default function CombinerComponent() {
     }));
   }, [galleryImages]);
 
-  // Custom hooks
+  // カスタムフック
   const { saveState, undo, redo } = useUndoRedo(fabricCanvas, setImageList);
   const { zoomLevel } = useCanvasZoomPan(fabricCanvas, isMobile);
   
   useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize, saveState);
 
-  const addImageFromGallery = (image) => {
+  // ギャラリーからの画像追加
+  const addImageFromGallery = useCallback((image) => {
     if (!fabricCanvas) return;
-    const vpt = fabricCanvas.viewportTransform;
+    const vpt = fabricCanvas.viewportTransform || [1, 0, 0, 1, 0, 0];
     const zoom = fabricCanvas.getZoom();
     const canvasWidth = fabricCanvas.getWidth();
     const canvasHeight = fabricCanvas.getHeight();
@@ -52,11 +55,11 @@ export default function CombinerComponent() {
     imgEl.crossOrigin = 'anonymous';
     imgEl.src = image.dataUrl;
     imgEl.onload = () => {
-      const maxW = canvasWidth * 0.5 / zoom;
-      const maxH = canvasHeight * 0.5 / zoom;
+      const maxW = (canvasWidth * 0.5) / zoom;
+      const maxH = (canvasHeight * 0.5) / zoom;
       let scale = 1;
       if (imgEl.width > maxW || imgEl.height > maxH) {
-        scale = Math.min(maxW / imgEl.width, maxH / imgEl.height);
+        scale = Math.min(maxW / (imgEl.width || 1), maxH / (imgEl.height || 1));
       }
 
       const fabricImg = new FabricImage(imgEl, {
@@ -69,7 +72,7 @@ export default function CombinerComponent() {
         hasControls: true,
         lockUniScaling: false,
       });
-      fabricImg.id = `canvas-img-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      fabricImg.id = generateUniqueId('canvas-img');
       fabricImg.origSrc = image.dataUrl;
       fabricImg.fileName = image.name;
       fabricImg.setControlsVisibility({ mtr: false });
@@ -79,11 +82,14 @@ export default function CombinerComponent() {
       saveState();
       setImageList(fabricCanvas.getObjects());
     };
-  };
+  }, [fabricCanvas, saveState]);
 
+  // Canvas の初期化・破棄およびリサイズ監視
   useEffect(() => {
     if (!canvasRef.current) return;
     const wrapperEl = canvasRef.current.parentElement;
+    if (!wrapperEl) return;
+
     const canvas = new Canvas(canvasRef.current, {
       width: wrapperEl.clientWidth,
       height: wrapperEl.clientHeight,
@@ -92,10 +98,10 @@ export default function CombinerComponent() {
       selectionKey: 'ctrlKey',
     });
 
-    // グリッド線（マス目）を描画するイベントハンドラーの追加
+    // グリッド線（マス目）を描画するイベントハンドラー
     canvas.on('before:render', (opt) => drawGrid(canvas, opt.ctx));
 
-    // テーマ（data-theme）の変更を監視し、即座にCanvasを再描画する
+    // テーマ（data-theme）変更の監視
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (mutation.attributeName === 'data-theme') {
@@ -105,35 +111,51 @@ export default function CombinerComponent() {
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
+    // コンテナのリサイズ監視
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          canvas.setDimensions({ width, height });
+          canvas.requestRenderAll();
+        }
+      }
+    });
+    resizeObserver.observe(wrapperEl);
+
     setFabricCanvas(canvas);
-    // 初期表示時にグリッド線を描画するために、強制再レンダリングを実行
     canvas.requestRenderAll();
 
     return () => {
+      resizeObserver.disconnect();
       observer.disconnect();
       canvas.dispose();
       setFabricCanvas(null);
     };
   }, []);
 
-  const uploadImage = e => {
+  // 画像アップロード
+  const uploadImage = useCallback((e) => {
     if (!fabricCanvas) return;
-    const vpt = fabricCanvas.viewportTransform;
+    const vpt = fabricCanvas.viewportTransform || [1, 0, 0, 1, 0, 0];
     const zoom = fabricCanvas.getZoom();
     const left = -vpt[4] / zoom;
     const top = -vpt[5] / zoom;
 
-    const files = Array.from(e.target.files).filter(file => file.type.startsWith('image/'));
-    const loadPromises = files.map(async file => {
+    const files = Array.from(e.target.files || []).filter(file => file.type.startsWith('image/'));
+    if (files.length === 0) return;
+
+    const loadPromises = files.map(async (file) => {
+      try {
         const dataURL = await fileToDataUrl(file);
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
           const imgEl = new Image();
           imgEl.crossOrigin = 'anonymous';
           imgEl.src = dataURL;
           imgEl.onload = () => {
             const fabricImg = new FabricImage(imgEl, {
-              left: left,
-              top: top,
+              left,
+              top,
               scaleX: 1,
               scaleY: 1,
               angle: 0,
@@ -141,7 +163,7 @@ export default function CombinerComponent() {
               hasControls: true,
               lockUniScaling: false,
             });
-            fabricImg.id = `canvas-img-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+            fabricImg.id = generateUniqueId('canvas-img');
             fabricImg.origSrc = dataURL;
             fabricImg.fileName = file.name;
             fabricImg.setControlsVisibility({ mtr: false });
@@ -150,6 +172,9 @@ export default function CombinerComponent() {
           };
           imgEl.onerror = () => resolve();
         });
+      } catch (err) {
+        console.error('画像読み込みエラー:', err);
+      }
     });
 
     Promise.all(loadPromises).then(() => {
@@ -157,9 +182,10 @@ export default function CombinerComponent() {
       saveState();
       setImageList(fabricCanvas.getObjects());
     });
-  };
+  }, [fabricCanvas, saveState]);
 
-  const deleteSelected = () => {
+  // 選択画像の削除
+  const deleteSelected = useCallback(() => {
     if (!fabricCanvas) return;
     const activeObjs = fabricCanvas.getActiveObjects();
     if (!activeObjs.length) return;
@@ -168,12 +194,14 @@ export default function CombinerComponent() {
     fabricCanvas.requestRenderAll();
     saveState();
     setImageList(fabricCanvas.getObjects());
-  };
+  }, [fabricCanvas, saveState]);
 
-  const deleteCanvasImages = (ids) => {
+  // キャンバス画像一覧からの削除
+  const deleteCanvasImages = useCallback((ids) => {
     if (!fabricCanvas) return;
+    const idSet = new Set(ids);
     const objects = fabricCanvas.getObjects();
-    const toDelete = objects.filter(obj => ids.includes(obj.id));
+    const toDelete = objects.filter(obj => idSet.has(obj.id));
     if (toDelete.length === 0) return;
     
     toDelete.forEach(obj => fabricCanvas.remove(obj));
@@ -181,9 +209,10 @@ export default function CombinerComponent() {
     fabricCanvas.requestRenderAll();
     saveState();
     setImageList(fabricCanvas.getObjects());
-  };
+  }, [fabricCanvas, saveState]);
 
-  const renameCanvasImage = (id, newName) => {
+  // キャンバス画像の名前変更
+  const renameCanvasImage = useCallback((id, newName) => {
     if (!fabricCanvas) return;
     const objects = fabricCanvas.getObjects();
     const target = objects.find(obj => obj.id === id);
@@ -192,15 +221,15 @@ export default function CombinerComponent() {
       saveState();
       setImageList([...fabricCanvas.getObjects()]);
     }
-  };
+  }, [fabricCanvas, saveState]);
 
-  const adjustLayer = (action) => {
+  // レイヤー順の調整
+  const adjustLayer = useCallback((action) => {
     if (!fabricCanvas) return;
     const activeObjs = fabricCanvas.getActiveObjects();
     if (!activeObjs.length) return;
 
     const objects = fabricCanvas.getObjects();
-    // 現在のインデックス順（背面→前面）にソート
     activeObjs.sort((a, b) => objects.indexOf(a) - objects.indexOf(b));
 
     if (action === 'front') {
@@ -216,41 +245,41 @@ export default function CombinerComponent() {
     fabricCanvas.requestRenderAll();
     saveState();
     setImageList([...fabricCanvas.getObjects()]);
-  };
+  }, [fabricCanvas, saveState]);
 
-  const getExportDataURLPng = () => {
+  // PNG形式でのエクスポートDataURL取得（安全なビューポート復元対応）
+  const getExportDataURLPng = useCallback(() => {
     if (!fabricCanvas) return null;
-    const imageObjects = fabricCanvas.getObjects();
+    const imageObjects = fabricCanvas.getObjects().filter(o => !o.isGuide);
     if (!imageObjects.length) return null;
 
+    const originalVpt = [...(fabricCanvas.viewportTransform || [1, 0, 0, 1, 0, 0])];
     fabricCanvas.discardActiveObject();
-    
-    // エクスポート中はグリッド線の描画をオフにする
     fabricCanvas.isExporting = true;
 
-    fabricCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+    try {
+      fabricCanvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
 
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    imageObjects.forEach(obj => {
-      const l = obj.left, t = obj.top;
-      const w = obj.getScaledWidth(), h = obj.getScaledHeight();
-      minX = Math.min(minX, l);
-      minY = Math.min(minY, t);
-      maxX = Math.max(maxX, l + w);
-      maxY = Math.max(maxY, t + h);
-    });
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      imageObjects.forEach(obj => {
+        const l = obj.left, t = obj.top;
+        const w = obj.getScaledWidth(), h = obj.getScaledHeight();
+        minX = Math.min(minX, l);
+        minY = Math.min(minY, t);
+        maxX = Math.max(maxX, l + w);
+        maxY = Math.max(maxY, t + h);
+      });
 
-    const exportWidth = maxX - minX;
-    const exportHeight = maxY - minY;
+      const exportWidth = maxX - minX;
+      const exportHeight = maxY - minY;
 
-    let result = null;
-    if (exportWidth > 0 && exportHeight > 0) {
-      // multiplier の計算
+      if (exportWidth <= 0 || exportHeight <= 0) return null;
+
       let maxScaleFactor = 1;
       imageObjects.forEach(obj => {
         if (obj._element) {
-          const origW = obj._element.naturalWidth || obj._element.width;
-          const origH = obj._element.naturalHeight || obj._element.height;
+          const origW = obj._element.naturalWidth || obj._element.width || 0;
+          const origH = obj._element.naturalHeight || obj._element.height || 0;
           const scaledW = obj.getScaledWidth();
           const scaledH = obj.getScaledHeight();
           if (scaledW > 0 && scaledH > 0) {
@@ -261,14 +290,15 @@ export default function CombinerComponent() {
         }
       });
 
-      const MAX_EXPORT_PIXELS = 4096;
+      const MAX_EXPORT_PIXELS = IMAGE_CONFIG.MAX_EXPORT_PIXELS;
       const currentMaxDim = Math.max(exportWidth, exportHeight);
       if (currentMaxDim * maxScaleFactor > MAX_EXPORT_PIXELS) {
         maxScaleFactor = MAX_EXPORT_PIXELS / currentMaxDim;
       }
       maxScaleFactor = Math.max(1, maxScaleFactor);
 
-      result = fabricCanvas.toDataURL({
+
+      return fabricCanvas.toDataURL({
         format: 'png',
         quality: 1,
         left: minX,
@@ -277,40 +307,49 @@ export default function CombinerComponent() {
         height: exportHeight,
         multiplier: maxScaleFactor,
       });
+    } finally {
+      fabricCanvas.isExporting = false;
+      fabricCanvas.setViewportTransform(originalVpt);
+      fabricCanvas.requestRenderAll();
     }
+  }, [fabricCanvas]);
 
-    // エクスポート終了後にグリッド描画を戻し、キャンバスを再描画
-    fabricCanvas.isExporting = false;
-    fabricCanvas.requestRenderAll();
-
-    return result;
-  };
-
-  const download = async () => {
+  // ダウンロード処理
+  const download = useCallback(async () => {
     const dataURLPng = getExportDataURLPng();
     if (!dataURLPng) return;
 
-    const dataURL = await convertToWebP(dataURLPng);
-    const link = document.createElement('a');
-    link.href = dataURL;
-    link.download = 'combined_trimmed.webp';
-    link.click();
-  };
+    try {
+      const dataURL = await convertToWebP(dataURLPng);
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = 'combined_trimmed.webp';
+      link.click();
+    } catch (err) {
+      console.error('画像のダウンロードに失敗しました:', err);
+    }
+  }, [getExportDataURLPng]);
 
-  const saveToGallery = async () => {
+  // ギャラリーへの保存
+  const saveToGallery = useCallback(async () => {
     const dataURLPng = getExportDataURLPng();
     if (!dataURLPng) return;
 
-    const newName = getSequentialName('結合', galleryImages);
-    const dataURL = await convertToWebP(dataURLPng);
-    addImages({
-      name: newName,
-      dataUrl: dataURL
-    });
-  };
+    try {
+      const newName = getSequentialName('結合', galleryImages);
+      const dataURL = await convertToWebP(dataURLPng);
+      addImages({
+        name: newName,
+        dataUrl: dataURL
+      });
+    } catch (err) {
+      console.error('ギャラリーへの保存に失敗しました:', err);
+    }
+  }, [getExportDataURLPng, galleryImages, addImages]);
 
-  const clickImageList = imgObj => {
-    if (!fabricCanvas) return;
+  // 画像一覧アイテムをクリックしてズーム・フォーカス
+  const clickImageList = useCallback((imgObj) => {
+    if (!fabricCanvas || !imgObj) return;
     const centerPoint = imgObj.getCenterPoint();
     const worldCenterX = centerPoint.x;
     const worldCenterY = centerPoint.y;
@@ -322,19 +361,23 @@ export default function CombinerComponent() {
 
     fabricCanvas.setViewportTransform([zoom, 0, 0, zoom, tx, ty]);
     fabricCanvas.renderAll();
-  };
+  }, [fabricCanvas]);
 
-  const normalizedCanvasItems = imageList.map((imgObj) => {
-    if (!imgObj.id) {
-      imgObj.id = `canvas-img-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-    }
-    return {
-      id: imgObj.id,
-      name: imgObj.fileName || '不明なファイル名',
-      dataUrl: imgObj.origSrc,
-      rawItem: imgObj
-    };
-  });
+  const normalizedCanvasItems = useMemo(() => {
+    return imageList.map((imgObj) => {
+      if (!imgObj.id) {
+        imgObj.id = generateUniqueId('canvas-img');
+      }
+      return {
+        id: imgObj.id,
+        name: imgObj.fileName || '名称未設定',
+        dataUrl: imgObj.origSrc,
+        rawItem: imgObj
+      };
+    });
+  }, [imageList]);
+
+  const { GUIDE_THICKNESS_MIN, GUIDE_THICKNESS_MAX } = COMBINE_CONFIG;
 
   return (
     <div className="editor-container">
@@ -381,17 +424,22 @@ export default function CombinerComponent() {
         <div className="editor-sidebar">
           <div className="sidebar-sticky-content">
             <div className="file-input">
-              <input type="file" accept="image/*" multiple className="file-input__control"
-                onClick={e => (e.target.value = null)} onChange={uploadImage}
+              <input 
+                type="file" 
+                accept="image/*" 
+                multiple 
+                className="file-input__control"
+                onClick={e => (e.target.value = null)} 
+                onChange={uploadImage}
               />
             </div>
 
             <div className="button-group sidebar-buttons">
               <div className="undo-redo-wrapper">
-                <button onClick={undo} className="btn btn-undo-redo">
+                <button onClick={undo} className="btn btn-undo-redo" aria-label="元に戻す">
                   <Undo2 size={18} />
                 </button>
-                <button onClick={redo} className="btn btn-undo-redo">
+                <button onClick={redo} className="btn btn-undo-redo" aria-label="やり直す">
                   <Redo2 size={18} />
                 </button>
               </div>
@@ -410,9 +458,13 @@ export default function CombinerComponent() {
 
             <div className="slider-group">
               <label>ガイドラインの太さ</label>
-              <input type="range" min="1" max="20" value={guideThickness}
+              <input 
+                type="range" 
+                min={GUIDE_THICKNESS_MIN} 
+                max={GUIDE_THICKNESS_MAX} 
+                value={guideThickness}
                 onChange={e => setGuideThickness(parseInt(e.target.value, 10))}
-                style={{ '--thumb-percent': `${((guideThickness - 1) / (20 - 1)) * 100}%` }}
+                style={{ '--thumb-percent': `${((guideThickness - GUIDE_THICKNESS_MIN) / (GUIDE_THICKNESS_MAX - GUIDE_THICKNESS_MIN)) * 100}%` }}
               />
               <span className="slider-group__value">{guideThickness}px</span>
             </div>
@@ -444,27 +496,26 @@ export default function CombinerComponent() {
  * @param {CanvasRenderingContext2D} ctx キャンバスコンテキスト
  */
 function drawGrid(canvas, ctx) {
-  if (canvas.isExporting) return;
+  if (canvas.isExporting || !ctx) return;
   ctx.save();
   
-  const vpt = canvas.viewportTransform;
-  // ビューポート変換（ズーム・パン）を適用してワールド座標系で描画
+  const vpt = canvas.viewportTransform || [1, 0, 0, 1, 0, 0];
   ctx.transform(vpt[0], vpt[1], vpt[2], vpt[3], vpt[4], vpt[5]);
   
   const zoom = canvas.getZoom();
   const width = canvas.getWidth();
   const height = canvas.getHeight();
   
-  // 画面上の表示領域をワールド座標に変換
   const minX = -vpt[4] / zoom;
   const minY = -vpt[5] / zoom;
   const maxX = (width - vpt[4]) / zoom;
   const maxY = (height - vpt[5]) / zoom;
   
-  // ズームに応じた適切なグリッドサイズ（ワールド座標）を動的に計算する
-  const rawGridSize = Constants.TARGET_SCREEN_SIZE / zoom;
+  const targetScreenSize = COMBINE_CONFIG.TARGET_SCREEN_SIZE;
+
+  const rawGridSize = targetScreenSize / zoom;
   const exponent = Math.floor(Math.log10(rawGridSize));
-  const base = Math.pow(10, exponent);
+  const base = 10 ** exponent;
   const ratio = rawGridSize / base;
 
   const gridSize = ratio < 1.5 ? base
@@ -474,9 +525,8 @@ function drawGrid(canvas, ctx) {
   
   const isLight = document.documentElement.getAttribute('data-theme') === 'light';
   ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.18)' : 'rgba(255, 255, 255, 0.15)';
-  ctx.lineWidth = 1 / zoom; // ズーム倍率によらず線の太さを一定（1px相当）に保つ
+  ctx.lineWidth = 1 / zoom;
   
-  // 縦線の描画
   const startX = Math.floor(minX / gridSize) * gridSize;
   ctx.beginPath();
   for (let x = startX; x <= maxX; x += gridSize) {
@@ -484,7 +534,6 @@ function drawGrid(canvas, ctx) {
     ctx.lineTo(x, maxY);
   }
   
-  // 横線の描画
   const startY = Math.floor(minY / gridSize) * gridSize;
   for (let y = startY; y <= maxY; y += gridSize) {
     ctx.moveTo(minX, y);

@@ -1,5 +1,4 @@
 import CombinerComponent from '../components/CombinerComponent';
-import '../styles.css';
 
 const ImageCombine = () => {
   return (
@@ -9,4 +8,4 @@ const ImageCombine = () => {
   );
 };
 
-export default ImageCombine;
+export default ImageCombine;

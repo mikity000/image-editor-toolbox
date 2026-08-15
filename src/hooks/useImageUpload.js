@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { FabricImage } from 'fabric';
 import { fileToDataUrl } from '../utils/imageUtils';
 
@@ -6,8 +6,8 @@ export function useImageUpload(fabricCanvasRef, setCroppedImageUrl) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageName, setImageName] = useState('');
 
-  const loadImageFromUrl = (dataURL) => {
-    const canvas = fabricCanvasRef.current;
+  const loadImageFromUrl = useCallback((dataURL) => {
+    const canvas = fabricCanvasRef?.current;
     if (!canvas) return;
     canvas.clear();
     if (setCroppedImageUrl) setCroppedImageUrl(null);
@@ -18,18 +18,25 @@ export function useImageUpload(fabricCanvasRef, setCroppedImageUrl) {
     imgEl.onload = () => {
       const canvasW = canvas.getWidth();
       const canvasH = canvas.getHeight();
-      const scaleX = canvasW / imgEl.width;
-      const scaleY = canvasH / imgEl.height;
+      const origW = imgEl.naturalWidth || imgEl.width || canvasW;
+      const origH = imgEl.naturalHeight || imgEl.height || canvasH;
+
+      const scaleX = canvasW / (origW || 1);
+      const scaleY = canvasH / (origH || 1);
       const scale = Math.min(scaleX, scaleY);
 
-      const scaledWidth = imgEl.width * scale;
-      const scaledHeight = imgEl.height * scale;
+      const scaledWidth = origW * scale;
+      const scaledHeight = origH * scale;
       const left = (canvasW - scaledWidth) / 2;
       const top = (canvasH - scaledHeight) / 2;
 
       const fabricImg = new FabricImage(imgEl, {
-        left: left, top: top, scaleX: scale, scaleY: scale,
-        selectable: false, evented: false,
+        left,
+        top,
+        scaleX: scale,
+        scaleY: scale,
+        selectable: false,
+        evented: false,
       });
 
       fabricImg.origSrc = dataURL;
@@ -37,15 +44,24 @@ export function useImageUpload(fabricCanvasRef, setCroppedImageUrl) {
       canvas.renderAll();
       setImageLoaded(true);
     };
-  };
 
-  const uploadImage = async (e) => {
-    const file = e.target.files[0];
+    imgEl.onerror = (err) => {
+      console.error('画像のロードに失敗しました:', err);
+    };
+  }, [fabricCanvasRef, setCroppedImageUrl]);
+
+  const uploadImage = useCallback(async (e) => {
+    const file = e.target?.files?.[0];
     if (!file) return;
     setImageName(file.name);
-    const dataUrl = await fileToDataUrl(file);
-    loadImageFromUrl(dataUrl);
-  };
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      loadImageFromUrl(dataUrl);
+    } catch (err) {
+      console.error('ファイルの読み込みに失敗しました:', err);
+    }
+  }, [loadImageFromUrl]);
 
   return { imageLoaded, uploadImage, loadImageFromUrl, setImageLoaded, imageName, setImageName };
 }
+

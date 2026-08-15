@@ -5,47 +5,48 @@ import io from 'socket.io-client';
 // Fabric キャンバス上の画像状態をシリアライズ
 export function serializeImages(canvas, options = { includeBackground: true, includeImages: true }) {
   if (!canvas) return [];
-  const { includeBackground, includeImages } = options;
+  const { includeBackground = true, includeImages = true } = options;
   const states = [];
 
   // 背景画像
   if (includeBackground) {
     const bg = canvas.backgroundImage;
     if (bg) {
-      // 元画像のピクセルサイズを取得
-      const origW = bg._element.naturalWidth;
-      const origH = bg._element.naturalHeight;
+      const origW = bg._element?.naturalWidth || bg.width || 0;
+      const origH = bg._element?.naturalHeight || bg.height || 0;
 
       states.push({
         type: 'background',
-        src: bg.origSrc,
+        src: bg.origSrc || bg._element?.src || '',
         origImgW: origW,
         origImgH: origH,
-        angle: bg.angle,
+        angle: bg.angle || 0,
       });
     }
   }
 
   // 通常画像
   if (includeImages) {
-    canvas.getObjects()
+    const objects = typeof canvas.getObjects === 'function' ? canvas.getObjects() : [];
+    objects
       .filter(o => o instanceof FabricImage)
       .forEach(o => {
-        const matrix = o.calcTransformMatrix();
+        const matrix = o.calcTransformMatrix ? o.calcTransformMatrix() : [1, 0, 0, 1, 0, 0];
         const p1 = new Point(0, 0), p2 = new Point(o.width ?? 0, o.height ?? 0);
         const t1 = p1.transform(matrix), t2 = p2.transform(matrix);
         const width = Math.abs(t2.x - t1.x);
         const height = Math.abs(t2.y - t1.y);
-        const rect = o.getBoundingRect(true);
+        const rect = o.getBoundingRect ? o.getBoundingRect(true) : { left: o.left, top: o.top };
+
         states.push({
           type: 'image',
-          src: o.origSrc,
+          src: o.origSrc || o._element?.src || '',
           left: rect.left,
           top: rect.top,
-          scaleX: width / (o.width ?? 1),
-          scaleY: height / (o.height ?? 1),
-          angle: o.angle,
-          fileName: o.fileName,
+          scaleX: width / (o.width || 1),
+          scaleY: height / (o.height || 1),
+          angle: o.angle || 0,
+          fileName: o.fileName || '',
         });
       });
   }
@@ -55,10 +56,10 @@ export function serializeImages(canvas, options = { includeBackground: true, inc
 
 // ─────────────────────────────────────
 // シリアライズ済み状態から FabricImage を復元
-export function restoreImages(canvas, imageStates, options = { includeBackground: true, includeImages: true }) {
+export function restoreImages(canvas, imageStates = [], options = { includeBackground: true, includeImages: true }) {
   if (!canvas) return Promise.resolve();
   canvas.clear();
-  const { includeBackground, includeImages } = options;
+  const { includeBackground = true, includeImages = true } = options;
 
   const states = [...imageStates];
   const promises = [];
@@ -68,46 +69,50 @@ export function restoreImages(canvas, imageStates, options = { includeBackground
     const idx = states.findIndex(s => s.type === 'background');
     if (idx !== -1) {
       const s = states.splice(idx, 1)[0];
-      promises.push(new Promise(resolve => {
-        const imgEl = new Image();
-        imgEl.crossOrigin = 'anonymous';
-        imgEl.src = s.src;
-        imgEl.onload = () => {
-          // 受信側キャンバスサイズ
-          const cW = canvas.getWidth();
-          const cH = canvas.getHeight();
+      if (s.src) {
+        promises.push(new Promise(resolve => {
+          const imgEl = new Image();
+          imgEl.crossOrigin = 'anonymous';
+          imgEl.src = s.src;
+          imgEl.onload = () => {
+            const cW = canvas.getWidth();
+            const cH = canvas.getHeight();
+            const origW = s.origImgW || imgEl.naturalWidth || cW;
+            const origH = s.origImgH || imgEl.naturalHeight || cH;
 
-          // 自分のキャンバスに収めるスケールを計算
-          const scale = Math.min(cW / s.origImgW, cH / s.origImgH);
+            const scale = Math.min(cW / (origW || 1), cH / (origH || 1));
+            const wPx = origW * scale;
+            const hPx = origH * scale;
+            const left = (cW - wPx) / 2;
+            const top = (cH - hPx) / 2;
 
-          // 中央配置のための left/top
-          const wPx = s.origImgW * scale;
-          const hPx = s.origImgH * scale;
-          const left = (cW - wPx) / 2;
-          const top = (cH - hPx) / 2;
-
-          const bgImg = new FabricImage(imgEl, {
-            left, top,
-            scaleX: scale,
-            scaleY: scale,
-            angle: s.angle,
-            selectable: false,
-            evented: false,
-          });
-          bgImg.origSrc = s.src;
-          canvas.backgroundImage = bgImg;
-          canvas.renderAll();
-          resolve();
-        };
-        imgEl.onerror = () => resolve();
-      }));
+            const bgImg = new FabricImage(imgEl, {
+              left,
+              top,
+              scaleX: scale,
+              scaleY: scale,
+              angle: s.angle || 0,
+              selectable: false,
+              evented: false,
+            });
+            bgImg.origSrc = s.src;
+            canvas.backgroundImage = bgImg;
+            canvas.renderAll();
+            resolve();
+          };
+          imgEl.onerror = () => {
+            console.warn('背景画像の復元に失敗しました:', s.src);
+            resolve();
+          };
+        }));
+      }
     }
   }
 
   // 通常画像を復元
   if (includeImages) {
     states.forEach(state => {
-      if (state.type !== 'image') return;
+      if (state.type !== 'image' || !state.src) return;
       promises.push(new Promise(resolve => {
         const imgEl = new Image();
         imgEl.crossOrigin = 'anonymous';
@@ -118,7 +123,7 @@ export function restoreImages(canvas, imageStates, options = { includeBackground
             top: state.top,
             scaleX: state.scaleX,
             scaleY: state.scaleY,
-            angle: state.angle,
+            angle: state.angle || 0,
             selectable: true,
             hasControls: true,
             lockUniScaling: false,
@@ -128,35 +133,55 @@ export function restoreImages(canvas, imageStates, options = { includeBackground
           canvas.add(inst);
           resolve();
         };
-        imgEl.onerror = () => resolve();
+        imgEl.onerror = () => {
+          console.warn('画像の復元に失敗しました:', state.fileName || state.src);
+          resolve();
+        };
       }));
     });
   }
 
-  return Promise.all(promises).then(() => canvas.renderAll());
+  return Promise.all(promises).then(() => {
+    canvas.renderAll();
+  });
 }
 
 // ─────────────────────────────────────
 // チャンクを受信してコンポーネントにデータを渡す
 const receiveChunk = (incoming, onReceive, id, index, total, chunk) => {
-  if (!incoming[id])
+  if (!incoming[id]) {
     incoming[id] = { total, parts: [] };
+  }
   incoming[id].parts[index] = chunk;
-  if (incoming[id].parts.filter(Boolean).length !== total)
-    return;
+  
+  if (incoming[id].parts.filter(Boolean).length !== total) return;
+  
   const full = incoming[id].parts.join('');
   delete incoming[id];
-  const data = JSON.parse(full);
-  onReceive(data);
+
+  try {
+    const data = JSON.parse(full);
+    onReceive(data);
+  } catch (err) {
+    console.error('チャンクデータのパースに失敗しました:', err);
+  }
 };
 
 // ─────────────────────────────────────
 // 大きいデータはチャンク化して送信
 export function sendChunk(socket, payload, eventName) {
+  if (!socket) return;
   const CHUNK = 900 * 1024;
-  const json = JSON.stringify(payload);
+  let json;
+  try {
+    json = JSON.stringify(payload);
+  } catch (err) {
+    console.error('ペイロードのシリアライズに失敗しました:', err);
+    return;
+  }
+
   const total = Math.ceil(json.length / CHUNK);
-  const session = socket.id + '_' + Date.now();
+  const session = `${socket.id || 'session'}_${Date.now()}`;
   for (let i = 0; i < total; i++) {
     socket.emit(eventName, {
       id: session,
@@ -170,38 +195,56 @@ export function sendChunk(socket, payload, eventName) {
 // ─────────────────────────────────────
 // Socket.IO を使って同期ロジックを初期化
 export function setupSync(canvas, options = {}) {
-  const { url, onReceive = () => { }, autoSync = true } = options;
+  const { url, onReceive = () => {}, autoSync = true } = options;
   const socket = io(url, { transports: ['websocket'], reconnectionAttempts: 3, timeout: 5000 });
   const incoming = {};
 
-  socket.on('canvas:sync-chunk', ({ id, index, total, chunk }) => {
+  const handleChunk = ({ id, index, total, chunk }) => {
     receiveChunk(incoming, onReceive, id, index, total, chunk);
-  });
+  };
+
+  socket.on('canvas:sync-chunk', handleChunk);
 
   const emit = (opts = { includeBackground: true, includeImages: true }) => {
     const payload = serializeImages(canvas, opts);
     sendChunk(socket, payload, 'canvas:sync-chunk');
   };
 
-  // トリミング枠を消したくないため追加
-  if (autoSync)
-    canvas.on('object:modified', () => emit());
+  const handleModified = () => emit();
+  if (autoSync && canvas) {
+    canvas.on('object:modified', handleModified);
+  }
 
-  return { socket, emitSync: emit };
+  const cleanup = () => {
+    socket.off('canvas:sync-chunk', handleChunk);
+    if (autoSync && canvas) {
+      canvas.off('object:modified', handleModified);
+    }
+    socket.disconnect();
+  };
+
+  return { socket, emitSync: emit, cleanup };
 }
 
 // ─────────────────────────────────────
-// 画像一覧同期専用セットアップを追加
+// 画像一覧同期専用セットアップ
 export function setupListSync(options = {}) {
-  const { url, onReceive = () => { } } = options;
+  const { url, onReceive = () => {} } = options;
   const socket = io(url, { transports: ['websocket'], reconnectionAttempts: 3, timeout: 5000 });
   const incoming = {};
 
-  socket.on('list:sync-chunk', ({ id, index, total, chunk }) => {
+  const handleChunk = ({ id, index, total, chunk }) => {
     receiveChunk(incoming, onReceive, id, index, total, chunk);
-  });
+  };
+
+  socket.on('list:sync-chunk', handleChunk);
 
   const emitListSync = (listData) => sendChunk(socket, listData, 'list:sync-chunk');
 
-  return { socket, emitListSync };
-}
+  const cleanup = () => {
+    socket.off('list:sync-chunk', handleChunk);
+    socket.disconnect();
+  };
+
+  return { socket, emitListSync, cleanup };
+}

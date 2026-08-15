@@ -9,30 +9,35 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
     return () => {
       if (tempCanvasRef.current) {
         tempCanvasRef.current.dispose();
+        tempCanvasRef.current = null;
       }
     };
   }, []);
 
   const crop = useCallback(async (overrideObj = null) => {
     const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
     const image = canvas.backgroundImage;
     if (!image || !image._element) return;
 
     const shapes = canvas.getObjects().filter(o => o.isCroppingShape);
     if (shapes.length === 0 && !overrideObj) {
-      setCroppedImageUrl(null);
+      setCroppedImageUrl?.(null);
       return;
     }
 
     const targetShapes = overrideObj ? [...shapes, overrideObj] : shapes;
 
-    const originalImageWidth = image._element.naturalWidth;
-    const originalImageHeight = image._element.naturalHeight;
-    const scaleFactorX = originalImageWidth / image.getScaledWidth();
-    const scaleFactorY = originalImageHeight / image.getScaledHeight();
+    const imgEl = image.getElement?.() || image._element;
+    const originalImageWidth = imgEl.naturalWidth || imgEl.width || 0;
+    const originalImageHeight = imgEl.naturalHeight || imgEl.height || 0;
+    if (originalImageWidth === 0 || originalImageHeight === 0) return;
 
-    const imageDisplayLeft = image.left;
-    const imageDisplayTop = image.top;
+    const scaleFactorX = originalImageWidth / (image.getScaledWidth() || 1);
+    const scaleFactorY = originalImageHeight / (image.getScaledHeight() || 1);
+
+    const imageDisplayLeft = image.left || 0;
+    const imageDisplayTop = image.top || 0;
 
     if (!tempCanvasRef.current) {
       const tempCanvasElement = document.createElement('canvas');
@@ -46,8 +51,11 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
     }
     tempCanvas.clear();
 
-    const fullResImage = new FabricImage(image._element, {
-      left: 0, top: 0, selectable: false, evented: false,
+    const fullResImage = new FabricImage(imgEl, {
+      left: 0,
+      top: 0,
+      selectable: false,
+      evented: false,
     });
 
     const clipShapes = targetShapes.map(targetObj => {
@@ -57,13 +65,16 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
       const cropWidthInOriginalPixels = Math.round(bounds.width * scaleFactorX);
       const cropHeightInOriginalPixels = Math.round(bounds.height * scaleFactorY);
 
-      let clipPathObject;
+      let clipPathObject = null;
 
       if (targetObj.type === 'rect') {
         clipPathObject = new Rect({
-          left: cropLeftInOriginalPixels, top: cropTopInOriginalPixels,
-          width: cropWidthInOriginalPixels, height: cropHeightInOriginalPixels,
-          absolutePositioned: true, fill: 'black'
+          left: cropLeftInOriginalPixels,
+          top: cropTopInOriginalPixels,
+          width: cropWidthInOriginalPixels,
+          height: cropHeightInOriginalPixels,
+          absolutePositioned: true,
+          fill: 'black'
         });
       } else if (targetObj.type === 'circle' || targetObj.type === 'ellipse') {
         const rxInOriginalPixels = Math.round(cropWidthInOriginalPixels / 2);
@@ -73,18 +84,25 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
 
         if (targetObj.type === 'ellipse' || Math.abs(targetObj.scaleX - targetObj.scaleY) > 0.001) {
           clipPathObject = new Ellipse({
-            left: centerXInOriginalPixels - rxInOriginalPixels, top: centerYInOriginalPixels - ryInOriginalPixels,
-            rx: rxInOriginalPixels, ry: ryInOriginalPixels, absolutePositioned: true, fill: 'black'
+            left: centerXInOriginalPixels - rxInOriginalPixels,
+            top: centerYInOriginalPixels - ryInOriginalPixels,
+            rx: rxInOriginalPixels,
+            ry: ryInOriginalPixels,
+            absolutePositioned: true,
+            fill: 'black'
           });
         } else {
           clipPathObject = new Circle({
-            left: centerXInOriginalPixels - rxInOriginalPixels, top: centerYInOriginalPixels - ryInOriginalPixels,
-            radius: rxInOriginalPixels, absolutePositioned: true, fill: 'black'
+            left: centerXInOriginalPixels - rxInOriginalPixels,
+            top: centerYInOriginalPixels - ryInOriginalPixels,
+            radius: rxInOriginalPixels,
+            absolutePositioned: true,
+            fill: 'black'
           });
         }
       } else if (targetObj.type === 'polygon') {
         const matrix = targetObj.calcTransformMatrix();
-        const pointsInOriginalSpace = targetObj.points.map(p => {
+        const pointsInOriginalSpace = (targetObj.points || []).map(p => {
           const pathOffsetX = targetObj.pathOffset ? targetObj.pathOffset.x : 0;
           const pathOffsetY = targetObj.pathOffset ? targetObj.pathOffset.y : 0;
           const localPoint = new Point(p.x - pathOffsetX, p.y - pathOffsetY);
@@ -102,7 +120,8 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
           scaleX: targetObj.scaleX * scaleFactorX,
           scaleY: targetObj.scaleY * scaleFactorY,
           pathOffset: targetObj.pathOffset,
-          absolutePositioned: true, fill: 'black'
+          absolutePositioned: true,
+          fill: 'black'
         });
       }
       return clipPathObject;
@@ -127,12 +146,10 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
 
     let exportLeft, exportTop, exportWidth, exportHeight;
     if (invertCrop) {
-      // 完全透明以外は全部コンテンツとして扱う（外部関数で処理）
       const renderedCanvas = tempCanvas.toCanvasElement();
       const ctx = renderedCanvas.getContext('2d');
       const imageData = ctx.getImageData(0, 0, originalImageWidth, originalImageHeight);
       const data = imageData.data;
-      // 完全透明以外は全部コンテンツとして扱う
       const ALPHA_THRESHOLD = 0;
 
       let minX = originalImageWidth, minY = originalImageHeight, maxX = 0, maxY = 0;
@@ -157,7 +174,6 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
         exportWidth = maxX - minX + 1;
         exportHeight = maxY - minY + 1;
       } else {
-        // 全体が透明になった場合（図形が画像全体を覆った場合）のフォールバック
         exportLeft = 0;
         exportTop = 0;
         exportWidth = originalImageWidth;
@@ -190,26 +206,33 @@ export function useImageCrop(fabricCanvasRef, setCroppedImageUrl, invertCrop = f
       if (exportTop + exportHeight > originalImageHeight) exportHeight = originalImageHeight - exportTop;
     }
 
-    const finalCroppedImagePng = tempCanvas.toDataURL({
-      format: 'png',
-      multiplier: 1,
-      left: exportLeft,
-      top: exportTop,
-      width: exportWidth,
-      height: exportHeight,
-    });
+    if (exportWidth <= 0 || exportHeight <= 0) return;
 
-    const finalCroppedImage = await convertToWebP(finalCroppedImagePng);
-    setCroppedImageUrl(finalCroppedImage);
-    if (setExportBoundsCanvas) {
-      setExportBoundsCanvas({
-        left: imageDisplayLeft + exportLeft / scaleFactorX,
-        top: imageDisplayTop + exportTop / scaleFactorY,
-        width: exportWidth / scaleFactorX,
-        height: exportHeight / scaleFactorY
+    try {
+      const finalCroppedImagePng = tempCanvas.toDataURL({
+        format: 'png',
+        multiplier: 1,
+        left: exportLeft,
+        top: exportTop,
+        width: exportWidth,
+        height: exportHeight,
       });
+
+      const finalCroppedImage = await convertToWebP(finalCroppedImagePng);
+      setCroppedImageUrl?.(finalCroppedImage);
+      if (setExportBoundsCanvas) {
+        setExportBoundsCanvas({
+          left: imageDisplayLeft + exportLeft / scaleFactorX,
+          top: imageDisplayTop + exportTop / scaleFactorY,
+          width: exportWidth / scaleFactorX,
+          height: exportHeight / scaleFactorY
+        });
+      }
+    } catch (err) {
+      console.error('クロップ画像変換エラー:', err);
     }
   }, [fabricCanvasRef, setCroppedImageUrl, invertCrop, setExportBoundsCanvas]);
 
   return { crop };
 }
+

@@ -4,6 +4,11 @@
  * 
  * @returns {boolean} モバイル端末の場合は true
  */
-export const isMobileDevice = () =>
-  /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) 
-  || window.matchMedia("(pointer: coarse)").matches;
+export const isMobileDevice = () => {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return false;
+  }
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) 
+    || Boolean(window.matchMedia?.('(pointer: coarse)')?.matches);
+};
+

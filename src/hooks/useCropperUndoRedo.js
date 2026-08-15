@@ -1,5 +1,10 @@
 import { useRef, useState, useCallback } from 'react';
 import { Rect, Circle, Polygon, Path } from 'fabric';
+import { APP_CONFIG } from '../constants/Constants';
+
+const MAX_HISTORY_STACK = APP_CONFIG.MAX_HISTORY_STACK;
+
+
 
 export function serializeCropperState(fabricCanvas, isDrawingPolygon, tempPoints, croppingMode, drawingObject) {
   const canvas = fabricCanvas;
@@ -78,23 +83,21 @@ export function restoreCropperState(
   });
 
   if (!state) {
-    if (setCroppingMode) setCroppingMode(null);
-    if (setIsDrawingPolygon) setIsDrawingPolygon(false);
-    if (setDrawingObject) setDrawingObject(null);
-    if (startPolygonDrawing) startPolygonDrawing([]);
-    if (setCroppedImageUrl) setCroppedImageUrl(null);
+    setCroppingMode?.(null);
+    setIsDrawingPolygon?.(false);
+    setDrawingObject?.(null);
+    startPolygonDrawing?.([]);
+    setCroppedImageUrl?.(null);
     canvas.renderAll();
     return;
   }
 
-  if (setCroppingMode) setCroppingMode(state.croppingMode);
-  if (setIsDrawingPolygon) setIsDrawingPolygon(state.isDrawingPolygon);
+  setCroppingMode?.(state.croppingMode);
+  setIsDrawingPolygon?.(state.isDrawingPolygon);
 
   if (state.isDrawingPolygon && state.tempPoints) {
-    if (setDrawingObject) setDrawingObject(null);
-    if (startPolygonDrawing) {
-      startPolygonDrawing(state.tempPoints);
-    }
+    setDrawingObject?.(null);
+    startPolygonDrawing?.(state.tempPoints);
   } else {
     let activeShapeObj = null;
 
@@ -148,16 +151,16 @@ export function restoreCropperState(
 
     if (activeShapeObj) {
       canvas.setActiveObject(activeShapeObj);
-      if (setDrawingObject) setDrawingObject(activeShapeObj);
+      setDrawingObject?.(activeShapeObj);
     } else {
       const allShapes = canvas.getObjects().filter(obj => obj.isCroppingShape);
       if (allShapes.length > 0) {
         const lastShape = allShapes[allShapes.length - 1];
         canvas.setActiveObject(lastShape);
-        if (setDrawingObject) setDrawingObject(lastShape);
+        setDrawingObject?.(lastShape);
       } else {
-        if (setDrawingObject) setDrawingObject(null);
-        if (startPolygonDrawing) startPolygonDrawing([]);
+        setDrawingObject?.(null);
+        startPolygonDrawing?.([]);
         if (setCroppedImageUrl && (!state.shapesData || state.shapesData.length === 0)) {
           setCroppedImageUrl(null);
         }
@@ -166,7 +169,7 @@ export function restoreCropperState(
   }
 
   canvas.renderAll();
-  if (triggerAutoCrop) triggerAutoCrop();
+  triggerAutoCrop?.();
 }
 
 export function useCropperUndoRedo() {
@@ -185,6 +188,9 @@ export function useCropperUndoRedo() {
   const saveState = useCallback((state) => {
     if (isRestoringRef.current) return;
     undoStack.current.push(state);
+    if (undoStack.current.length > MAX_HISTORY_STACK) {
+      undoStack.current.shift();
+    }
     redoStack.current = [];
     updateFlags();
   }, [updateFlags]);
@@ -196,6 +202,9 @@ export function useCropperUndoRedo() {
     try {
       const prevState = undoStack.current.pop();
       redoStack.current.push(currentState);
+      if (redoStack.current.length > MAX_HISTORY_STACK) {
+        redoStack.current.shift();
+      }
       await restoreCallback(prevState);
       updateFlags();
     } finally {
@@ -210,6 +219,9 @@ export function useCropperUndoRedo() {
     try {
       const nextState = redoStack.current.pop();
       undoStack.current.push(currentState);
+      if (undoStack.current.length > MAX_HISTORY_STACK) {
+        undoStack.current.shift();
+      }
       await restoreCallback(nextState);
       updateFlags();
     } finally {
@@ -233,3 +245,4 @@ export function useCropperUndoRedo() {
     isRestoringRef
   };
 }
+

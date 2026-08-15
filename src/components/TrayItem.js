@@ -1,34 +1,46 @@
-import React from 'react';
-import { X } from 'lucide-react';
+import { memo } from 'react';
 
-export default function TrayItem({
-  src,
-  alt,
-  name,
-  onClick,
+const TrayItem = memo(function TrayItem({
+  item,
+  isSelected,
+  isEditing,
+  renameValue,
   actionText,
-  onDelete,
+  onItemClick,
+  onContextMenu,
+  onRenameChange,
+  onRenameSubmit,
+  onRenameKeyDown,
 }) {
   return (
-    <li className="tray-item" onClick={onClick}>
-      <img src={src} alt={alt} className="tray-item__thumbnail" />
-      <p className="tray-item__name">{name}</p>
-      {actionText && (
+    <li
+      className={`tray-item ${isSelected ? 'selected' : ''}`}
+      onClick={(e) => onItemClick(e, item)}
+      onContextMenu={(e) => onContextMenu(e, item)}
+    >
+      <img src={item.dataUrl} alt={item.name} className="tray-item__thumbnail" decoding="sync" />
+      {actionText && !isEditing && (
         <div className="tray-item__action-overlay">
           <span className="tray-item__action-text">{actionText}</span>
         </div>
       )}
-      {onDelete && (
-        <button
-          className="tray-item__delete-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-        >
-          <X size={14} />
-        </button>
+      {isEditing ? (
+        <input
+          type="text"
+          value={renameValue}
+          onChange={(e) => onRenameChange(e.target.value)}
+          onBlur={onRenameSubmit}
+          onKeyDown={onRenameKeyDown}
+          autoFocus
+          className="tray-item__rename-input"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <p className="tray-item__name">{item.name}</p>
       )}
     </li>
   );
-}
+});
+
+export default TrayItem;
+

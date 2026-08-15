@@ -1,29 +1,37 @@
-import { Constants } from '../constants/Constants';
+import { CROP_CONFIG } from '../constants/Constants';
 
 let edgeCanvasContext = null;
-
 let edgeCanvasWidth = 0;
 let edgeCanvasHeight = 0;
 
+/**
+ * Fabric Canvas の背景画像を元にエッジ検出用の一時キャンバスを初期化します。
+ * @param {import('fabric').Canvas} fabricCanvas Fabric Canvas
+ */
 export const initEdgeDetectionCanvas = (fabricCanvas) => {
-  if (!fabricCanvas || !fabricCanvas.backgroundImage) return;
+  if (!fabricCanvas?.backgroundImage) return;
   const bgImage = fabricCanvas.backgroundImage;
   
   const canvas = document.createElement('canvas');
   canvas.width = fabricCanvas.getWidth();
   canvas.height = fabricCanvas.getHeight();
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return;
   
-  const imgEl = bgImage.getElement();
+  const imgEl = bgImage.getElement?.() || bgImage._element;
   if (!imgEl) return;
 
-  // bgImage のスケールやオフセットを加味して描画する
+  const naturalW = imgEl.naturalWidth || imgEl.width || 0;
+  const naturalH = imgEl.naturalHeight || imgEl.height || 0;
+  if (naturalW === 0 || naturalH === 0) return;
+
+  // bgImage のスケールやオフセットを加味して描画
   ctx.drawImage(
     imgEl, 
-    0, 0, imgEl.width, imgEl.height,
+    0, 0, naturalW, naturalH,
     bgImage.left || 0, bgImage.top || 0, 
-    imgEl.width * (bgImage.scaleX || 1), 
-    imgEl.height * (bgImage.scaleY || 1)
+    naturalW * (bgImage.scaleX || 1), 
+    naturalH * (bgImage.scaleY || 1)
   );
   
   edgeCanvasContext = ctx;
@@ -31,14 +39,33 @@ export const initEdgeDetectionCanvas = (fabricCanvas) => {
   edgeCanvasHeight = canvas.height;
 };
 
+/**
+ * エッジ検出用キャンバスのリソースを解放します。
+ */
 export const clearEdgeDetectionCanvas = () => {
   edgeCanvasContext = null;
   edgeCanvasWidth = 0;
   edgeCanvasHeight = 0;
 };
 
-export const findClosestEdge = (x, y, radius = Constants.SNAP_RADIUS, threshold = Constants.MAGNETIC_THRESHOLD_DEFAULT) => {
-  if (!edgeCanvasContext) return { x, y, snapped: false };
+/**
+ * 指定した座標の周辺で最も強いエッジ座標を探索します（Sobelフィルタ）。
+ * @param {number} x X座標
+ * @param {number} y Y座標
+ * @param {number} radius 探索半径
+ * @param {number} threshold エッジ判定の閾値
+ * @returns {{ x: number, y: number, snapped: boolean }} スナップ結果の座標とスナップ有無
+ */
+export const findClosestEdge = (
+  x,
+  y,
+  radius = CROP_CONFIG.SNAP_RADIUS,
+  threshold = CROP_CONFIG.MAGNETIC_THRESHOLD_DEFAULT
+) => {
+
+  if (!edgeCanvasContext || edgeCanvasWidth <= 0 || edgeCanvasHeight <= 0) {
+    return { x, y, snapped: false };
+  }
 
   // マウス座標を中心とした走査範囲を計算
   const startX = Math.max(0, Math.floor(x - radius));
@@ -50,7 +77,7 @@ export const findClosestEdge = (x, y, radius = Constants.SNAP_RADIUS, threshold 
 
   if (width <= 0 || height <= 0) return { x, y, snapped: false };
 
-  // Sobelフィルタ計算のため、周囲1ピクセルの余白を含めて取得する
+  // Sobelフィルタ計算のため、周囲1ピクセルの余白を含めて取得
   const extractStartX = Math.max(0, startX - 1);
   const extractStartY = Math.max(0, startY - 1);
   const extractEndX = Math.min(edgeCanvasWidth, endX + 1);
@@ -60,64 +87,68 @@ export const findClosestEdge = (x, y, radius = Constants.SNAP_RADIUS, threshold 
 
   if (extractWidth < 3 || extractHeight < 3) return { x, y, snapped: false };
 
-  const imageData = edgeCanvasContext.getImageData(extractStartX, extractStartY, extractWidth, extractHeight);
-  const data = imageData.data;
+  try {
+    const imageData = edgeCanvasContext.getImageData(extractStartX, extractStartY, extractWidth, extractHeight);
+    const data = imageData.data;
 
-  // Sobelカーネル
-  const kernelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
-  const kernelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+    // Sobelカーネル
+    const kernelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+    const kernelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
 
-  let bestScore = -Infinity;
-  let bestX = x;
-  let bestY = y;
-  let found = false;
+    let bestScore = -Infinity;
+    let bestX = x;
+    let bestY = y;
+    let found = false;
 
-  const getGrayscale = (px, py) => {
-    const idx = (py * extractWidth + px) * 4;
-    return data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
-  };
+    const getGrayscale = (px, py) => {
+      const idx = (py * extractWidth + px) * 4;
+      return data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+    };
 
-  // 取得した画像データの範囲内でループ
-  for (let py = 1; py < extractHeight - 1; py++) {
-    for (let px = 1; px < extractWidth - 1; px++) {
-      let pixelX = 0;
-      let pixelY = 0;
+    // 取得した画像データの範囲内でループ
+    for (let py = 1; py < extractHeight - 1; py++) {
+      for (let px = 1; px < extractWidth - 1; px++) {
+        let pixelX = 0;
+        let pixelY = 0;
 
-      // 3x3 のカーネルを適用
-      for (let ky = -1; ky <= 1; ky++) {
-        for (let kx = -1; kx <= 1; kx++) {
-          const val = getGrayscale(px + kx, py + ky);
-          const weightIdx = (ky + 1) * 3 + (kx + 1);
-          pixelX += val * kernelX[weightIdx];
-          pixelY += val * kernelY[weightIdx];
+        // 3x3 のカーネルを適用
+        for (let ky = -1; ky <= 1; ky++) {
+          for (let kx = -1; kx <= 1; kx++) {
+            const val = getGrayscale(px + kx, py + ky);
+            const weightIdx = (ky + 1) * 3 + (kx + 1);
+            pixelX += val * kernelX[weightIdx];
+            pixelY += val * kernelY[weightIdx];
+          }
         }
-      }
 
-      // エッジの強度
-      const magnitude = Math.sqrt(pixelX * pixelX + pixelY * pixelY);
-      
-      if (magnitude > threshold) {
-        const absX = extractStartX + px;
-        const absY = extractStartY + py;
-        const dist = Math.sqrt(Math.pow(absX - x, 2) + Math.pow(absY - y, 2));
+        // エッジの強度
+        const magnitude = Math.hypot(pixelX, pixelY);
+        
+        if (magnitude > threshold) {
+          const absX = extractStartX + px;
+          const absY = extractStartY + py;
+          const dist = Math.hypot(absX - x, absY - y);
 
-        // エッジの強度が強く、かつマウス座標に近い座標をスコアで評価する
-        // 距離のペナルティを掛けることで、より近いエッジを優先しやすくする
-        const score = magnitude - (dist * 3.5);
+          // エッジの強度が強く、かつマウス座標に近い座標をスコアで評価
+          const score = magnitude - (dist * 3.5);
 
-        if (score > bestScore && dist <= radius) {
-          bestScore = score;
-          bestX = absX;
-          bestY = absY;
-          found = true;
+          if (score > bestScore && dist <= radius) {
+            bestScore = score;
+            bestX = absX;
+            bestY = absY;
+            found = true;
+          }
         }
       }
     }
-  }
 
-  if (found) {
-    return { x: bestX, y: bestY, snapped: true };
+    if (found) {
+      return { x: bestX, y: bestY, snapped: true };
+    }
+  } catch (err) {
+    console.error('エッジ検出エラー:', err);
   }
 
   return { x, y, snapped: false };
 };
+

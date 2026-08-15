@@ -5,8 +5,18 @@ export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize,
   useEffect(() => {
     if (!fabricCanvas) return;
 
-    const snapToPixelPosition = obj => obj.set({ left: Math.round(obj.left), top: Math.round(obj.top) });
-    const snapToPixelScale = obj => obj.set({ scaleX: Math.round(obj.getScaledWidth()) / obj.width, scaleY: Math.round(obj.getScaledHeight()) / obj.height });
+    const snapToPixelPosition = (obj) => {
+      obj.set({ left: Math.round(obj.left), top: Math.round(obj.top) });
+    };
+
+    const snapToPixelScale = (obj) => {
+      const origW = obj.width || 1;
+      const origH = obj.height || 1;
+      obj.set({
+        scaleX: Math.round(obj.getScaledWidth()) / origW,
+        scaleY: Math.round(obj.getScaledHeight()) / origH,
+      });
+    };
 
     const addGuideLine = (coords) => {
       const guideLine = new Line(coords, {
@@ -75,7 +85,9 @@ export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize,
     };
 
     const snapDuringScaling = (obj, e) => {
-      const transform = e.transform, corner = transform.corner;
+      const transform = e.transform;
+      if (!transform) return;
+      const corner = transform.corner || '';
       const others = fabricCanvas.getObjects().filter(o => o instanceof FabricImage && o !== obj);
       const SNAP_TOLERANCE = guideThickness * 5;
 
@@ -93,12 +105,14 @@ export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize,
 
       const newAttrs = {};
       let newScaleX = null, newScaleY = null;
+      const objWidth = obj.width || 1;
+      const objHeight = obj.height || 1;
 
       if (corner.includes('l')) {
         for (const x of candidateXs) {
           if (Math.abs(objBoundingRect.left - x) <= SNAP_TOLERANCE) {
             const newWidth = objBoundingRect.left + objBoundingRect.width - x;
-            if (newWidth > 0) { newScaleX = newWidth / obj.width; newAttrs.left = x + offsetX; }
+            if (newWidth > 0) { newScaleX = newWidth / objWidth; newAttrs.left = x + offsetX; }
             break;
           }
         }
@@ -106,7 +120,7 @@ export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize,
         for (const x of candidateXs) {
           if (Math.abs((objBoundingRect.left + objBoundingRect.width) - x) <= SNAP_TOLERANCE) {
             const newWidth = x - objBoundingRect.left;
-            if (newWidth > 0) newScaleX = newWidth / obj.width;
+            if (newWidth > 0) newScaleX = newWidth / objWidth;
             break;
           }
         }
@@ -116,7 +130,7 @@ export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize,
         for (const y of candidateYs) {
           if (Math.abs(objBoundingRect.top - y) <= SNAP_TOLERANCE) {
             const newHeight = objBoundingRect.top + objBoundingRect.height - y;
-            if (newHeight > 0) { newScaleY = newHeight / obj.height; newAttrs.top = y + offsetY; }
+            if (newHeight > 0) { newScaleY = newHeight / objHeight; newAttrs.top = y + offsetY; }
             break;
           }
         }
@@ -124,15 +138,15 @@ export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize,
         for (const y of candidateYs) {
           if (Math.abs((objBoundingRect.top + objBoundingRect.height) - y) <= SNAP_TOLERANCE) {
             const newHeight = y - objBoundingRect.top;
-            if (newHeight > 0) newScaleY = newHeight / obj.height;
+            if (newHeight > 0) newScaleY = newHeight / objHeight;
             break;
           }
         }
       }
 
       const snappedX = newScaleX !== null, snappedY = newScaleY !== null;
-      if (corner.length === 2) {
-        const scaleRatio = transform.original.scaleX / transform.original.scaleY;
+      if (corner.length === 2 && transform.original) {
+        const scaleRatio = (transform.original.scaleX || 1) / (transform.original.scaleY || 1);
         if (snappedX && !snappedY) newScaleY = newScaleX / scaleRatio;
         else if (snappedY && !snappedX) newScaleX = newScaleY * scaleRatio;
       }
@@ -141,8 +155,8 @@ export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize,
       if (newScaleY !== null) newAttrs.scaleY = newScaleY;
 
       if (corner.length === 2) {
-        if (snappedY && !snappedX && corner.includes('l')) newAttrs.left = objBoundingRect.left + objBoundingRect.width - (obj.width * newScaleX) + offsetX;
-        if (snappedX && !snappedY && corner.includes('t')) newAttrs.top = objBoundingRect.top + objBoundingRect.height - (obj.height * newScaleY) + offsetY;
+        if (snappedY && !snappedX && corner.includes('l')) newAttrs.left = objBoundingRect.left + objBoundingRect.width - (objWidth * newScaleX) + offsetX;
+        if (snappedX && !snappedY && corner.includes('t')) newAttrs.top = objBoundingRect.top + objBoundingRect.height - (objHeight * newScaleY) + offsetY;
       }
 
       if (Object.keys(newAttrs).length > 0) {
@@ -152,18 +166,22 @@ export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize,
     };
 
     const updateSelectedSizeWrapper = () => {
-        const active = fabricCanvas.getActiveObject();
-        if (!active) { setSelectedSize(null); return; }
-        if (active instanceof ActiveSelection) {
-            const rect = active.getBoundingRect();
-            setSelectedSize({ width: rect.width, height: rect.height });
-        } else {
-            setSelectedSize({ width: active.getScaledWidth(), height: active.getScaledHeight() });
-        }
-    }
+      const active = fabricCanvas.getActiveObject();
+      if (!active) {
+        setSelectedSize?.(null);
+        return;
+      }
+      if (active instanceof ActiveSelection) {
+        const rect = active.getBoundingRect();
+        setSelectedSize?.({ width: rect.width, height: rect.height });
+      } else {
+        setSelectedSize?.({ width: active.getScaledWidth(), height: active.getScaledHeight() });
+      }
+    };
 
     const handleObjectMoving = (e) => {
       const obj = e.target;
+      if (!obj) return;
       snapToPixelPosition(obj);
       snapDuringMoving(obj);
       updateGuides(obj);
@@ -172,6 +190,7 @@ export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize,
 
     const handleObjectScaling = (e) => {
       const obj = e.target;
+      if (!obj) return;
       snapDuringScaling(obj, e);
       snapToPixelPosition(obj);
       snapToPixelScale(obj);
@@ -180,18 +199,21 @@ export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize,
     };
 
     const handleObjectModified = () => {
-      saveState();
+      saveState?.();
       updateGuides();
       updateSelectedSizeWrapper();
     };
 
+    const handleSelectionCleared = () => {
+      setSelectedSize?.(null);
+    };
 
     fabricCanvas.on('object:moving', handleObjectMoving);
     fabricCanvas.on('object:scaling', handleObjectScaling);
     fabricCanvas.on('object:modified', handleObjectModified);
     fabricCanvas.on('selection:created', updateSelectedSizeWrapper);
     fabricCanvas.on('selection:updated', updateSelectedSizeWrapper);
-    fabricCanvas.on('selection:cleared', () => setSelectedSize(null));
+    fabricCanvas.on('selection:cleared', handleSelectionCleared);
 
     return () => {
       fabricCanvas.off('object:moving', handleObjectMoving);
@@ -199,7 +221,8 @@ export function useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize,
       fabricCanvas.off('object:modified', handleObjectModified);
       fabricCanvas.off('selection:created', updateSelectedSizeWrapper);
       fabricCanvas.off('selection:updated', updateSelectedSizeWrapper);
-      fabricCanvas.off('selection:cleared');
+      fabricCanvas.off('selection:cleared', handleSelectionCleared);
     };
   }, [fabricCanvas, guideThickness, setSelectedSize, saveState]);
 }
+

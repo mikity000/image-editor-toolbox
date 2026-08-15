@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Sun, Moon } from 'lucide-react';
-
-import { /*BrowserRouter*/ HashRouter as Router, Routes, Route, NavLink, Navigate, useLocation  } from 'react-router-dom';
-import ImageTrimming from './pages/ImageCrop'; // クロップページ
-import ImageCombine from './pages/ImageCombine';   // 結合ページ
-import ImagePdf from './pages/ImagePdf';   // PDF化ページ
+import { HashRouter as Router, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
+import ImagePdf from './pages/ImagePdf';
+import ImageCrop from './pages/ImageCrop';
+import ImageCombine from './pages/ImageCombine';
 import { GalleryProvider } from './context/GalleryContext';
 import './styles.css';
+
+const TABS = [
+  { path: '/pdf', label: '画像PDF化', Component: ImagePdf },
+  { path: '/crop', label: '画像クロップ', Component: ImageCrop },
+  { path: '/combine', label: '画像結合', Component: ImageCombine },
+];
 
 function AppContent() {
   const location = useLocation();
   const currentPath = location.pathname;
-
-  const isPdf = currentPath === '/pdf';
-  const isCrop = currentPath === '/crop';
-  const isCombine = currentPath === '/combine';
 
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'dark';
@@ -30,40 +31,41 @@ function AppContent() {
   };
 
   return (
-    <div className="app-layout"> {/* アプリケーション全体のレイアウト用コンテナ */}
+    <div className="app-layout">
       <header className="app-header">
-        {/* ヘッダーコンテンツ */}
         <nav className="main-nav">
           <ul>
-            <li><NavLink to="/pdf" className={isPdf ? 'active' : ''}>画像PDF化</NavLink></li>
-            <li><NavLink to="/crop" className={isCrop ? 'active' : ''}>画像クロップ</NavLink></li>
-            <li><NavLink to="/combine" className={isCombine ? 'active' : ''}>画像結合</NavLink></li>
+            {TABS.map(({ path, label }) => (
+              <li key={path}>
+                <NavLink to={path} className={currentPath === path ? 'active' : ''}>
+                  {label}
+                </NavLink>
+              </li>
+            ))}
           </ul>
         </nav>
 
-        <button className="theme-toggle-btn" onClick={toggleTheme}>
-          {/* 太陽/月アイコン */}
-          {theme === 'dark' ? (<Sun size={20} />) : (<Moon size={20} />)}
+        <button className="theme-toggle-btn" onClick={toggleTheme} aria-label="テーマ切り替え">
+          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
         </button>
       </header>
 
-      <div className="app-body"> {/* メインコンテンツのコンテナ */}
+      <div className="app-body">
         <main className="main-content main-content--relative">
-          <div className={`tab-content-wrapper ${isPdf ? '' : 'is-hidden'}`}>
-            <ImagePdf />
-          </div>
-          <div className={`tab-content-wrapper ${isCrop ? '' : 'is-hidden'}`}>
-            <ImageTrimming />
-          </div>
-          <div className={`tab-content-wrapper ${isCombine ? '' : 'is-hidden'}`}>
-            <ImageCombine />
-          </div>
+          {TABS.map(({ path, Component }) => (
+            <div
+              key={path}
+              className={`tab-content-wrapper ${currentPath === path ? '' : 'is-hidden'}`}
+            >
+              <Component />
+            </div>
+          ))}
 
           <Routes>
             <Route path="/" element={<Navigate to="/crop" replace />} />
-            <Route path="/pdf" element={null} />
-            <Route path="/crop" element={null} />
-            <Route path="/combine" element={null} />
+            {TABS.map(({ path }) => (
+              <Route key={path} path={path} element={null} />
+            ))}
           </Routes>
         </main>
       </div>
@@ -79,4 +81,4 @@ export default function App() {
       </Router>
     </GalleryProvider>
   );
-}
+}
