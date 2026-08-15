@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 
 export default function TrayItem({
   src,
@@ -25,7 +26,7 @@ export default function TrayItem({
             onDelete();
           }}
         >
-          &times;
+          <X size={14} />
         </button>
       )}
     </li>

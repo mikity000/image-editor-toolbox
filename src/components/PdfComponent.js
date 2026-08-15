@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useContext, useMemo } from 'react';
+import { Trash2, RotateCcw, FileText, Download } from 'lucide-react';
+
 import { setupListSync } from '../syncService';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
@@ -366,11 +368,11 @@ export default function PdfComponent() {
                   </div>
                 )}
 
-                {/* <div className="instructions">
+                <div className="instructions">
                   <small className="instructions__text">
                     {isMobile ? "長押しで順番を入れ替えられます。" : "ドラッグで順番を入れ替えられます。"}
                   </small>
-                </div> */}
+                </div>
               </div>
             </SortableContext>
           </DndContext>
@@ -387,17 +389,17 @@ export default function PdfComponent() {
 
             {/* 操作ボタン群 */}
             <div className="button-group sidebar-buttons">
-              <button onClick={deleteSelected} disabled={selectedImages.size === 0 || isAnyLoading} className="btn btn--danger btn-full">
-                選択画像削除
+              <button onClick={deleteSelected} disabled={selectedImages.size === 0 || isAnyLoading} className="btn btn--danger btn-full btn--icon-flex">
+                <Trash2 size={18} />選択画像削除
               </button>
-              <button onClick={resetImages} disabled={images.length === 0 || isAnyLoading} className="btn btn--danger btn-full">
-                リセット
+              <button onClick={resetImages} disabled={images.length === 0 || isAnyLoading} className="btn btn--danger btn-full btn--icon-flex">
+                <RotateCcw size={18} />リセット
               </button>
-              <button onClick={handleGeneratePdf} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full">
-                {isProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
+              <button onClick={handleGeneratePdf} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full btn--icon-flex">
+                <FileText size={18} />{isProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
               </button>
-              <button onClick={downloadAllImages} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full">
-                {isZipping ? 'ダウンロード準備中...' : '画像を一括DL'}
+              <button onClick={downloadAllImages} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full btn--icon-flex">
+                <Download size={18} />{isZipping ? 'ダウンロード準備中...' : '画像を一括DL'}
               </button>
             </div>
           </div>
@@ -443,7 +445,7 @@ function SortableImagePreview({ image, images, index, isSelected, onSelect, acti
         <ImagePreview image={image} index={index} isSelected={isSelected} onSelect={onSelect} />
       </div>
       {showPlaceholder && (
-        <div className="image-preview-item placeholder-card" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+        <div className="image-preview-item placeholder-card">
           <div className="thumbnail-placeholder"></div>
         </div>
       )}
@@ -455,7 +457,7 @@ function ImagePreview({ image, index, isSelected, onSelect }) {
   return (
     <div className={`image-preview-item ${isSelected ? 'selected' : ''}`} onClick={(e) => onSelect(image.id, e)}>
       <img src={image.dataUrl} alt={image.name} className="thumbnail" /> {/* サムネイルサイズをブロックに合わせて最大化し、下マージンを詰める */}
-      <div className="image-info" style={{ marginTop: '0px' }}> {/* 情報とサムネイル間の隙間を詰める */}
+      <div className="image-info image-info--no-margin"> {/* 情報とサムネイル間の隙間を詰める */}
         <p className="file-name">{image.name}</p>
         <p className="page-number">{index + 1} ページ</p>
       </div>

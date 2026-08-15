@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
+import { LayoutGrid, List, ChevronDown, Edit2, Trash2 } from 'lucide-react';
 import { GalleryContext } from '../context/GalleryContext';
+
 
 export default function SidebarTray({
   title,
@@ -127,7 +129,6 @@ export default function SidebarTray({
       ref={trayRef}
       onKeyDown={handleKeyDown}
       tabIndex={0}
-      style={{ outline: 'none' }}
       className={`sidebar-tray ${isOpen ? 'sidebar-tray--open' : ''} sidebar-tray--${viewMode}`}
     >
       <div className="sidebar-tray__header" onClick={onToggle}>
@@ -135,25 +136,14 @@ export default function SidebarTray({
         <div className="sidebar-tray__controls" onClick={(e) => e.stopPropagation()}>
           <div className="sidebar-tray__view-buttons">
             <button className={`sidebar-tray__view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
-              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-              </svg>
+              <LayoutGrid size={16} />
             </button>
             <button className={`sidebar-tray__view-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')}>
-              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-              </svg>
+              <List size={16} />
             </button>
           </div>
           <button className="sidebar-tray__toggle-btn" onClick={onToggle}>
-            <svg className={isOpen ? 'sidebar-tray__toggle-btn--open' : ''} viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.3s ease' }}>
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
+            <ChevronDown size={20} className={isOpen ? 'sidebar-tray__toggle-btn--open' : ''} />
           </button>
         </div>
       </div>
@@ -205,16 +195,14 @@ export default function SidebarTray({
         <div
           className="context-menu"
           style={{
-            position: 'fixed',
             top: contextMenu.y,
             left: contextMenu.x,
-            zIndex: 1000,
           }}
           onClick={(e) => e.stopPropagation()}
         >
           <ul className="context-menu__list">
-            <li className="context-menu__item" onClick={() => startRename(contextMenu.id)}>名前の変更</li>
-            <li className="context-menu__item" onClick={handleDelete}>削除</li>
+            <li className="context-menu__item" onClick={() => startRename(contextMenu.id)}><Edit2 size={14} />名前の変更</li>
+            <li className="context-menu__item" onClick={handleDelete}><Trash2 size={14} />削除</li>
           </ul>
         </div>
       )}

@@ -1,4 +1,6 @@
 import { useRef, useEffect, useState, useContext, useMemo } from 'react';
+import { Image as ImageIcon, Undo2, Redo2, Square, Circle, Pentagon, Pencil, Check, Edit3, Trash2, RotateCcw, Download, FolderPlus } from 'lucide-react';
+
 import { Canvas } from 'fabric';
 import { useCropperInteraction } from '../hooks/useCropperInteraction';
 import { useImageCrop } from '../hooks/useImageCrop';
@@ -142,15 +144,7 @@ export default function CropperComponent() {
               <div className="result-container">
                 {croppedImageUrl ? (
                   <div className="result-image-wrapper">
-                    <div style={{ 
-                      position: 'relative', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      maxWidth: '100%', 
-                      maxHeight: '100%',
-                      aspectRatio: cropAspectRatio
-                    }}>
+                    <div className="result-image-box" style={{ aspectRatio: cropAspectRatio }}>
                       <img 
                         src={croppedImageUrl} 
                         alt="Cropped Result" 
@@ -158,23 +152,12 @@ export default function CropperComponent() {
                         onLoad={(e) => setCropAspectRatio(e.target.naturalWidth / e.target.naturalHeight)}
                         onClick={handleCroppedImageClick}
                         className="result-image"
-                        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'fill' }}
                       />
                       {isDrawingPolygon && activeVertices && activeVertices.length > 0 && exportBoundsCanvas && (
                         activeVertices.map((vertex, idx) => (
-                          <div key={idx} style={{
-                            position: 'absolute',
+                          <div key={idx} className="vertex-marker" style={{
                             left: `${((vertex.x - exportBoundsCanvas.left) / exportBoundsCanvas.width) * 100}%`,
                             top: `${((vertex.y - exportBoundsCanvas.top) / exportBoundsCanvas.height) * 100}%`,
-                            width: '12px',
-                            height: '12px',
-                            borderRadius: '50%',
-                            backgroundColor: 'rgba(50, 205, 50, 0.9)',
-                            border: '1px solid rgba(0, 0, 0, 0.6)',
-                            transform: 'translate(-50%, -50%)',
-                            pointerEvents: 'none',
-                            boxShadow: '0 0 4px rgba(255, 255, 255, 0.8)',
-                            zIndex: 10
                           }} />
                         ))
                       )}
@@ -182,11 +165,7 @@ export default function CropperComponent() {
                   </div>
                 ) : (
                   <div className="result-placeholder">
-                    <svg viewBox="0 0 24 24" width="134" height="134" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3, marginBottom: '1rem' }}>
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                      <polyline points="21 15 16 10 5 21"></polyline>
-                    </svg>
+                    <ImageIcon size={134} strokeWidth={1.5} />
                     <p>ここにクロップ結果が表示されます</p>
                   </div>
                 )}
@@ -213,57 +192,31 @@ export default function CropperComponent() {
             </div>
 
             <div className="button-group sidebar-buttons">
-              <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '8px', marginBottom: '4px' }}>
-                <button 
-                  onClick={undo} 
-                  disabled={!canUndo} 
-                  className="btn btn-full"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '8px 12px' }}
-                >
-                  <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-                    <path d="M3 7v6h6"></path>
-                    <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
-                  </svg>
+              <div className="undo-redo-wrapper">
+                <button onClick={undo} disabled={!canUndo} className="btn btn-undo-redo">
+                  <Undo2 size={18} />
                 </button>
-                <button 
-                  onClick={redo} 
-                  disabled={!canRedo} 
-                  className="btn btn-full"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '8px 12px' }}
-                >
-                  <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-                    <path d="M21 7v6h-6"></path>
-                    <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
-                  </svg>
+                <button onClick={redo} disabled={!canRedo} className="btn btn-undo-redo">
+                  <Redo2 size={18} />
                 </button>
               </div>
 
               <button onClick={() => startCropping('rect')} className="btn shape-btn" disabled={!imageLoaded}>
-                <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                </svg>
+                <Square size={28} />
               </button>
               <button onClick={() => startCropping('circle')} className="btn shape-btn" disabled={!imageLoaded}>
-                <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                </svg>
+                <Circle size={28} />
               </button>
               <button onClick={() => startCropping('polygon')} className="btn shape-btn" disabled={!imageLoaded}>
-                <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="12 2 22 8.5 18.5 20 5.5 20 2 8.5"></polygon>
-                </svg>
+                <Pentagon size={28} />
               </button>
               <button onClick={() => startCropping('path')} className="btn shape-btn" disabled={!imageLoaded}>
-                <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 3a2.828 2.828 0 1 1 4 4L8.5 19.5 2 22l2.5-6.5L17 3z"></path>
-                  <path d="M15 5l4 4"></path>
-                  <path d="M2 23h20"></path>
-                </svg>
+                <Pencil size={28} />
               </button>
               
               {isDrawingPolygon && !drawingObject && (
                 <>
-                  <div className="setting-box slider-group--block mb-8" style={{ gridColumn: '1 / -1' }}>
+                  <div className="setting-box slider-group--block mb-8 grid-col-full">
                     <label htmlFor="magneticModeCheckbox" className={`custom-checkbox-label custom-checkbox-label--flex custom-checkbox-label--full ${isMagneticMode ? 'mb-8' : 'mb-0'}`}>
                       <input type="checkbox" id="magneticModeCheckbox" checked={isMagneticMode} onChange={(e) => setIsMagneticMode(e.target.checked)} className="custom-checkbox" />
                       吸着モード {isMagneticMode && <span className="sensitivity-label">感度: {magneticThreshold}</span>}
@@ -272,32 +225,40 @@ export default function CropperComponent() {
                       <div className="slider-wrapper">
                         <input type="range" min="10" max="150" value={magneticThreshold}
                           onChange={e => setMagneticThreshold(parseInt(e.target.value, 10))}
-                          style={{ '--thumb-percent': `${((magneticThreshold - 10) / 140) * 100}%`, width: '100%', margin: 0, display: 'block' }}
+                          className="range-full"
+                          style={{ '--thumb-percent': `${((magneticThreshold - 10) / 140) * 100}%` }}
                         />
                       </div>
                     )}
                   </div>
-                  <button onClick={finishPolygonDrawing} className="btn btn--warning btn-full" style={{ gridColumn: '1 / -1' }}>描画完了</button>
+                  <button onClick={finishPolygonDrawing} className="btn btn--warning btn-full btn--icon-flex grid-col-full">
+                    <Check size={18} />描画完了
+                  </button>
                 </>
               )}
               
               {drawingObject && drawingObject.type === 'polygon' && (
-                <button onClick={editPolygonVertices} className="btn btn--warning btn-full">頂点を再編集</button>
+                <button onClick={editPolygonVertices} className="btn btn--warning btn-full btn--icon-flex">
+                  <Edit3 size={18} />頂点を再編集
+                </button>
               )}
               {drawingObject && (
-                <button onClick={deleteActiveShape} className="btn btn--danger btn-full">削除</button>
+                <button onClick={deleteActiveShape} className="btn btn--danger btn-full btn--icon-flex">
+                  <Trash2 size={18} />削除
+                </button>
               )}
-              <button onClick={reset} className="btn btn--danger btn-full">リセット</button>
+              <button onClick={reset} className="btn btn--danger btn-full btn--icon-flex">
+                <RotateCcw size={18} />リセット
+              </button>
 
               {croppedImageUrl && (
                 <>
                   <a 
                     href={croppedImageUrl} 
                     download="cropped_image.webp" 
-                    className="btn btn--primary btn-full"
-                    style={{ textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}
+                    className="btn btn--primary btn-full btn--icon-flex"
                   >
-                    ダウンロード
+                    <Download size={18} />ダウンロード
                   </a>
                   <button 
                     onClick={() => {
@@ -305,9 +266,9 @@ export default function CropperComponent() {
                       const newName = getSequentialName(imageName, galleryImages);
                       addImages({ name: newName, dataUrl: croppedImageUrl });
                     }} 
-                    className="btn btn--success btn-full"
+                    className="btn btn--success btn-full btn--icon-flex"
                   >
-                    共有ギャラリーに保存
+                    <FolderPlus size={18} />共有ギャラリーに保存
                   </button>
                 </>
               )}
@@ -359,9 +320,11 @@ export default function CropperComponent() {
                       <button onClick={() => adjustActiveVertex(0, 0.5)} className="btn">↓</button>
                     </div>
                   </div>
-                  <div className="adjustment-box" style={{ gridColumn: '1 / -1' }}>
+                  <div className="adjustment-box grid-col-full">
                     <h4>削除</h4>
-                    <button onClick={deleteActiveVertex} className="btn btn--danger btn--auto-width btn-full" style={{ width: '100%' }}>頂点を削除</button>
+                    <button onClick={deleteActiveVertex} className="btn btn--danger btn--auto-width btn-full btn--icon-flex">
+                      <Trash2 size={18} />頂点を削除
+                    </button>
                   </div>
                 </div>
               </div>

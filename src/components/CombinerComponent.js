@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, useContext, useMemo } from 'react';
+import { Undo2, Redo2, ChevronsUp, ChevronsDown, ChevronUp, ChevronDown, Trash2, Download, FolderPlus } from 'lucide-react';
+
 import { Canvas, FabricImage } from 'fabric';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { useCanvasZoomPan } from '../hooks/useCanvasZoomPan';
@@ -367,12 +369,12 @@ export default function CombinerComponent() {
         <div className="editor-main combiner-main">
           <div className="canvas-wrapper">
             <canvas ref={canvasRef} />
-            {/* <div className="instructions">
+            <div className="instructions">
               <small className="instructions__text">
                 {isMobile ? "ピンチでズーム、二本指ドラッグでパンが可能です。"
                   : "スクロールでズーム、Altキー + ドラッグでパンできます。"}
               </small>
-            </div> */}
+            </div>
           </div>
         </div>
 
@@ -385,19 +387,25 @@ export default function CombinerComponent() {
             </div>
 
             <div className="button-group sidebar-buttons">
-              <button className="btn" onClick={undo}>Undo</button>
-              <button className="btn" onClick={redo}>Redo</button>
-
-              <div className="btn-full layer-controls-grid">
-                <button className="btn btn--nowrap" onClick={() => adjustLayer('front')}>最前面へ</button>
-                <button className="btn btn--nowrap" onClick={() => adjustLayer('back')}>最背面へ</button>
-                <button className="btn btn--nowrap" onClick={() => adjustLayer('forward')}>前面へ</button>
-                <button className="btn btn--nowrap" onClick={() => adjustLayer('backward')}>背面へ</button>
+              <div className="undo-redo-wrapper">
+                <button onClick={undo} className="btn btn-undo-redo">
+                  <Undo2 size={18} />
+                </button>
+                <button onClick={redo} className="btn btn-undo-redo">
+                  <Redo2 size={18} />
+                </button>
               </div>
 
-              <button className="btn btn--danger btn-full mt-10" onClick={deleteSelected}>選択画像削除</button>
-              <button className="btn btn--primary btn-full" onClick={download}>ダウンロード</button>
-              <button className="btn btn--success btn-full" onClick={saveToGallery}>共有ギャラリーに保存</button>
+              <div className="btn-full layer-controls-grid">
+                <button className="btn btn--nowrap" onClick={() => adjustLayer('front')}><ChevronsUp size={16} />最前面へ</button>
+                <button className="btn btn--nowrap" onClick={() => adjustLayer('back')}><ChevronsDown size={16} />最背面へ</button>
+                <button className="btn btn--nowrap" onClick={() => adjustLayer('forward')}><ChevronUp size={16} />前面へ</button>
+                <button className="btn btn--nowrap" onClick={() => adjustLayer('backward')}><ChevronDown size={16} />背面へ</button>
+              </div>
+
+              <button className="btn btn--danger btn-full mt-10 btn--icon-flex" onClick={deleteSelected}><Trash2 size={18} />選択画像削除</button>
+              <button className="btn btn--primary btn-full btn--icon-flex" onClick={download}><Download size={18} />ダウンロード</button>
+              <button className="btn btn--success btn-full btn--icon-flex" onClick={saveToGallery}><FolderPlus size={18} />共有ギャラリーに保存</button>
             </div>
 
             <div className="slider-group">
