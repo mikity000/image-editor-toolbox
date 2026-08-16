@@ -50,7 +50,7 @@ export const CROP_CONFIG = Object.freeze({
   MAGNETIC_THRESHOLD_MIN: 10, // マグネット吸着感度の最小値
   MAGNETIC_THRESHOLD_MAX: 150, // マグネット吸着感度の最大値
   VERTEX_INSERT_DISTANCE: 3, // 頂点挿入可能距離
-  VERTEX_SELECT_RADIUS: 3, // 頂点クリック選択の許容距離
+  VERTEX_SELECT_RADIUS: 20, // プレビュー頂点クリック選択の許容距離
   PATH_SMOOTHING_DEFAULT: 20, // フリーハンド曲線の滑らかさ初期値
   PATH_SMOOTHING_MIN: 0, // フリーハンド曲線の滑らかさ最小値
   PATH_SMOOTHING_MAX: 50, // フリーハンド曲線の滑らかさ最大値
