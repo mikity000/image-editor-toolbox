@@ -44,13 +44,13 @@ export const COMBINE_CONFIG = Object.freeze({
  * 画像クロップ画面設定
  */
 export const CROP_CONFIG = Object.freeze({
-  VERTEX_HIT_PADDING: 10, // 頂点の当たり判定パディング
-  SNAP_RADIUS: 30, // マグネット吸着探索半径
+  VERTEX_HIT_PADDING: 3, // 頂点の当たり判定パディング
+  SNAP_RADIUS: 5, // マグネット吸着探索半径
   MAGNETIC_THRESHOLD_DEFAULT: 50, // マグネット吸着感度の初期値
   MAGNETIC_THRESHOLD_MIN: 10, // マグネット吸着感度の最小値
   MAGNETIC_THRESHOLD_MAX: 150, // マグネット吸着感度の最大値
-  VERTEX_INSERT_DISTANCE: 15, // 頂点挿入可能距離
-  VERTEX_SELECT_RADIUS: 20, // 頂点クリック選択の許容距離
+  VERTEX_INSERT_DISTANCE: 3, // 頂点挿入可能距離
+  VERTEX_SELECT_RADIUS: 3, // 頂点クリック選択の許容距離
   PATH_SMOOTHING_DEFAULT: 20, // フリーハンド曲線の滑らかさ初期値
   PATH_SMOOTHING_MIN: 0, // フリーハンド曲線の滑らかさ最小値
   PATH_SMOOTHING_MAX: 50, // フリーハンド曲線の滑らかさ最大値
