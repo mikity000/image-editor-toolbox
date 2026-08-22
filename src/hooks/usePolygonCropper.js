@@ -17,6 +17,7 @@ const getDistanceToSegment = (p, v, w) => {
 export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAutoCrop, setActiveVertices, isDrawingPolygon, setIsDrawingPolygon, setCroppingMode) {
   const polygonPointsRef = useRef([]);
   const tempPointsRef = useRef([]);
+  const draggingPointIndexRef = useRef(null);
 
   const updateActiveVertices = useCallback(() => {
     const selectedPoints = tempPointsRef.current.filter(p => p.isSelected);
@@ -176,6 +177,8 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
 
+    draggingPointIndexRef.current = null;
+
     if (isMagneticModeRef.current) {
       initEdgeDetectionCanvas(canvas);
     }
@@ -229,9 +232,18 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
       }
     }
 
-    tempPointsRef.current.splice(insertIndex, 0, { ...ptObj, isSelected: false });
+    tempPointsRef.current.splice(insertIndex, 0, { ...ptObj, isSelected: true });
     rebuildTempShapes(canvas);
     
+    const newPt = tempPointsRef.current[insertIndex];
+    if (newPt && newPt.circle) {
+      newPt.circle.startLeft = newPt.circle.left;
+      newPt.circle.startTop = newPt.circle.top;
+      canvas.setActiveObject(newPt.circle);
+    }
+    draggingPointIndexRef.current = insertIndex;
+    updateActiveVertices();
+
     if (magneticPreviewLineRef.current) {
       canvas.remove(magneticPreviewLineRef.current);
       magneticPreviewLineRef.current = null;
@@ -244,12 +256,43 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     if (tempPointsRef.current.length >= 3) {
       triggerAutoCrop?.();
     }
-  }, [fabricCanvasRef, rebuildTempShapes, triggerAutoCrop]);
+  }, [fabricCanvasRef, rebuildTempShapes, triggerAutoCrop, updateActiveVertices]);
 
   const handlePolygonMouseMove = useCallback((pointer) => {
     lastPointerRef.current = pointer;
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+
+    if (draggingPointIndexRef.current !== null) {
+      const idx = draggingPointIndexRef.current;
+      const pt = tempPointsRef.current[idx];
+      if (pt && pt.circle) {
+        const clampedPointer = clampPointToImageBounds({ x: pointer.x, y: pointer.y }, canvas);
+        pt.circle.set({
+          left: clampedPointer.x - pt.circle.radius,
+          top: clampedPointer.y - pt.circle.radius
+        });
+        pt.circle.setCoords();
+        updateVertexPosition(idx, clampedPointer.x, clampedPointer.y);
+        if (tempPointsRef.current.length >= 3) {
+          updateActiveVertices();
+        }
+        canvas.renderAll();
+        return;
+      }
+    }
+
     updateMagneticPreview(pointer);
-  }, [updateMagneticPreview]);
+  }, [fabricCanvasRef, updateMagneticPreview, updateVertexPosition, updateActiveVertices]);
+
+  const handlePolygonMouseUp = useCallback(() => {
+    if (draggingPointIndexRef.current !== null) {
+      draggingPointIndexRef.current = null;
+      if (tempPointsRef.current.length >= 3) {
+        triggerAutoCrop?.();
+      }
+    }
+  }, [triggerAutoCrop]);
 
   const handlePolygonVertexMoving = useCallback((target) => {
     const canvas = fabricCanvasRef.current;
@@ -302,6 +345,8 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
       alert('多角形を描くには最低3つの頂点が必要です。');
       return;
     }
+
+    draggingPointIndexRef.current = null;
 
     const objects = canvas.getObjects();
     objects.forEach(obj => { if (obj.isDrawingTemp || obj.isDrawingTempCircle) canvas.remove(obj); });
@@ -540,6 +585,7 @@ export function usePolygonCropper(fabricCanvasRef, setDrawingObject, triggerAuto
     startPolygonDrawing,
     handlePolygonMouseDown,
     handlePolygonMouseMove,
+    handlePolygonMouseUp,
     handlePolygonVertexMoving,
     finishPolygonDrawing,
     editPolygonVertices,

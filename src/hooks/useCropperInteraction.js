@@ -25,7 +25,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
   } = useCropperUndoRedo();
 
   const {
-    startPolygonDrawing, handlePolygonMouseDown, handlePolygonMouseMove, handlePolygonVertexMoving,
+    startPolygonDrawing, handlePolygonMouseDown, handlePolygonMouseMove, handlePolygonMouseUp, handlePolygonVertexMoving,
     finishPolygonDrawing: rawFinishPolygonDrawing, editPolygonVertices: rawEditPolygonVertices,
     adjustActiveVertex: rawAdjustActiveVertex, deleteActiveVertex: rawDeleteActiveVertex,
     selectVertexAtPosition, getTempPolygon, getTempPoints,
@@ -165,6 +165,12 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
         }
         finishDrawing(currentShape, canvas);
         currentShape = null;
+      } else if (mode === 'polygon') {
+        handlePolygonMouseUp();
+        if (dragStartSnapshotRef.current) {
+          saveState(dragStartSnapshotRef.current);
+          dragStartSnapshotRef.current = null;
+        }
       } else if (dragStartSnapshotRef.current) {
         saveState(dragStartSnapshotRef.current);
         dragStartSnapshotRef.current = null;
@@ -195,7 +201,7 @@ export function useCropperInteraction(fabricCanvasRef, imageLoaded, setCroppedIm
       if (target && (target.isCroppingShape || target.isDrawingTempCircle)) triggerAutoCrop();
     });
 
-  }, [fabricCanvasRef, imageLoaded, disableFreehand, startPolygonDrawing, enableFreehand, handlePolygonMouseDown, handlePolygonMouseMove, startDrawing, updateDrawing, finishDrawing, handlePolygonVertexMoving, triggerAutoCrop, handlePolygonVertexMouseDown, clearVertexSelection, getCurrentSnapshot, saveState]);
+  }, [fabricCanvasRef, imageLoaded, disableFreehand, startPolygonDrawing, enableFreehand, handlePolygonMouseDown, handlePolygonMouseMove, handlePolygonMouseUp, startDrawing, updateDrawing, finishDrawing, handlePolygonVertexMoving, triggerAutoCrop, handlePolygonVertexMouseDown, clearVertexSelection, getCurrentSnapshot, saveState]);
 
   const finishPolygonDrawing = useCallback(() => {
     recordState();
