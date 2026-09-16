@@ -149,5 +149,3 @@ Socket.IOを利用したキャンバス共同編集用の同期基盤です。Fa
 * **ファイルダウンロード:** [file-saver](https://github.com/eligrey/FileSaver.js/)
 * **UIアイコン:** [Lucide React](https://lucide.dev/)
 * **リアルタイム通信:** [Socket.IO](https://socket.io/) (v4)
-
----
