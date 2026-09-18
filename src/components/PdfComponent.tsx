@@ -9,6 +9,7 @@ import { compressImage, fileToDataUrl } from '../utils/imageUtils';
 import { isMobileDevice } from '../utils/deviceUtils';
 import { usePdfGenerator } from '../hooks/usePdfGenerator';
 import { usePdfExtractor } from '../hooks/usePdfExtractor';
+import { getImageDimensions, calculateMaxReferenceSize, evaluateRelativeResolution } from '../utils/superResolution';
 import { PDF_CONFIG } from '../constants/Constants';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -22,6 +23,8 @@ export interface PdfPageItem {
   name: string;
   dataUrl: string;
   file?: File;
+  width?: number;
+  height?: number;
 }
 
 // 複数アイテムをまとめて移動する純粋関数
@@ -66,7 +69,10 @@ export default function PdfComponent() {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isZipping, setIsZipping] = useState<boolean>(false);
 
-  const { generatePdf, isProcessing, progress: pdfProgress } = usePdfGenerator();
+  // AI超解像 & PDF生成オプション
+  const [autoUpscale, setAutoUpscale] = useState<boolean>(false);
+
+  const { generatePdf, isProcessing: isPdfProcessing, progress: pdfProgress, statusText: pdfStatusText } = usePdfGenerator();
   const { extractImagesFromPdfs, isExtracting, extractProgress } = usePdfExtractor();
 
   // ギャラリーからの画像追加
@@ -84,10 +90,22 @@ export default function PdfComponent() {
       }
     }
 
+    let width: number | undefined;
+    let height: number | undefined;
+    try {
+      const dims = await getImageDimensions(dataUrl);
+      width = dims.width;
+      height = dims.height;
+    } catch {
+      // 寸法取得失敗時はスルー
+    }
+
     const newImage: PdfPageItem = {
       id: `pdf-page-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       name: image.name,
-      dataUrl
+      dataUrl,
+      width,
+      height,
     };
     setImages(prev => [...prev, newImage]);
   }, []);
@@ -108,8 +126,18 @@ export default function PdfComponent() {
 
     // PDFファイルからの画像抽出
     if (pdfFiles.length > 0) {
-      await extractImagesFromPdfs(pdfFiles, (extractedImages) => {
-        setImages(prev => [...prev, ...extractedImages]);
+      await extractImagesFromPdfs(pdfFiles, async (extractedImages) => {
+        const withDims = await Promise.all(
+          extractedImages.map(async (item) => {
+            try {
+              const dims = await getImageDimensions(item.dataUrl);
+              return { ...item, width: dims.width, height: dims.height };
+            } catch {
+              return item;
+            }
+          })
+        );
+        setImages(prev => [...prev, ...withDims]);
       });
     }
 
@@ -135,11 +163,23 @@ export default function PdfComponent() {
           const webpFile = new File([blob], file.name, { type: 'image/webp' });
           const finalJpegDataUrl = await compressImage(webpFile);
 
+          let width: number | undefined;
+          let height: number | undefined;
+          try {
+            const dims = await getImageDimensions(finalJpegDataUrl);
+            width = dims.width;
+            height = dims.height;
+          } catch {
+            // エラー時はスルー
+          }
+
           return {
             id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
             file,
             name: file.name,
             dataUrl: finalJpegDataUrl,
+            width,
+            height,
           };
         } finally {
           completed++;
@@ -254,7 +294,6 @@ export default function PdfComponent() {
   // 画像選択（単一・Ctrl/Cmd複数選択・Shift範囲選択）
   const selectImage = useCallback((id: string, event?: React.MouseEvent) => {
     if (event?.shiftKey && lastSelectedId) {
-      // Shift+クリック: 起点から現在位置までの範囲選択（直前のベース選択を保持して合算）
       const allIds = images.map(img => img.id);
       const lastIndex = allIds.indexOf(lastSelectedId);
       const currentIndex = allIds.indexOf(id);
@@ -264,7 +303,6 @@ export default function PdfComponent() {
         const end = Math.max(lastIndex, currentIndex);
         const rangeIds = allIds.slice(start, end + 1);
 
-        // baseSelectedRef（Ctrl選択等で確定していた選択状態）に範囲アイテムを追加
         const newSelected = new Set(baseSelectedRef.current);
         rangeIds.forEach(rangeId => newSelected.add(rangeId));
         setSelectedImages(newSelected);
@@ -275,7 +313,6 @@ export default function PdfComponent() {
         baseSelectedRef.current = newSelected;
       }
     } else if (event && (event.ctrlKey || event.metaKey)) {
-      // Ctrl/Cmd+クリック: 選択のトグル
       setSelectedImages((prevSelected) => {
         const newSelected = new Set(prevSelected);
         if (newSelected.has(id)) {
@@ -288,7 +325,6 @@ export default function PdfComponent() {
       });
       setLastSelectedId(id);
     } else {
-      // 通常クリック: 単一選択
       const newSelected = new Set([id]);
       setSelectedImages(newSelected);
       setLastSelectedId(id);
@@ -311,8 +347,13 @@ export default function PdfComponent() {
   }, []);
 
   const handleGeneratePdf = useCallback(() => {
-    generatePdf(images);
-  }, [generatePdf, images]);
+    generatePdf(images, { autoUpscale });
+  }, [generatePdf, images, autoUpscale]);
+
+  // リスト内の全画像における最大基準サイズ（長辺最大値）をメモ化
+  const maxReferenceSize = useMemo(() => {
+    return calculateMaxReferenceSize(images);
+  }, [images]);
 
   // 画像一括ZIPダウンロード（並列フェッチによる高速化）
   const downloadAllImages = useCallback(async () => {
@@ -338,15 +379,20 @@ export default function PdfComponent() {
     }
   }, [images]);
 
-  const isAnyLoading = isUploading || isProcessing || isExtracting || isZipping;
-  const currentProgress = isUploading ? uploadProgress : (isExtracting ? extractProgress : pdfProgress);
+  const isAnyLoading = isUploading || isPdfProcessing || isExtracting || isZipping;
+  const currentProgress = isUploading 
+    ? uploadProgress 
+    : (isExtracting 
+        ? extractProgress 
+        : pdfProgress);
+
   const loadingText = isUploading 
     ? '画像をアップロード中...' 
     : (isExtracting 
         ? 'PDFから画像を抽出中...' 
         : (isZipping 
             ? '画像をZIPに圧縮中...' 
-            : 'PDFを生成中...'));
+            : (pdfStatusText || 'PDFを生成中...')));
 
   const dragActiveItem = useMemo(() => images.find(img => img.id === activeId), [images, activeId]);
   const dragActiveIndex = useMemo(() => images.findIndex(img => img.id === activeId), [images, activeId]);
@@ -417,8 +463,10 @@ export default function PdfComponent() {
                         index={index}
                         isSelected={selectedImages.has(image.id)} 
                         onSelect={selectImage}
+                        autoUpscale={autoUpscale}
                         activeId={activeId} 
                         selectedImages={selectedImages}
+                        maxReferenceSize={maxReferenceSize}
                       />
                     ))}
                   </div>
@@ -443,6 +491,23 @@ export default function PdfComponent() {
               />
             </div>
 
+            {/* AI超解像設定 */}
+            <div className="setting-box mb-8">
+              <label htmlFor="autoUpscaleCheckbox" className="toggle-switch-label">
+                <span>低解像度を自動AI高画質化</span>
+                <div className="toggle-switch-wrapper">
+                  <input 
+                    type="checkbox" 
+                    id="autoUpscaleCheckbox"
+                    checked={autoUpscale} 
+                    onChange={(e) => setAutoUpscale(e.target.checked)}
+                    className="toggle-switch-input"
+                  />
+                  <span className="toggle-switch-slider" />
+                </div>
+              </label>
+            </div>
+
             {/* 操作ボタン群 */}
             <div className="button-group sidebar-buttons">
               <button 
@@ -464,7 +529,7 @@ export default function PdfComponent() {
                 disabled={images.length === 0 || isAnyLoading} 
                 className="btn btn--primary btn-full btn--icon-flex"
               >
-                <FileText size={18} />{isProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
+                <FileText size={18} />{isPdfProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
               </button>
               <button 
                 onClick={downloadAllImages} 
@@ -481,7 +546,14 @@ export default function PdfComponent() {
       {/* カスタムドラッグプレビュー */}
       {activeId && dragActiveItem && dragPreviewStyle && (
         <div ref={dragPreviewRef} style={dragPreviewStyle}>
-          <ImagePreview image={dragActiveItem} index={dragActiveIndex} isSelected={selectedImages.has(activeId)} onSelect={() => {}} />
+          <ImagePreview 
+            image={dragActiveItem} 
+            index={dragActiveIndex} 
+            isSelected={selectedImages.has(activeId)} 
+            onSelect={() => {}} 
+            autoUpscale={autoUpscale}
+            maxReferenceSize={maxReferenceSize}
+          />
           <DraggedItemStack isDragging={true} isGroupDragActive={isGroupDragActive} selectedImages={selectedImages} id={activeId} images={images} />
           {isGroupDragActive && <span className="count-badge">{selectedImages.size}</span>}
         </div>
@@ -496,8 +568,10 @@ interface SortableImagePreviewProps {
   index: number;
   isSelected: boolean;
   onSelect: (id: string, event?: React.MouseEvent) => void;
+  autoUpscale: boolean;
   activeId: string | null;
   selectedImages: Set<string>;
+  maxReferenceSize: number;
 }
 
 const SortableImagePreview = memo(function SortableImagePreview({
@@ -506,8 +580,10 @@ const SortableImagePreview = memo(function SortableImagePreview({
   index,
   isSelected,
   onSelect,
+  autoUpscale,
   activeId,
   selectedImages,
+  maxReferenceSize,
 }: SortableImagePreviewProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: image.id });
   
@@ -529,7 +605,14 @@ const SortableImagePreview = memo(function SortableImagePreview({
       id={`preview-${image.id}`}
     >
       <div style={{ visibility: showPlaceholder ? 'hidden' : 'visible' }}>
-        <ImagePreview image={image} index={index} isSelected={isSelected} onSelect={onSelect} />
+        <ImagePreview 
+          image={image} 
+          index={index} 
+          isSelected={isSelected} 
+          onSelect={onSelect}
+          autoUpscale={autoUpscale}
+          maxReferenceSize={maxReferenceSize}
+        />
       </div>
       {showPlaceholder && (
         <div className="image-preview-item placeholder-card">
@@ -545,14 +628,32 @@ interface ImagePreviewProps {
   index: number;
   isSelected: boolean;
   onSelect: (id: string, event?: React.MouseEvent) => void;
+  autoUpscale: boolean;
+  maxReferenceSize?: number;
 }
 
-const ImagePreview = memo(function ImagePreview({ image, index, isSelected, onSelect }: ImagePreviewProps) {
+const ImagePreview = memo(function ImagePreview({ 
+  image, 
+  index, 
+  isSelected, 
+  onSelect,
+  autoUpscale,
+  maxReferenceSize,
+}: ImagePreviewProps) {
+  const { isLowRes } = evaluateRelativeResolution(image.width, image.height, maxReferenceSize);
+
   return (
     <div className={`image-preview-item ${isSelected ? 'selected' : ''}`} onClick={(e) => onSelect(image.id, e)}>
+      {/* 自動AI高画質化がONで低解像度の場合の目印マーク */}
+      {autoUpscale && isLowRes && (
+        <span className="ai-upscale-badge" title="PDF生成時に自動でAI高画質化されます">
+          高画質化対象
+        </span>
+      )}
+
       <img src={image.dataUrl} alt={image.name} className="thumbnail" />
       <div className="image-info image-info--no-margin">
-        <p className="file-name">{image.name}</p>
+        <p className="file-name" title={image.name}>{image.name}</p>
         <p className="page-number">{index + 1} ページ</p>
       </div>
     </div>

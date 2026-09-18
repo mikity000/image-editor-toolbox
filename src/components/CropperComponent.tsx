@@ -228,15 +228,20 @@ export default function CropperComponent() {
               />
             </div>
 
-            <div className="setting-box">
-              <input 
-                type="checkbox" 
-                id="invertCropCheckbox"
-                checked={invertCrop} 
-                onChange={(e) => setInvertCrop(e.target.checked)}
-                className="custom-checkbox"
-              />
-              <label htmlFor="invertCropCheckbox" className="custom-checkbox-label">外側を切り取る</label>
+            <div className="setting-box mb-8">
+              <label htmlFor="invertCropCheckbox" className="toggle-switch-label">
+                <span>外側を切り取る</span>
+                <div className="toggle-switch-wrapper">
+                  <input 
+                    type="checkbox" 
+                    id="invertCropCheckbox"
+                    checked={invertCrop} 
+                    onChange={(e) => setInvertCrop(e.target.checked)}
+                    className="toggle-switch-input"
+                  />
+                  <span className="toggle-switch-slider" />
+                </div>
+              </label>
             </div>
 
             <div className="button-group sidebar-buttons">
@@ -265,9 +270,18 @@ export default function CropperComponent() {
               {isDrawingPolygon && !drawingObject && (
                 <>
                   <div className="setting-box slider-group--block mb-8 grid-col-full">
-                    <label htmlFor="magneticModeCheckbox" className={`custom-checkbox-label custom-checkbox-label--flex custom-checkbox-label--full ${isMagneticMode ? 'mb-8' : 'mb-0'}`}>
-                      <input type="checkbox" id="magneticModeCheckbox" checked={isMagneticMode} onChange={(e) => setIsMagneticMode(e.target.checked)} className="custom-checkbox" />
-                      吸着モード {isMagneticMode && <span className="sensitivity-label">感度: {magneticThreshold}</span>}
+                    <label htmlFor="magneticModeCheckbox" className={`toggle-switch-label ${isMagneticMode ? 'mb-8' : 'mb-0'}`}>
+                      <span>吸着モード {isMagneticMode && <span className="sensitivity-label">感度: {magneticThreshold}</span>}</span>
+                      <div className="toggle-switch-wrapper">
+                        <input 
+                          type="checkbox" 
+                          id="magneticModeCheckbox" 
+                          checked={isMagneticMode} 
+                          onChange={(e) => setIsMagneticMode(e.target.checked)} 
+                          className="toggle-switch-input" 
+                        />
+                        <span className="toggle-switch-slider" />
+                      </div>
                     </label>
                     {isMagneticMode && (
                       <div className="slider-wrapper">

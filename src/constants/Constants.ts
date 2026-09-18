@@ -24,6 +24,10 @@ export const IMAGE_CONFIG = Object.freeze({
  */
 export const PDF_CONFIG = Object.freeze({
   PAGE_WIDTH_A4: 595.28, // A4幅 (約210mm) のPDFポイント (72dpi換算)
+  PAGE_HEIGHT_A4: 841.89, // A4高さ (約297mm) のPDFポイント (72dpi換算)
+  LOW_RES_THRESHOLD: 800, // （後方互換用）旧固定判定基準
+  RELATIVE_LOW_RES_RATIO: 0.6, // 最大画像の60%未満のサイズを「低解像度（高画質化対象）」と判定
+  RELATIVE_VERY_LOW_RES_RATIO: 0.35, // 最大画像の35%未満のサイズを「極低解像度（4倍拡大対象）」と判定
   DEFAULT_WEBP_QUALITY: 85,
   UI_YIELD_INTERVAL: 3, // メインスレッド解放を行うバッチ間隔
 } as const);
