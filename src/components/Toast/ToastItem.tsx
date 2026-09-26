@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
-import { ToastItemData, ToastType } from '../../context/ToastContext';
+import { ToastItemData, ToastType } from '../../shared/context/ToastContext';
 
 interface ToastItemProps {
   toast: ToastItemData;

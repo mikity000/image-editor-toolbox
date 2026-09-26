@@ -1,0 +1,424 @@
+/* App Layout & Header */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Editor Split Layout */
+.editor-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-main {
+  flex: 1;
+  min-width: 0;
+  order: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.editor-sidebar {
+  width: 100%;
+  order: 2;
+  box-sizing: border-box;
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+.sidebar-sticky-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.app-header {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.75rem 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.main-nav {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.main-nav ul {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  gap: 2rem;
+}
+
+.main-nav a {
+  color: var(--text-color);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1.1rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius-sm);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.main-nav a:hover,
+.main-nav a.active {
+  color: var(--accent-color);
+  text-shadow: var(--nav-hover-shadow);
+  background: var(--nav-active-bg);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.help-btn-header {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  padding: 0;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.help-btn-header:hover {
+  background: var(--nav-active-bg);
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+  transform: scale(1.05);
+}
+
+.help-btn-header svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.3s ease;
+}
+
+.help-btn-header:hover svg {
+  transform: rotate(-10deg);
+}
+
+.theme-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  padding: 0;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--nav-active-bg);
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+  transform: scale(1.05);
+}
+
+.theme-toggle-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.3s ease;
+}
+
+.theme-toggle-btn:hover svg {
+  transform: rotate(15deg);
+}
+
+/* Main Container */
+.app-container {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-title {
+  color: var(--text-heading);
+  text-align: center;
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  background: -webkit-linear-gradient(var(--accent-color), var(--accent-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+/* Editor Container (Glassmorphism disabled for full-bleed) */
+.editor-container {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* File Input */
+.file-input {
+  margin-bottom: 1.5rem;
+}
+
+.file-input__control {
+  width: 100%;
+  padding: 0.8rem;
+  background: var(--input-bg-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.file-input__control:hover {
+  border-color: var(--accent-secondary);
+  box-shadow: 0 0 8px rgba(69, 162, 158, 0.3);
+}
+
+/* （PNG/JPEG などの画像を複数選択できます）削除 */
+/* .file-input__hint {
+  display: block;
+  margin-top: 0.5rem;
+  color: #8892b0;
+  font-size: 0.85rem;
+  text-align: center;
+} */
+
+/* Base Buttons */
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+}
+
+.btn {
+  background: var(--bg-surface);
+  color: var(--text-heading);
+  border: 1px solid var(--border-color);
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.btn:active:not(:disabled) {
+  opacity: 0.8;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Button Variants */
+.btn--success { background: var(--btn-success-bg); border-color: var(--btn-success); color: var(--btn-success); }
+.btn--success:hover:not(:disabled) { background: var(--btn-success); color: #fff; }
+
+.btn--danger { background: rgba(220, 53, 69, 0.1); border-color: var(--btn-danger); color: var(--btn-danger); }
+.btn--danger:hover:not(:disabled) { background: var(--btn-danger); color: #fff; }
+
+.btn--warning { background: rgba(255, 193, 7, 0.1); border-color: var(--btn-warning); color: var(--btn-warning); }
+.btn--warning:hover:not(:disabled) { background: var(--btn-warning); color: #212529; }
+
+/* Canvas Area */
+.canvas-wrapper {
+  background: var(--canvas-bg);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+/* Control Panels (Adjustments) */
+.adjustment-controls {
+  background: var(--panel-bg);
+  border-radius: var(--border-radius-sm);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.adjustment-controls h3 {
+  margin: 0 0 0.8rem 0;
+  text-align: center;
+  font-size: 1.1rem;
+  color: var(--text-heading);
+}
+
+.adjustment-group {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.adjustment-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: 0.8rem;
+  text-align: center;
+  flex: 1 1 120px;
+  max-width: 200px;
+}
+
+.adjustment-box h4 {
+  margin: 0 0 0.8rem 0;
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+.editor-sidebar .adjustment-box button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.shape-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.adjustment-box button + button { margin-left: 8px; }
+
+.adjustment-box button.btn--auto-width {
+  width: auto;
+  min-width: 40px;
+  padding: 0 1rem;
+  font-size: 0.9rem;
+}
+
+.editor-sidebar .adjustment-group {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.editor-sidebar .adjustment-box {
+  max-width: 100%;
+  padding: 0.5rem;
+}
+
+
+/* 画面切り替え時の状態保持用 */
+.tab-content-wrapper {
+  height: 100%;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-content-wrapper.is-hidden {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}

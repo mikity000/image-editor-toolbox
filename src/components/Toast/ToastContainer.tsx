@@ -1,5 +1,5 @@
 import React from 'react';
-import { ToastItemData } from '../../context/ToastContext';
+import { ToastItemData } from '../../shared/context/ToastContext';
 import ToastItem from './ToastItem';
 
 interface ToastContainerProps {

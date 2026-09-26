@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Premium Dark Theme Core */
+  --bg-color: #0b0c10;
+  --bg-surface: #1f2833;
+  --bg-surface-glass: rgba(31, 40, 51, 0.6);
+  --text-color: #c5c6c7;
+  --text-heading: #ffffff;
+  --accent-color: #66fcf1;
+  --accent-secondary: #45a29e;
+  
+  /* Canvas and Panels */
+  --canvas-bg: #0f1015;
+  --panel-bg: rgba(0, 0, 0, 0.2);
+  --box-bg: rgba(255, 255, 255, 0.03);
+  --box-border: rgba(255, 255, 255, 0.05);
+  --sidebar-bg: #18191c;
+  --overlay-bg: rgba(11, 12, 16, 0.8);
+
+  --nav-active-bg: rgba(102, 252, 241, 0.1);
+  --nav-hover-shadow: 0 0 8px var(--accent-color);
+
+  /* Buttons and States */
+  --btn-success: #28a745;
+  --btn-success-bg: rgba(40, 167, 69, 0.1);
+  --btn-success2: #00a2ff;
+  --btn-success2-bg: rgba(0, 162, 255, 0.1);
+  --btn-danger: #dc3545;
+  --btn-warning: #ffc107;
+  --btn-hover-opacity: 0.85;
+
+  /* Layout and Effects */
+  --border-radius-lg: 16px;
+  --border-radius-sm: 8px;
+  --shadow-glow: 0 0 15px rgba(102, 252, 241, 0.4);
+  --shadow-deep: 0 8px 32px rgba(0, 0, 0, 0.5);
+  
+  /* Input settings */
+  --input-bg-color: #12141a;
+  --border-color: #3b4252;
+}
+
+[data-theme='light'] {
+  /* Premium Light Theme Core */
+  --bg-color: #f1f5f9;
+  --bg-surface: #ffffff;
+  --bg-surface-glass: rgba(255, 255, 255, 0.7);
+  --text-color: #475569;
+  --text-heading: #0f172a;
+  --accent-color: #0284c7;
+  --accent-secondary: #0369a1;
+
+  /* Canvas and Panels */
+  --canvas-bg: #e2e8f0;
+  --panel-bg: rgba(0, 0, 0, 0.03);
+  --box-bg: rgba(0, 0, 0, 0.03);
+  --box-border: rgba(0, 0, 0, 0.08);
+  --sidebar-bg: #ffffff;
+  --overlay-bg: rgba(241, 245, 249, 0.85);
+
+  --nav-active-bg: rgba(2, 132, 199, 0.12);
+  --nav-hover-shadow: 0 0 8px rgba(2, 132, 199, 0.4);
+
+  /* Buttons and States */
+  --btn-success: #16a34a;
+  --btn-success-bg: rgba(22, 163, 74, 0.1);
+  --btn-success2: #0284c7;
+  --btn-success2-bg: rgba(2, 132, 199, 0.1);
+  --btn-danger: #ef4444;
+  --btn-warning: #d97706;
+
+  /* Layout and Effects */
+  --shadow-glow: 0 0 15px rgba(2, 132, 199, 0.25);
+  --shadow-deep: 0 8px 32px rgba(148, 163, 184, 0.15);
+
+  /* Input settings */
+  --input-bg-color: #f8fafc;
+  --border-color: #cbd5e1;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  height: 100vh;
+  overflow: hidden;
+}

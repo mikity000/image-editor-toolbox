@@ -1,0 +1,220 @@
+/* ==========================================================================
+   モダン トースト通知 (Toast Notification System)
+   ========================================================================== */
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 420px;
+  width: calc(100vw - 2.5rem);
+  pointer-events: none;
+}
+
+.toast-item {
+  position: relative;
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem 1rem 1.125rem;
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-surface);
+  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--sidebar-bg) 100%);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  color: var(--text-color);
+  overflow: hidden;
+  animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.toast-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.35);
+}
+
+.toast-item--exiting {
+  animation: toastSlideOut 0.25s cubic-bezier(0.4, 0, 1, 1) forwards !important;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes toastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
+  }
+}
+
+/* 左端のカラーインジケーター */
+.toast-item__indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+.toast-item--error .toast-item__indicator {
+  background-color: var(--btn-danger);
+  box-shadow: 0 0 10px var(--btn-danger);
+}
+
+.toast-item--warning .toast-item__indicator {
+  background-color: var(--btn-warning);
+  box-shadow: 0 0 10px var(--btn-warning);
+}
+
+.toast-item--info .toast-item__indicator {
+  background-color: var(--accent-color);
+  box-shadow: 0 0 10px var(--accent-color);
+}
+
+.toast-item--success .toast-item__indicator {
+  background-color: var(--btn-success);
+  box-shadow: 0 0 10px var(--btn-success);
+}
+
+/* アイコン */
+.toast-item__icon-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.toast-item--error .toast-item__icon {
+  color: var(--btn-danger);
+}
+
+.toast-item--warning .toast-item__icon {
+  color: var(--btn-warning);
+}
+
+.toast-item--info .toast-item__icon {
+  color: var(--accent-color);
+}
+
+.toast-item--success .toast-item__icon {
+  color: var(--btn-success);
+}
+
+/* メッセージ本文 */
+.toast-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-item__title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-heading);
+  margin-bottom: 2px;
+  letter-spacing: -0.01em;
+}
+
+.toast-item__message {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-color);
+  word-break: break-word;
+}
+
+/* 閉じるボタン */
+.toast-item__close-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  margin-top: -2px;
+  margin-right: -4px;
+  transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.toast-item__close-btn:hover {
+  opacity: 1;
+  color: var(--text-heading);
+  background-color: var(--box-bg);
+}
+
+/* プログレスバー */
+.toast-item__progress-bar-bg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+[data-theme='light'] .toast-item__progress-bar-bg {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.toast-item__progress-bar {
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  animation-name: toastProgress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  will-change: transform;
+}
+
+/* ホバー時にプログレスバーのアニメーションを一時停止 */
+.toast-item:hover .toast-item__progress-bar {
+  animation-play-state: paused;
+}
+
+@keyframes toastProgress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.toast-item--error .toast-item__progress-bar {
+  background-color: var(--btn-danger);
+}
+
+.toast-item--warning .toast-item__progress-bar {
+  background-color: var(--btn-warning);
+}
+
+.toast-item--info .toast-item__progress-bar {
+  background-color: var(--accent-color);
+}
+
+.toast-item--success .toast-item__progress-bar {
+  background-color: var(--btn-success);
+}

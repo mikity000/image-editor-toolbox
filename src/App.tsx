@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Sun, Moon, HelpCircle } from 'lucide-react';
 import { HashRouter as Router, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
-import ImagePdf from './pages/ImagePdf';
-import ImageCrop from './pages/ImageCrop';
-import ImageCombine from './pages/ImageCombine';
-import ImagePaint from './pages/ImagePaint';
+import PdfPage from './pages/PdfPage';
+import CropPage from './pages/CropPage';
+import CombinePage from './pages/CombinePage';
+import PaintPage from './pages/PaintPage';
 import HelpModal from './components/HelpModal';
-import { GalleryProvider } from './context/GalleryContext';
-import { ToastProvider } from './context/ToastContext';
-import './styles.css';
+import { GalleryProvider } from './features/gallery/context/GalleryContext';
+import { ToastProvider } from './shared/context/ToastContext';
+import './styles/index.css';
 
 interface TabItem {
   path: string;
@@ -17,10 +17,10 @@ interface TabItem {
 }
 
 const TABS: TabItem[] = [
-  { path: '/pdf', label: '画像PDF化', Component: ImagePdf },
-  { path: '/crop', label: '画像クロップ', Component: ImageCrop },
-  { path: '/combine', label: '画像結合', Component: ImageCombine },
-  { path: '/paint', label: 'ペイント', Component: ImagePaint },
+  { path: '/pdf', label: '画像PDF化', Component: PdfPage },
+  { path: '/crop', label: '画像クロップ', Component: CropPage },
+  { path: '/combine', label: '画像結合', Component: CombinePage },
+  { path: '/paint', label: 'ペイント', Component: PaintPage },
 ];
 
 function AppContent(): React.ReactElement {

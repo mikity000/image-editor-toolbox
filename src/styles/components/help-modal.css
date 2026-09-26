@@ -1,0 +1,556 @@
+/* ==========================================================================
+   Help Modal & Documentation Styles
+   ========================================================================== */
+
+.help-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--overlay-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  animation: helpModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes helpModalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.help-modal-container {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-deep);
+  width: 100%;
+  max-width: 960px;
+  height: 82vh;
+  max-height: 780px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: helpModalScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes helpModalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ヘルプモーダル ヘッダー */
+.help-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+
+.help-modal-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.help-header-icon {
+  color: var(--accent-color);
+}
+
+.help-modal-header-title h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.help-modal-close-btn {
+  background: var(--box-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.help-modal-close-btn:hover {
+  background: var(--nav-active-bg);
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+  transform: rotate(90deg);
+}
+
+/* ヘルプモーダル ボディ (左右分割) */
+.help-modal-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 左側 ナビゲーション */
+.help-modal-nav {
+  width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-color);
+  background: var(--sidebar-bg);
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+}
+
+.help-modal-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.help-nav-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-color);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.help-nav-btn:hover {
+  background: var(--box-bg);
+  color: var(--text-heading);
+}
+
+.help-nav-btn.active {
+  background: var(--nav-active-bg);
+  color: var(--accent-color);
+  border-color: rgba(102, 252, 241, 0.3);
+  font-weight: 600;
+}
+
+[data-theme='light'] .help-nav-btn.active {
+  border-color: rgba(2, 132, 199, 0.3);
+}
+
+.help-nav-btn svg {
+  flex-shrink: 0;
+}
+
+/* 右側 コンテンツエリア */
+.help-modal-content {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 2rem 2.25rem;
+  background: var(--bg-surface);
+}
+
+.help-doc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  max-width: 760px;
+}
+
+/* ヒーローヘッダー */
+.help-doc-hero {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 1.25rem;
+}
+
+.help-doc-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--nav-active-bg);
+  color: var(--accent-color);
+  margin-bottom: 0.5rem;
+}
+
+.help-doc-hero h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.help-doc-hero p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+/* セクションブロック */
+.help-section-block h4,
+.help-shortcut-category h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.help-step-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+.help-step-list strong {
+  color: var(--text-heading);
+}
+
+/* カードグリッド */
+.help-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.help-feature-card {
+  background: var(--box-bg);
+  border: 1px solid var(--box-border);
+  border-radius: var(--border-radius-sm);
+  padding: 1.25rem;
+  transition: all 0.2s ease;
+}
+
+.help-feature-card:hover {
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+}
+
+.help-card-icon {
+  color: var(--accent-color);
+  margin-bottom: 0.5rem;
+}
+
+.help-feature-card h4 {
+  margin: 0 0 0.35rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.help-feature-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  line-height: 1.5;
+}
+
+.help-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.help-small-card {
+  background: var(--box-bg);
+  border: 1px solid var(--box-border);
+  border-radius: var(--border-radius-sm);
+  padding: 1rem;
+}
+
+.help-small-card strong {
+  display: block;
+  font-size: 0.92rem;
+  color: var(--text-heading);
+  margin-bottom: 0.3rem;
+}
+
+.help-small-card p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-color);
+  line-height: 1.4;
+}
+
+/* ツールグリッド (ペイント) */
+.help-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.help-tool-item {
+  background: var(--box-bg);
+  border: 1px solid var(--box-border);
+  border-radius: var(--border-radius-sm);
+  padding: 1rem;
+}
+
+.help-tool-item strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--text-heading);
+  margin-bottom: 0.4rem;
+}
+
+.help-tool-item p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  line-height: 1.5;
+}
+
+/* 定義リスト全体の余白リセット */
+.help-tool-subtypes {
+  margin: 0.8rem 0 0 0;
+}
+
+/* 見出し部分（・手書き線 など）を白い文字色にする */
+.help-tool-subtypes dt {
+  color: var(--text-heading);
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin-top: 0.6rem;
+}
+
+/* 説明文の余計なインデント（左隙間）を消去する */
+.help-tool-subtypes dd {
+  margin-left: 0;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  line-height: 1.5;
+}
+
+/* ボタン説明リスト */
+.help-button-descriptions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.help-btn-desc-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.88rem;
+  color: var(--text-color);
+}
+
+.help-btn-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 110px;
+  text-align: center;
+}
+
+.help-btn-tag.primary {
+  background: var(--accent-secondary);
+  color: #ffffff;
+}
+
+.help-btn-tag.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-heading);
+  border: 1px solid var(--border-color);
+}
+
+.help-btn-tag.success {
+  background: var(--btn-success);
+  color: #ffffff;
+}
+
+/* インフォメーションボックス */
+.help-info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: var(--nav-active-bg);
+  border: 1px solid var(--accent-color);
+  border-radius: var(--border-radius-sm);
+  padding: 1rem 1.25rem;
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+
+.help-info-box svg {
+  color: var(--accent-color);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.help-info-box strong {
+  display: block;
+  color: var(--text-heading);
+  margin-bottom: 0.25rem;
+}
+
+.help-info-box p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* キーボードテーブル */
+.help-kbd-table {
+  background: var(--box-bg);
+  border: 1px solid var(--box-border);
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+}
+
+.help-kbd-row {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--box-border);
+  font-size: 0.88rem;
+}
+
+.help-kbd-row:last-child {
+  border-bottom: none;
+}
+
+.help-kbd-key {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.help-kbd-desc {
+  flex: 1;
+  color: var(--text-color);
+}
+
+kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  font-weight: 600;
+  background: var(--box-bg);
+  border: 1px solid var(--border-color);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--accent-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme='light'] kbd {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: var(--accent-color);
+}
+
+/* ヘルプモーダル フッター */
+.help-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.75rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--sidebar-bg);
+  flex-shrink: 0;
+}
+
+.help-footer-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-color);
+}
+
+.help-footer-tip svg {
+  color: var(--accent-color);
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .help-modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .help-modal-container {
+    height: 94vh;
+    max-height: 94vh;
+  }
+
+  .help-modal-body {
+    flex-direction: column;
+  }
+
+  .help-modal-nav {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.5rem;
+    overflow-x: auto;
+  }
+
+  .help-modal-nav ul {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .help-nav-btn {
+    white-space: nowrap;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+
+  .help-modal-content {
+    padding: 1.25rem;
+  }
+
+  .help-kbd-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .help-kbd-key {
+    width: 100%;
+  }
+}
