@@ -52,6 +52,41 @@ body.is-dragging * {
   box-shadow: 0 0 10px rgba(102, 252, 241, 0.2);
 }
 
+/* Stack for Dragged Multiple Items */
+.stack {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Drag Placeholders */
+.image-preview-item.placeholder-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px dashed var(--accent-secondary);
+  background: rgba(69, 162, 158, 0.1) !important;
+  box-shadow: none !important;
+  cursor: grabbing;
+}
+
+.image-preview-item.placeholder-card .thumbnail-placeholder {
+  width: 100%;
+  aspect-ratio: 1;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px dashed rgba(69, 162, 158, 0.3);
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-color);
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
 .thumbnail {
   width: 100%;
   aspect-ratio: 1;

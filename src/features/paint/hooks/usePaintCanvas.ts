@@ -1025,7 +1025,6 @@ export function usePaintCanvas(): UsePaintCanvasReturn {
       const res = await fetch(webpDataUrl);
       const blob = await res.blob();
       saveAs(blob, outName);
-      toast.success('画像を保存しました。');
     } catch (err) {
       console.error('画像保存エラー:', err);
       toast.error('画像の保存に失敗しました。');
@@ -1104,7 +1103,6 @@ export function usePaintCanvas(): UsePaintCanvasReturn {
         const pdfBytes = await pdfDoc.save();
         saveAs(new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' }), `${baseName}_edited.pdf`);
       }
-      toast.success('PDFを保存しました。');
     } catch (err) {
       console.error('PDF出力エラー:', err);
       toast.error('PDFの保存に失敗しました。');

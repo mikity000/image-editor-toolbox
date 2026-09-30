@@ -341,7 +341,6 @@ export default function PdfComponent() {
 
       const content = await zip.generateAsync({ type: 'blob' });
       saveAs(content, 'images.zip');
-      toast.success('ZIPファイルをダウンロードしました。');
     } catch (err) {
       console.error('画像の一括ダウンロードに失敗しました:', err);
       toast.error('画像の一括ダウンロードに失敗しました。');

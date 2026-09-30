@@ -330,7 +330,6 @@ export default function CombinerComponent() {
       link.href = dataURL;
       link.download = 'combined_trimmed.webp';
       link.click();
-      toast.success('結合画像をダウンロードしました。');
     } catch (err) {
       console.error('画像のダウンロードに失敗しました:', err);
       toast.error('画像のダウンロードに失敗しました。');
@@ -349,7 +348,6 @@ export default function CombinerComponent() {
         name: newName,
         dataUrl: dataURL
       });
-      toast.success('ギャラリーに保存しました。');
     } catch (err) {
       console.error('ギャラリーへの保存に失敗しました:', err);
       toast.error('ギャラリーへの保存に失敗しました。');

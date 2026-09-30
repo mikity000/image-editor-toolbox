@@ -304,7 +304,6 @@ export default function PaintComponent() {
         const rawName = `${baseName}${pageSuffix}`;
         const newName = getSequentialName(rawName, galleryImages);
         addImages({ name: `${newName}.webp`, dataUrl });
-        toast.success('ギャラリーに保存しました。');
       }
     } catch (err) {
       console.error('ギャラリーへの保存に失敗しました:', err);
