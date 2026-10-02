@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useContext, useMemo, memo } from 'react';
-import { Trash2, RotateCcw, FileText, Download } from 'lucide-react';
+import { Trash2, RotateCcw, FileText, Download, Eye } from 'lucide-react';
+import PdfPreviewModal from './PdfPreviewModal';
 
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
@@ -66,8 +67,11 @@ export default function PdfComponent() {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isZipping, setIsZipping] = useState<boolean>(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
+  const [previewPdfBlob, setPreviewPdfBlob] = useState<Blob | null>(null);
+  const [isPreviewGenerating, setIsPreviewGenerating] = useState<boolean>(false);
 
-  const { generatePdf, isProcessing, progress: pdfProgress } = usePdfGenerator();
+  const { generatePdf, generatePdfBlob, isProcessing, progress: pdfProgress } = usePdfGenerator();
   const { extractImagesFromPdfs, isExtracting, extractProgress } = usePdfExtractor();
   const { toast } = useToast();
 
@@ -324,6 +328,35 @@ export default function PdfComponent() {
     generatePdf(images);
   }, [generatePdf, images]);
 
+  // プレビュー用PDFの生成とモーダルオープン
+  const handleOpenPreview = useCallback(async () => {
+    if (images.length === 0) return;
+    setIsPreviewGenerating(true);
+    try {
+      const blob = await generatePdfBlob(images);
+      if (blob) {
+        setPreviewPdfBlob(blob);
+        setIsPreviewOpen(true);
+      } else {
+        toast.error('PDFプレビューの生成に失敗しました。');
+      }
+    } catch (err: any) {
+      console.error('プレビュー生成エラー:', err);
+      toast.error('PDFプレビューの生成中にエラーが発生しました。');
+    } finally {
+      setIsPreviewGenerating(false);
+    }
+  }, [generatePdfBlob, images, toast]);
+
+  // プレビューモーダルからの直接ダウンロード
+  const handleDownloadFromPreview = useCallback(() => {
+    if (previewPdfBlob) {
+      saveAs(previewPdfBlob, 'images.pdf');
+    } else {
+      generatePdf(images);
+    }
+  }, [previewPdfBlob, generatePdf, images]);
+
   // 画像一括ZIPダウンロード（並列フェッチによる高速化）
   const downloadAllImages = useCallback(async () => {
     if (images.length === 0) return;
@@ -349,7 +382,7 @@ export default function PdfComponent() {
     }
   }, [images, toast]);
 
-  const isAnyLoading = isUploading || isProcessing || isExtracting || isZipping;
+  const isAnyLoading = isUploading || isProcessing || isExtracting || isZipping || isPreviewGenerating;
   const currentProgress = isUploading ? uploadProgress : (isExtracting ? extractProgress : pdfProgress);
   const loadingText = isUploading 
     ? '画像をアップロード中...' 
@@ -357,7 +390,9 @@ export default function PdfComponent() {
         ? 'PDFから画像を抽出中...' 
         : (isZipping 
             ? '画像をZIPに圧縮中...' 
-            : 'PDFを生成中...'));
+            : (isPreviewGenerating 
+                ? 'プレビュー用PDFを生成中...' 
+                : 'PDFを生成中...')));
 
   const dragActiveItem = useMemo(() => images.find(img => img.id === activeId), [images, activeId]);
   const dragActiveIndex = useMemo(() => images.findIndex(img => img.id === activeId), [images, activeId]);
@@ -471,11 +506,19 @@ export default function PdfComponent() {
                 <RotateCcw size={18} />リセット
               </button>
               <button 
+                onClick={handleOpenPreview} 
+                disabled={images.length === 0 || isAnyLoading} 
+                className="btn btn--primary btn-full btn--icon-flex"
+                title="作成予定のPDFをプレビュー"
+              >
+                <Eye size={18} />{isPreviewGenerating ? `プレビュー作成中... (${pdfProgress}%)` : 'PDFプレビュー'}
+              </button>
+              <button 
                 onClick={handleGeneratePdf} 
                 disabled={images.length === 0 || isAnyLoading} 
                 className="btn btn--primary btn-full btn--icon-flex"
               >
-                <FileText size={18} />{isProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
+                <FileText size={18} />{isProcessing && !isPreviewGenerating ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
               </button>
               <button 
                 onClick={downloadAllImages} 
@@ -497,6 +540,15 @@ export default function PdfComponent() {
           {isGroupDragActive && <span className="count-badge">{selectedImages.size}</span>}
         </div>
       )}
+
+      {/* PDFプレビューモーダル */}
+      <PdfPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        pdfBlob={previewPdfBlob}
+        onDownload={handleDownloadFromPreview}
+        isDownloading={isProcessing}
+      />
     </div>
   );
 }

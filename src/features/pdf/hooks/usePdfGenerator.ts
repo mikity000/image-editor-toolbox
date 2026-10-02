@@ -9,7 +9,8 @@ export interface PdfImageItem {
 }
 
 export interface UsePdfGeneratorReturn {
-  generatePdf: (images: PdfImageItem[]) => Promise<void>;
+  generatePdf: (images: PdfImageItem[], fileName?: string) => Promise<void>;
+  generatePdfBlob: (images: PdfImageItem[]) => Promise<Blob | null>;
   isProcessing: boolean;
   progress: number;
 }
@@ -18,8 +19,8 @@ export function usePdfGenerator(): UsePdfGeneratorReturn {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
 
-  const generatePdf = useCallback(async (images: PdfImageItem[]) => {
-    if (!images || images.length === 0) return;
+  const generatePdfBlob = useCallback(async (images: PdfImageItem[]): Promise<Blob | null> => {
+    if (!images || images.length === 0) return null;
 
     setIsProcessing(true);
     setProgress(0);
@@ -69,15 +70,22 @@ export function usePdfGenerator(): UsePdfGeneratorReturn {
       }
 
       const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
-      saveAs(blob, 'images.pdf');
+      return new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
     } catch (err) {
-      console.error('PDF生成処理全体でエラーが発生しました:', err);
+      console.error('PDF生成処理でエラーが発生しました:', err);
+      return null;
     } finally {
       setIsProcessing(false);
       setProgress(0);
     }
   }, []);
 
-  return { generatePdf, isProcessing, progress };
+  const generatePdf = useCallback(async (images: PdfImageItem[], fileName: string = 'images.pdf') => {
+    const blob = await generatePdfBlob(images);
+    if (blob) {
+      saveAs(blob, fileName);
+    }
+  }, [generatePdfBlob]);
+
+  return { generatePdf, generatePdfBlob, isProcessing, progress };
 }

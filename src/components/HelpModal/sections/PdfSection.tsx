@@ -46,6 +46,10 @@ export default function PdfSection(): React.ReactElement {
         <h4>3. サイドバーの操作ボタン</h4>
         <div className="help-button-descriptions">
           <div className="help-btn-desc-item">
+            <span className="help-btn-tag primary">PDFプレビュー</span>
+            <span>作成予定のPDFドキュメントを画面上で事前に確認します。1ページ表示と全ページ連続表示の切替、ズーム、プレビュー画面からの直接保存に対応しています。</span>
+          </div>
+          <div className="help-btn-desc-item">
             <span className="help-btn-tag primary">PDFを生成</span>
             <span>リスト内の全画像を並び順通りに1冊のPDFドキュメントとして結合し、ダウンロードします。</span>
           </div>

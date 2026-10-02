@@ -2,6 +2,7 @@
 @import './base.css';
 @import './utilities.css';
 @import './components/help-modal.css';
+@import './components/pdf-preview-modal.css';
 @import './components/toast.css';
 @import './features/pdf.css';
 @import './features/combine.css';
