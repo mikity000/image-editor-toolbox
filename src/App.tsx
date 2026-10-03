@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, HelpCircle } from 'lucide-react';
+import { Sun, Moon, HelpCircle, FileText, Crop, Layers, Paintbrush } from 'lucide-react';
 import { HashRouter as Router, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
 import PdfPage from './pages/PdfPage';
 import CropPage from './pages/CropPage';
@@ -13,14 +13,16 @@ import './styles/index.css';
 interface TabItem {
   path: string;
   label: string;
+  shortLabel: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   Component: React.ComponentType;
 }
 
 const TABS: TabItem[] = [
-  { path: '/pdf', label: '画像PDF化', Component: PdfPage },
-  { path: '/crop', label: '画像クロップ', Component: CropPage },
-  { path: '/combine', label: '画像結合', Component: CombinePage },
-  { path: '/paint', label: 'ペイント', Component: PaintPage },
+  { path: '/pdf', label: '画像PDF化', shortLabel: 'PDF化', icon: FileText, Component: PdfPage },
+  { path: '/crop', label: '画像クロップ', shortLabel: 'クロップ', icon: Crop, Component: CropPage },
+  { path: '/combine', label: '画像結合', shortLabel: '画像結合', icon: Layers, Component: CombinePage },
+  { path: '/paint', label: 'ペイント', shortLabel: 'ペイント', icon: Paintbrush, Component: PaintPage },
 ];
 
 function AppContent(): React.ReactElement {
@@ -44,6 +46,10 @@ function AppContent(): React.ReactElement {
   return (
     <div className="app-layout">
       <header className="app-header">
+        <div className="mobile-brand">
+          <span className="mobile-app-title">Image Toolbox</span>
+        </div>
+
         <nav className="main-nav">
           <ul>
             {TABS.map(({ path, label }) => (
@@ -97,6 +103,19 @@ function AppContent(): React.ReactElement {
           </Routes>
         </main>
       </div>
+
+      <nav className="mobile-bottom-nav" aria-label="モバイルナビゲーション">
+        {TABS.map(({ path, label, shortLabel, icon: Icon }) => (
+          <NavLink
+            key={path}
+            to={path}
+            className={({ isActive }) => `mobile-bottom-nav__item ${isActive || currentPath === path ? 'active' : ''}`}
+          >
+            <Icon size={20} className="mobile-bottom-nav__icon" />
+            <span className="mobile-bottom-nav__label">{shortLabel || label}</span>
+          </NavLink>
+        ))}
+      </nav>
     </div>
   );
 }

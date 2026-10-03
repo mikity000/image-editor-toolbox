@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useContext, useMemo, memo } from 'react';
-import { Trash2, RotateCcw, FileText, Download, Eye } from 'lucide-react';
+import { Trash2, RotateCcw, FileText, Download, Eye, Upload, SlidersHorizontal } from 'lucide-react';
 import PdfPreviewModal from './PdfPreviewModal';
 
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
@@ -56,6 +56,8 @@ export default function PdfComponent() {
   }, [galleryImages]);
 
   const [images, setImages] = useState<PdfPageItem[]>([]);
+  const [mobileTab, setMobileTab] = useState<'list' | 'gallery'>('list');
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState<boolean>(false);
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const baseSelectedRef = useRef<Set<string>>(new Set());
@@ -96,6 +98,7 @@ export default function PdfComponent() {
       dataUrl
     };
     setImages(prev => [...prev, newImage]);
+    setMobileTab('list');
   }, []);
 
   const isMobile = isMobileDevice();
@@ -265,10 +268,25 @@ export default function PdfComponent() {
     }
   }, []);
 
-  // 画像選択（単一・Ctrl/Cmd複数選択・Shift範囲選択）
+  // 画像選択（単一・Ctrl/Cmd複数選択・Shift範囲選択・スマホトグル選択）
   const selectImage = useCallback((id: string, event?: React.MouseEvent) => {
-    if (event?.shiftKey && lastSelectedId) {
-      // Shift+クリック: 起点から現在位置までの範囲選択（直前のベース選択を保持して合算）
+    const isMobileViewport = typeof window !== 'undefined' && (window.innerWidth <= 767 || isMobileDevice());
+
+    if (isMobileViewport || (event && (event.ctrlKey || event.metaKey))) {
+      // スマホ環境またはCtrl/Cmd+クリック: 選択のトグル
+      setSelectedImages((prevSelected) => {
+        const newSelected = new Set(prevSelected);
+        if (newSelected.has(id)) {
+          newSelected.delete(id);
+        } else {
+          newSelected.add(id);
+        }
+        baseSelectedRef.current = newSelected;
+        return newSelected;
+      });
+      setLastSelectedId(id);
+    } else if (event?.shiftKey && lastSelectedId) {
+      // PC: Shift+クリック: 起点から現在位置までの範囲選択（直前のベース選択を保持して合算）
       const allIds = images.map(img => img.id);
       const lastIndex = allIds.indexOf(lastSelectedId);
       const currentIndex = allIds.indexOf(id);
@@ -288,21 +306,8 @@ export default function PdfComponent() {
         setLastSelectedId(id);
         baseSelectedRef.current = newSelected;
       }
-    } else if (event && (event.ctrlKey || event.metaKey)) {
-      // Ctrl/Cmd+クリック: 選択のトグル
-      setSelectedImages((prevSelected) => {
-        const newSelected = new Set(prevSelected);
-        if (newSelected.has(id)) {
-          newSelected.delete(id);
-        } else {
-          newSelected.add(id);
-        }
-        baseSelectedRef.current = newSelected;
-        return newSelected;
-      });
-      setLastSelectedId(id);
     } else {
-      // 通常クリック: 単一選択
+      // PC: 通常クリック: 単一選択
       const newSelected = new Set([id]);
       setSelectedImages(newSelected);
       setLastSelectedId(id);
@@ -412,7 +417,7 @@ export default function PdfComponent() {
   }, [dragStartRect]);
 
   return (
-    <div className="editor-container">
+    <div className={`editor-container pdf-container mobile-view-${mobileTab}`}>
       {/* ローディングオーバーレイ */}
       {isAnyLoading && (
         <div className="loading-overlay">
@@ -425,6 +430,30 @@ export default function PdfComponent() {
           </div>
         </div>
       )}
+
+      {/* モバイル専用セグメントタブバー */}
+      <div className="mobile-pdf-tabs" role="tablist" aria-label="表示切り替え">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'list'}
+          className={`mobile-pdf-tab ${mobileTab === 'list' ? 'is-active' : ''}`}
+          onClick={() => setMobileTab('list')}
+        >
+          <span>ページ一覧</span>
+          {images.length > 0 && <span className="mobile-tab-count">({images.length})</span>}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'gallery'}
+          className={`mobile-pdf-tab ${mobileTab === 'gallery' ? 'is-active' : ''}`}
+          onClick={() => setMobileTab('gallery')}
+        >
+          <span>ギャラリー</span>
+          {galleryItems.length > 0 && <span className="mobile-tab-count">({galleryItems.length})</span>}
+        </button>
+      </div>
 
       <div className="editor-layout">
         <div className="editor-left-sidebar">
@@ -453,7 +482,7 @@ export default function PdfComponent() {
           >
             <SortableContext items={images.map(img => img.id)}>
               <div className="image-list-container">
-                {images.length > 0 && (
+                {images.length > 0 ? (
                   <div className="image-list">
                     {images.map((image, index) => (
                       <SortableImagePreview 
@@ -468,10 +497,106 @@ export default function PdfComponent() {
                       />
                     ))}
                   </div>
+                ) : (
+                  <div className="empty-placeholder-wrapper pdf-empty-placeholder">
+                    <div className="empty-placeholder-card">
+                      <Upload size={48} className="empty-placeholder-icon" />
+                      <h3>画像またはPDFファイルを読み込んでください</h3>
+                      <p>JPEG / PNG 画像や、既存のPDFファイルを追加できます。</p>
+                      <label className="btn btn--primary btn--icon-flex empty-placeholder-upload-btn">
+                        <Upload size={18} />
+                        ファイルを選択
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          multiple
+                          disabled={isAnyLoading}
+                          onClick={e => { (e.target as HTMLInputElement).value = ''; }}
+                          onChange={handleFileInput}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+                    </div>
+                  </div>
                 )}
               </div>
             </SortableContext>
           </DndContext>
+
+          {/* モバイル用固定アクションバー＆サブバー */}
+          <div className="mobile-pdf-actionbar-container">
+            <div className="mobile-pdf-actionbar">
+              <label className="btn quick-btn quick-upload-label" title="画像・PDFを追加">
+                <Upload size={18} />
+                <input 
+                  type="file" 
+                  accept="image/*,application/pdf" 
+                  multiple 
+                  style={{ display: 'none' }}
+                  disabled={isAnyLoading}
+                  onClick={e => { (e.target as HTMLInputElement).value = ''; }} 
+                  onChange={handleFileInput}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={handleOpenPreview}
+                disabled={images.length === 0 || isAnyLoading}
+                className="btn quick-btn"
+                title="プレビュー"
+              >
+                <Eye size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={handleGeneratePdf}
+                disabled={images.length === 0 || isAnyLoading}
+                className="btn btn--primary mobile-pdf-generate-btn"
+              >
+                <FileText size={18} />
+                <span>{isProcessing && !isPreviewGenerating ? `${pdfProgress}%` : 'PDF生成'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={deleteSelected}
+                disabled={selectedImages.size === 0 || isAnyLoading}
+                className="btn quick-btn btn--danger"
+                title="選択画像を削除"
+              >
+                <Trash2 size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                className={`btn quick-btn ${isMoreMenuOpen ? 'is-selected' : ''}`}
+                title="その他メニュー（一括DL・リセット）"
+              >
+                <SlidersHorizontal size={18} />
+              </button>
+            </div>
+
+            {/* 2行目折りたたみサブバー */}
+            {isMoreMenuOpen && (
+              <div className="mobile-pdf-subbar">
+                <button
+                  type="button"
+                  onClick={downloadAllImages}
+                  disabled={images.length === 0 || isAnyLoading}
+                  className="btn btn--sm btn--primary btn--icon-flex"
+                >
+                  <Download size={15} /> {isZipping ? '準備中...' : '画像を一括DL'}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetImages}
+                  disabled={images.length === 0 || isAnyLoading}
+                  className="btn btn--sm btn--danger btn--icon-flex"
+                >
+                  <RotateCcw size={15} /> リセット
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="editor-sidebar">

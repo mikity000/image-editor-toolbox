@@ -536,3 +536,261 @@
   font-weight: 600;
   box-shadow: 0 0 10px rgba(102, 252, 241, 0.15);
 }
+
+/* モバイル専用要素はPCでは非表示 */
+.mobile-paint-tabs,
+.mobile-paint-toolbar,
+.mobile-paint-drawer {
+  display: none;
+}
+
+/* ==========================================================================
+   ペイント画面 モバイル最適化スタイル (max-width: 767px)
+   ========================================================================== */
+@media (max-width: 767px) {
+  .paint-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* セグメントタブバー */
+  .mobile-paint-tabs {
+    display: flex;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-color);
+    padding: 4px 8px;
+    gap: 4px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .mobile-paint-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 4px;
+    border-radius: var(--border-radius-sm);
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+
+  .mobile-paint-tab.is-active {
+    background: var(--nav-active-bg);
+    color: var(--accent-color);
+    box-shadow: inset 0 0 0 1px var(--accent-color);
+  }
+
+  .editor-layout {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    overflow: visible;
+    height: 100%;
+  }
+
+  /* タブ表示の切り替え制御 */
+  /* 1. ペイントキャンバス表示 */
+  .paint-container.mobile-view-canvas .editor-left-sidebar,
+  .paint-container.mobile-view-canvas .editor-sidebar {
+    display: none !important;
+  }
+
+  .paint-container.mobile-view-canvas .editor-main.paint-main-content {
+    display: flex !important;
+    flex: 1;
+    height: 100%;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .paint-container.mobile-view-canvas .paint-canvas-wrapper {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    touch-action: none;
+  }
+
+  /* 2. ギャラリー表示 */
+  .paint-container.mobile-view-gallery .editor-main,
+  .paint-container.mobile-view-gallery .editor-sidebar {
+    display: none !important;
+  }
+
+  .paint-container.mobile-view-gallery .editor-left-sidebar {
+    display: flex !important;
+    flex: 1;
+    height: 100%;
+    overflow-y: auto;
+    width: 100%;
+  }
+
+  .paint-container.mobile-view-gallery .editor-left-sidebar .sidebar-tray__content {
+    max-height: none;
+    display: flex;
+    flex: 1;
+  }
+
+  /* 3. 詳細・保存表示 */
+  .paint-container.mobile-view-settings .editor-left-sidebar,
+  .paint-container.mobile-view-settings .editor-main {
+    display: none !important;
+  }
+
+  .paint-container.mobile-view-settings .editor-sidebar {
+    display: block !important;
+    flex: 1;
+    height: 100%;
+    overflow-y: auto;
+    padding: 1rem;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  /* モバイル用ペイントツールバー */
+  .mobile-paint-toolbar {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-surface-glass);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
+    z-index: 30;
+    padding: 6px 10px;
+    gap: 6px;
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mobile-paint-tools {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .mobile-tool-btn {
+    padding: 6px 4px;
+    font-size: 0.72rem;
+  }
+
+  .mobile-paint-quick-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .mobile-paint-color-swatch-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--box-bg);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .mobile-color-circle {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  }
+
+  .mobile-paint-size-btn {
+    min-width: 48px;
+    height: 36px;
+    border-radius: var(--border-radius-sm);
+    background: var(--box-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-heading);
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+
+  /* ドロワー */
+  .mobile-paint-drawer {
+    display: block;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 10px;
+    box-shadow: var(--shadow-deep);
+    animation: popoverFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .mobile-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-heading);
+  }
+
+  .mobile-drawer-close {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    line-height: 1;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 0 4px;
+  }
+
+  .mobile-size-slider-row {
+    padding: 6px 4px;
+  }
+
+  .mobile-size-slider-row .slider {
+    width: 100%;
+  }
+
+  /* 複数ページバーのモバイル調整 */
+  .paint-page-bar {
+    top: 8px;
+    right: 8px;
+    padding: 4px 10px;
+    gap: 6px;
+  }
+
+  .paint-page-indicator {
+    font-size: 0.8rem;
+    min-width: 70px;
+  }
+
+  /* ズームバーのモバイル調整 */
+  .paint-zoom-bar {
+    bottom: 8px;
+    right: 8px;
+    padding: 2px 6px;
+    gap: 2px;
+  }
+}

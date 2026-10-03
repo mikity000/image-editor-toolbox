@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
-import { Image as ImageIcon, Undo2, Redo2, Square, Circle, Pentagon, Pencil, Check, Edit3, Trash2, RotateCcw, Download, FolderPlus } from 'lucide-react';
+import { Image as ImageIcon, Undo2, Redo2, Square, Circle, Pentagon, Pencil, Check, Edit3, Trash2, RotateCcw, Download, FolderPlus, Upload, SlidersHorizontal } from 'lucide-react';
 
 import { Canvas } from 'fabric';
 import { useCropperInteraction } from '../hooks/useCropperInteraction';
@@ -19,6 +19,8 @@ export default function CropperComponent() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fabricCanvasRef = useRef<Canvas | null>(null);
   const [croppedImageUrl, setCroppedImageUrl] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<'canvas' | 'result' | 'gallery'>('canvas');
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState<boolean>(false);
   const [pathSmoothing, setPathSmoothing] = useState<number>(CROP_CONFIG.PATH_SMOOTHING_DEFAULT);
   const [invertCrop, setInvertCrop] = useState<boolean>(false);
   const [exportBoundsCanvas, setExportBoundsCanvas] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
@@ -122,6 +124,7 @@ export default function CropperComponent() {
   const handleGalleryItemClick = useCallback((img: GalleryImage) => {
     setImageName(img.name);
     loadImageFromUrl(img.dataUrl);
+    setMobileTab('canvas');
   }, [setImageName, loadImageFromUrl]);
 
   useEffect(() => {
@@ -178,7 +181,40 @@ export default function CropperComponent() {
   } = CROP_CONFIG;
 
   return (
-    <div className="editor-container">
+    <div className={`editor-container cropper-container mobile-view-${mobileTab}`}>
+      {/* モバイル専用セグメントタブバー */}
+      <div className="mobile-cropper-tabs" role="tablist" aria-label="表示切り替え">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'canvas'}
+          className={`mobile-cropper-tab ${mobileTab === 'canvas' ? 'is-active' : ''}`}
+          onClick={() => setMobileTab('canvas')}
+        >
+          <span>編集</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'result'}
+          className={`mobile-cropper-tab ${mobileTab === 'result' ? 'is-active' : ''}`}
+          onClick={() => setMobileTab('result')}
+        >
+          <span>結果</span>
+          {croppedImageUrl && <span className="mobile-tab-badge" />}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'gallery'}
+          className={`mobile-cropper-tab ${mobileTab === 'gallery' ? 'is-active' : ''}`}
+          onClick={() => setMobileTab('gallery')}
+        >
+          <span>ギャラリー</span>
+          {galleryItems.length > 0 && <span className="mobile-tab-count">({galleryItems.length})</span>}
+        </button>
+      </div>
+
       <div className="editor-layout">
         <div className="editor-left-sidebar">
           <SidebarTray
@@ -197,8 +233,193 @@ export default function CropperComponent() {
         <div className="editor-main">
           <div className="cropper-workspace">
             <div className="canvas-wrapper-container">
-              <div className="canvas-wrapper">
+              {!imageLoaded && (
+                <div className="empty-placeholder-wrapper cropper-empty-overlay">
+                  <div className="empty-placeholder-card">
+                    <Upload size={48} className="empty-placeholder-icon" />
+                    <h3>クロップする画像を読み込んでください</h3>
+                    <p>JPEG / PNG / WebP などの画像ファイルに対応しています。</p>
+                    <label className="btn btn--primary btn--icon-flex empty-placeholder-upload-btn">
+                      <Upload size={18} />
+                      画像を選択
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        style={{ display: 'none' }}
+                        onClick={e => { (e.target as HTMLInputElement).value = ''; }} 
+                        onChange={uploadImage} 
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
+              <div className="canvas-wrapper" style={{ display: imageLoaded ? 'block' : 'none' }}>
                 <canvas ref={canvasRef} />
+
+                {/* モバイル用多角形描画バー */}
+                {isDrawingPolygon && !drawingObject && (
+                  <div className="mobile-cropper-polygon-bar">
+                    <button 
+                      type="button"
+                      onClick={() => setIsMagneticMode(!isMagneticMode)} 
+                      className={`btn btn--sm ${isMagneticMode ? 'btn--primary' : ''}`}
+                    >
+                      吸着 {isMagneticMode ? 'ON' : 'OFF'}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={finishPolygonDrawing} 
+                      className="btn btn--warning btn--sm btn--icon-flex"
+                    >
+                      <Check size={16} />描画完了
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* モバイル用クイックシェイプバー＆折りたたみサブバー */}
+              <div className="mobile-cropper-quickbar-container">
+                <div className="mobile-cropper-quickbar">
+                  <label className="btn quick-btn quick-upload-label" title="画像を選択">
+                    <Upload size={18} />
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      style={{ display: 'none' }}
+                      onClick={e => { (e.target as HTMLInputElement).value = ''; }} 
+                      onChange={uploadImage} 
+                    />
+                  </label>
+                  <div className="quickbar-divider" />
+                  <button 
+                    type="button"
+                    onClick={() => startCropping('rect')} 
+                    className={`btn quick-btn ${drawingObject && (drawingObject as CropShapeData).type === 'rect' ? 'is-selected' : ''}`} 
+                    disabled={!imageLoaded} 
+                    aria-label="矩形"
+                    title="矩形クロップ"
+                  >
+                    <Square size={20} />
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => startCropping('circle')} 
+                    className={`btn quick-btn ${drawingObject && (drawingObject as CropShapeData).type === 'circle' ? 'is-selected' : ''}`} 
+                    disabled={!imageLoaded} 
+                    aria-label="円形"
+                    title="円形クロップ"
+                  >
+                    <Circle size={20} />
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => startCropping('polygon')} 
+                    className={`btn quick-btn ${drawingObject && (drawingObject as CropShapeData).type === 'polygon' ? 'is-selected' : ''}`} 
+                    disabled={!imageLoaded} 
+                    aria-label="多角形"
+                    title="多角形クロップ"
+                  >
+                    <Pentagon size={20} />
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => startCropping('path')} 
+                    className={`btn quick-btn ${drawingObject && (drawingObject as CropShapeData).type === 'path' ? 'is-selected' : ''}`} 
+                    disabled={!imageLoaded} 
+                    aria-label="フリーハンド"
+                    title="フリーハンドクロップ"
+                  >
+                    <Pencil size={20} />
+                  </button>
+                  <div className="quickbar-divider" />
+                  <button 
+                    type="button"
+                    onClick={undo} 
+                    disabled={!canUndo} 
+                    className="btn quick-btn" 
+                    aria-label="元に戻す"
+                    title="元に戻す"
+                  >
+                    <Undo2 size={18} />
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={redo} 
+                    disabled={!canRedo} 
+                    className="btn quick-btn" 
+                    aria-label="やり直す"
+                    title="やり直す"
+                  >
+                    <Redo2 size={18} />
+                  </button>
+                  {drawingObject && (
+                    <button
+                      type="button"
+                      onClick={deleteActiveShape}
+                      className="btn quick-btn btn--danger"
+                      title="選択中の図形を削除"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                  <div className="quickbar-divider" />
+                  <button
+                    type="button"
+                    onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                    className={`btn quick-btn ${isMoreMenuOpen ? 'is-selected' : ''}`}
+                    title="操作・詳細設定の展開"
+                  >
+                    <SlidersHorizontal size={18} />
+                  </button>
+                </div>
+
+                {/* 2行目折りたたみサブバー */}
+                {isMoreMenuOpen && (
+                  <div className="mobile-cropper-subbar">
+                    <button
+                      type="button"
+                      onClick={() => setInvertCrop(!invertCrop)}
+                      className={`btn btn--sm ${invertCrop ? 'btn--primary' : 'btn--secondary'}`}
+                    >
+                      外側切り取り: {invertCrop ? 'ON' : 'OFF'}
+                    </button>
+                    {drawingObject && (drawingObject as CropShapeData).type === 'polygon' && (
+                      <button
+                        type="button"
+                        onClick={editPolygonVertices}
+                        className="btn btn--sm btn--warning btn--icon-flex"
+                      >
+                        <Edit3 size={15} /> 頂点編集
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={reset}
+                      className="btn btn--sm btn--danger btn--icon-flex"
+                    >
+                      <RotateCcw size={15} /> リセット
+                    </button>
+                    {croppedImageUrl && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleDownload}
+                          disabled={isDownloading}
+                          className="btn btn--sm btn--primary btn--icon-flex"
+                        >
+                          <Download size={15} /> 保存
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveToGallery}
+                          className="btn btn--sm btn--success btn--icon-flex"
+                        >
+                          <FolderPlus size={15} /> ギャラリー
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -234,6 +455,26 @@ export default function CropperComponent() {
                   <div className="result-placeholder">
                     <ImageIcon size={134} strokeWidth={1.5} />
                     <p>ここにクロップ結果が表示されます</p>
+                  </div>
+                )}
+                {croppedImageUrl && (
+                  <div className="mobile-result-actions">
+                    <button 
+                      type="button"
+                      onClick={handleDownload} 
+                      disabled={isDownloading}
+                      className="btn btn--primary btn--icon-flex"
+                    >
+                      <Download size={18} />
+                      {isDownloading ? '保存中...' : 'WebPダウンロード'}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={handleSaveToGallery} 
+                      className="btn btn--success btn--icon-flex"
+                    >
+                      <FolderPlus size={18} />ギャラリー保存
+                    </button>
                   </div>
                 )}
               </div>

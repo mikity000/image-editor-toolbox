@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { Undo2, Redo2, ChevronsUp, ChevronsDown, ChevronUp, ChevronDown, Trash2, Download, FolderPlus } from 'lucide-react';
+import { Undo2, Redo2, ChevronsUp, ChevronsDown, ChevronUp, ChevronDown, Trash2, Download, FolderPlus, Upload, SlidersHorizontal } from 'lucide-react';
 
 import { Canvas, FabricImage, FabricObject } from 'fabric';
 import { useUndoRedo } from '../hooks/useUndoRedo';
@@ -19,6 +19,8 @@ import { TrayItemData } from '../../../shared/types/ui';
 export default function CombinerComponent() {
   const [imageList, setImageList] = useState<FabricObject[]>([]);
   const [isCanvasListOpen, setIsCanvasListOpen] = useState<boolean>(true);
+  const [mobileTab, setMobileTab] = useState<'canvas' | 'list' | 'gallery'>('canvas');
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState<boolean>(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [fabricCanvas, setFabricCanvas] = useState<Canvas | null>(null);
   const [selectedSize, setSelectedSize] = useState<Size | null>(null);
@@ -84,6 +86,7 @@ export default function CombinerComponent() {
       fabricCanvas.renderAll();
       saveState();
       setImageList(fabricCanvas.getObjects());
+      setMobileTab('canvas');
     };
   }, [fabricCanvas, saveState]);
 
@@ -368,6 +371,7 @@ export default function CombinerComponent() {
 
     fabricCanvas.setViewportTransform([zoom, 0, 0, zoom, tx, ty]);
     fabricCanvas.renderAll();
+    setMobileTab('canvas');
   }, [fabricCanvas]);
 
   const normalizedCanvasItems: TrayItemData[] = useMemo(() => {
@@ -387,7 +391,40 @@ export default function CombinerComponent() {
   const { GUIDE_THICKNESS_MIN, GUIDE_THICKNESS_MAX } = COMBINE_CONFIG;
 
   return (
-    <div className="editor-container">
+    <div className={`editor-container combiner-container mobile-view-${mobileTab}`}>
+      {/* モバイル専用セグメントタブバー */}
+      <div className="mobile-combiner-tabs" role="tablist" aria-label="表示切り替え">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'canvas'}
+          className={`mobile-combiner-tab ${mobileTab === 'canvas' ? 'is-active' : ''}`}
+          onClick={() => setMobileTab('canvas')}
+        >
+          <span>キャンバス</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'list'}
+          className={`mobile-combiner-tab ${mobileTab === 'list' ? 'is-active' : ''}`}
+          onClick={() => setMobileTab('list')}
+        >
+          <span>一覧</span>
+          {normalizedCanvasItems.length > 0 && <span className="mobile-tab-count">({normalizedCanvasItems.length})</span>}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'gallery'}
+          className={`mobile-combiner-tab ${mobileTab === 'gallery' ? 'is-active' : ''}`}
+          onClick={() => setMobileTab('gallery')}
+        >
+          <span>ギャラリー</span>
+          {galleryItems.length > 0 && <span className="mobile-tab-count">({galleryItems.length})</span>}
+        </button>
+      </div>
+
       <div className="editor-layout">
         <div className="editor-left-sidebar">
           <SidebarTray
@@ -419,6 +456,148 @@ export default function CombinerComponent() {
         <div className="editor-main combiner-main">
           <div className="canvas-wrapper">
             <canvas ref={canvasRef} />
+            {imageList.length === 0 && (
+              <div className="empty-placeholder-wrapper combiner-empty-overlay">
+                <div className="empty-placeholder-card">
+                  <Upload size={48} className="empty-placeholder-icon" />
+                  <h3>結合する画像を追加してください</h3>
+                  <p>複数枚の画像を選択してキャンバスに配置できます。</p>
+                  <label className="btn btn--primary btn--icon-flex empty-placeholder-upload-btn">
+                    <Upload size={18} />
+                    画像を選択
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      multiple
+                      style={{ display: 'none' }}
+                      onClick={e => { (e.target as HTMLInputElement).value = ''; }} 
+                      onChange={uploadImage} 
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* モバイル用クイックアクションバー＆サブバー */}
+          <div className="mobile-combiner-quickbar-container">
+            <div className="mobile-combiner-quickbar">
+              <label className="btn quick-btn quick-upload-label" title="画像を追加">
+                <Upload size={18} />
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  multiple
+                  style={{ display: 'none' }}
+                  onClick={e => { (e.target as HTMLInputElement).value = ''; }} 
+                  onChange={uploadImage} 
+                />
+              </label>
+              <div className="quickbar-divider" />
+              <button 
+                type="button" 
+                className="btn quick-btn" 
+                onClick={() => adjustLayer('front')} 
+                title="最前面へ"
+              >
+                <ChevronsUp size={18} />
+              </button>
+              <button 
+                type="button" 
+                className="btn quick-btn" 
+                onClick={() => adjustLayer('back')} 
+                title="最背面へ"
+              >
+                <ChevronsDown size={18} />
+              </button>
+              <button 
+                type="button" 
+                className="btn quick-btn" 
+                onClick={() => adjustLayer('forward')} 
+                title="前面へ"
+              >
+                <ChevronUp size={18} />
+              </button>
+              <button 
+                type="button" 
+                className="btn quick-btn" 
+                onClick={() => adjustLayer('backward')} 
+                title="背面へ"
+              >
+                <ChevronDown size={18} />
+              </button>
+              <div className="quickbar-divider" />
+              <button 
+                type="button" 
+                onClick={undo} 
+                className="btn quick-btn" 
+                title="元に戻す"
+              >
+                <Undo2 size={18} />
+              </button>
+              <button 
+                type="button" 
+                onClick={redo} 
+                className="btn quick-btn" 
+                title="やり直す"
+              >
+                <Redo2 size={18} />
+              </button>
+              <button 
+                type="button" 
+                onClick={deleteSelected} 
+                className="btn quick-btn btn--danger" 
+                title="選択画像を削除"
+              >
+                <Trash2 size={18} />
+              </button>
+              <div className="quickbar-divider" />
+              <button 
+                type="button" 
+                onClick={download} 
+                className="btn quick-btn btn--primary" 
+                title="結合画像をダウンロード"
+              >
+                <Download size={18} />
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)} 
+                className={`btn quick-btn ${isMoreMenuOpen ? 'is-selected' : ''}`} 
+                title="追加設定・保存メニュー"
+              >
+                <SlidersHorizontal size={18} />
+              </button>
+            </div>
+
+            {/* 2行目折りたたみサブバー */}
+            {isMoreMenuOpen && (
+              <div className="mobile-combiner-subbar">
+                <button
+                  type="button"
+                  onClick={saveToGallery}
+                  className="btn btn--sm btn--success btn--icon-flex"
+                >
+                  <FolderPlus size={15} /> 共有ギャラリー保存
+                </button>
+                <div className="mobile-combiner-slider-row">
+                  <span className="mobile-slider-label">ガイド: {guideThickness}px</span>
+                  <input 
+                    type="range" 
+                    min={GUIDE_THICKNESS_MIN} 
+                    max={GUIDE_THICKNESS_MAX} 
+                    value={guideThickness}
+                    onChange={e => setGuideThickness(parseInt(e.target.value, 10))}
+                    className="mobile-subbar-slider"
+                  />
+                </div>
+                {selectedSize && (
+                  <span className="mobile-size-badge">
+                    {`${selectedSize.width.toFixed(0)} × ${selectedSize.height.toFixed(0)} px`}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

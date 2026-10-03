@@ -17,6 +17,7 @@ import {
   ZoomOut,
   Maximize2,
   Pipette,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { usePaintCanvas } from '../hooks/usePaintCanvas';
 import { useGallery } from '../../gallery/context/GalleryContext';
@@ -70,6 +71,8 @@ const ERASER_MODES: EraserModeDef[] = [
 export default function PaintComponent() {
   const { toast } = useToast();
   const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
+  const [mobileTab, setMobileTab] = useState<'canvas' | 'gallery'>('canvas');
+  const [mobileDrawer, setMobileDrawer] = useState<'color' | 'size' | 'menu' | null>(null);
   const paletteRef = useRef<HTMLDivElement | null>(null);
   const {
     containerRef,
@@ -176,6 +179,7 @@ export default function PaintComponent() {
       const file = e.target.files?.[0];
       if (file) {
         loadFile(file);
+        setMobileTab('canvas');
       }
       e.target.value = '';
     },
@@ -186,6 +190,7 @@ export default function PaintComponent() {
   const handleGalleryItemClick = useCallback(
     (img: GalleryImage) => {
       loadImageFromDataUrl(img.dataUrl, img.name);
+      setMobileTab('canvas');
     },
     [loadImageFromDataUrl]
   );
@@ -312,7 +317,7 @@ export default function PaintComponent() {
   }, [mediaType, fileName, totalPages, currentPage, getCurrentMergedDataUrl, galleryImages, addImages, toast]);
 
   return (
-    <div className="editor-container">
+    <div className={`editor-container paint-container mobile-view-${mobileTab}`}>
       {/* ローディングオーバーレイ */}
       {isLoading && (
         <div className="loading-overlay">
@@ -321,6 +326,29 @@ export default function PaintComponent() {
           </div>
         </div>
       )}
+
+      {/* モバイル専用セグメントタブバー */}
+      <div className="mobile-paint-tabs" role="tablist" aria-label="表示切り替え">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'canvas'}
+          className={`mobile-paint-tab ${mobileTab === 'canvas' ? 'is-active' : ''}`}
+          onClick={() => { setMobileTab('canvas'); setMobileDrawer(null); }}
+        >
+          <span>ペイント</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mobileTab === 'gallery'}
+          className={`mobile-paint-tab ${mobileTab === 'gallery' ? 'is-active' : ''}`}
+          onClick={() => { setMobileTab('gallery'); setMobileDrawer(null); }}
+        >
+          <span>ギャラリー</span>
+          {galleryItems.length > 0 && <span className="mobile-tab-count">({galleryItems.length})</span>}
+        </button>
+      </div>
 
       <div className="editor-layout">
         {/* 左サイドバー: 共有ギャラリー */}
@@ -468,6 +496,178 @@ export default function PaintComponent() {
                     <Maximize2 size={15} />
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* モバイル用ペイントツールバー */}
+            {mediaType && (
+              <div className="mobile-paint-toolbar">
+                <div className="mobile-paint-tools">
+                  {TOOLS.map((tool) => {
+                    const Icon = tool.icon;
+                    return (
+                      <button
+                        key={tool.id}
+                        type="button"
+                        className={`btn-tool mobile-tool-btn ${activeTool === tool.id ? 'is-active' : ''}`}
+                        onClick={() => { setActiveTool(tool.id); setMobileDrawer(null); }}
+                        title={tool.title}
+                      >
+                        <Icon size={18} />
+                        <span>{tool.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mobile-paint-quick-controls">
+                  {/* 描画色サークルボタン (タップでカラーパレットドロワー) */}
+                  {activeTool !== 'eraser' && (
+                    <button
+                      type="button"
+                      className="mobile-paint-color-swatch-btn"
+                      onClick={() => setMobileDrawer(prev => prev === 'color' ? null : 'color')}
+                      title="色を選択"
+                    >
+                      <span className="mobile-color-circle" style={{ backgroundColor: color }} />
+                    </button>
+                  )}
+
+                  {/* ブラシ太さボタン (タップでサイズスライダードロワー) */}
+                  <button
+                    type="button"
+                    className="mobile-paint-size-btn"
+                    onClick={() => setMobileDrawer(prev => prev === 'size' ? null : 'size')}
+                    title="太さを変更"
+                  >
+                    <span>{brushSize}px</span>
+                  </button>
+
+                  <div className="quickbar-divider" />
+
+                  {/* Undo / Redo */}
+                  <button
+                    type="button"
+                    onClick={undo}
+                    disabled={!canUndo || isLoading}
+                    className="btn quick-btn"
+                    title="1つ戻る"
+                  >
+                    <Undo2 size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={redo}
+                    disabled={!canRedo || isLoading}
+                    className="btn quick-btn"
+                    title="やり直す"
+                  >
+                    <Redo2 size={18} />
+                  </button>
+
+                  {/* WebPクイック保存 */}
+                  <button
+                    type="button"
+                    onClick={exportAsImage}
+                    disabled={isLoading}
+                    className="btn quick-btn btn--primary"
+                    title="画像として保存 (WebP)"
+                  >
+                    <Download size={18} />
+                  </button>
+
+                  {/* メニュー展開ボタン */}
+                  <button
+                    type="button"
+                    onClick={() => setMobileDrawer(prev => prev === 'menu' ? null : 'menu')}
+                    className={`btn quick-btn ${mobileDrawer === 'menu' ? 'is-selected' : ''}`}
+                    title="保存・その他メニュー"
+                  >
+                    <SlidersHorizontal size={18} />
+                  </button>
+                </div>
+
+                {/* モバイル用メニュー（保存・クリア）ドロワー */}
+                {mobileDrawer === 'menu' && (
+                  <div className="mobile-paint-drawer">
+                    <div className="mobile-drawer-header">
+                      <span>保存・その他メニュー</span>
+                      <button type="button" className="mobile-drawer-close" onClick={() => setMobileDrawer(null)}>×</button>
+                    </div>
+                    <div className="mobile-drawer-content" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => { exportAsPdf(); setMobileDrawer(null); }}
+                        disabled={isLoading}
+                        className="btn btn--primary btn-full btn--icon-flex"
+                      >
+                        <FileText size={16} /> {totalPages > 1 ? `全${totalPages}ページをPDF保存` : 'PDFとして保存'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { handleSaveToGallery(); setMobileDrawer(null); }}
+                        disabled={isLoading}
+                        className="btn btn--secondary btn-full btn--icon-flex"
+                      >
+                        <FolderPlus size={16} /> 共有ギャラリーに保存
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { clearCurrentCanvas(); setMobileDrawer(null); }}
+                        disabled={!canUndo || isLoading}
+                        className="btn btn--danger btn-full btn--icon-flex"
+                      >
+                        <Trash2 size={16} /> 描画を全消去
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* モバイル用カラーパレットドロワー */}
+                {mobileDrawer === 'color' && (
+                  <div className="mobile-paint-drawer">
+                    <div className="mobile-drawer-header">
+                      <span>カラーパレット（20色）</span>
+                      <button type="button" className="mobile-drawer-close" onClick={() => setMobileDrawer(null)}>×</button>
+                    </div>
+                    <div className="paint-palette-grid">
+                      {PAINT_CONFIG.COLOR_PALETTE.map((item) => (
+                        <button
+                          key={item.color}
+                          type="button"
+                          className={`paint-color-swatch ${color.toLowerCase() === item.color.toLowerCase() ? 'is-selected' : ''}`}
+                          style={{ backgroundColor: item.color }}
+                          onClick={() => {
+                            setColor(item.color);
+                            setMobileDrawer(null);
+                          }}
+                          title={item.label}
+                          aria-label={item.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* モバイル用ブラシサイズドロワー */}
+                {mobileDrawer === 'size' && (
+                  <div className="mobile-paint-drawer">
+                    <div className="mobile-drawer-header">
+                      <span>太さ調整: {brushSize}px</span>
+                      <button type="button" className="mobile-drawer-close" onClick={() => setMobileDrawer(null)}>×</button>
+                    </div>
+                    <div className="mobile-size-slider-row">
+                      <input
+                        type="range"
+                        min={PAINT_CONFIG.MIN_BRUSH_SIZE}
+                        max={PAINT_CONFIG.MAX_BRUSH_SIZE}
+                        value={brushSize}
+                        onChange={(e) => setBrushSize(Number(e.target.value))}
+                        className="slider"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
         </div>
