@@ -355,28 +355,20 @@ body.is-dragging * {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 8px 12px 10px 12px;
+    gap: 8px;
+    padding: 6px 8px 8px 8px;
     border-top: 1px dashed var(--border-color);
     background: rgba(0, 0, 0, 0.15);
     animation: fadeIn 0.2s ease;
-  }
-
-  .mobile-pdf-subbar .btn {
-    flex: 1;
-    max-width: 180px;
-    padding: 8px 12px;
-    font-size: 0.85rem;
-    font-weight: 600;
   }
 
   /* モバイル用固定アクションバー */
   .mobile-pdf-actionbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 8px;
-    padding: 8px 12px;
+    padding: 6px 12px;
     background: var(--bg-surface-glass);
     backdrop-filter: blur(12px);
     border-top: 1px solid var(--border-color);
@@ -387,15 +379,20 @@ body.is-dragging * {
     box-sizing: border-box;
   }
 
-  .mobile-pdf-generate-btn {
-    flex: 1;
+  .mobile-pdf-actionbar .quick-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 10px 16px;
+    flex-shrink: 0;
+  }
+
+  .mobile-pdf-generate-btn {
+    flex: 0 0 auto;
     font-weight: 600;
-    font-size: 0.9rem;
     box-sizing: border-box;
   }
 

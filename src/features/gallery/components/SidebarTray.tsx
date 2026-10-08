@@ -141,28 +141,15 @@ export default function SidebarTray({
   }, [selectedIds, onDeleteItems]);
 
   return (
-    <div
-      ref={trayRef}
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-      className={`sidebar-tray ${isOpen ? 'sidebar-tray--open' : ''} sidebar-tray--${viewMode}`}
-    >
+    <div ref={trayRef} onKeyDown={handleKeyDown} tabIndex={0} className={`sidebar-tray ${isOpen ? 'sidebar-tray--open' : ''} sidebar-tray--${viewMode}`}>
       <div className="sidebar-tray__header" onClick={onToggle}>
         <h3 className="sidebar-tray__title">{title}</h3>
         <div className="sidebar-tray__controls" onClick={(e) => e.stopPropagation()}>
           <div className="sidebar-tray__view-buttons">
-            <button 
-              className={`sidebar-tray__view-btn ${viewMode === 'grid' ? 'active' : ''}`} 
-              onClick={() => setViewMode('grid')}
-              aria-label="グリッド表示"
-            >
+            <button className={`sidebar-tray__view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')} aria-label="グリッド表示">
               <LayoutGrid size={16} />
             </button>
-            <button 
-              className={`sidebar-tray__view-btn ${viewMode === 'list' ? 'active' : ''}`} 
-              onClick={() => setViewMode('list')}
-              aria-label="リスト表示"
-            >
+            <button className={`sidebar-tray__view-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')} aria-label="リスト表示">
               <List size={16} />
             </button>
           </div>
@@ -178,33 +165,14 @@ export default function SidebarTray({
         ) : (
           <ul className="sidebar-tray__list">
             {items.map((item) => (
-              <TrayItem
-                key={item.id}
-                item={item}
-                isSelected={selectedIds.has(item.id)}
-                isEditing={editingId === item.id}
-                renameValue={renameValue}
-                actionText={actionText}
-                onItemClick={handleItemClick}
-                onContextMenu={handleContextMenu}
-                onRenameChange={setRenameValue}
-                onRenameSubmit={handleRenameSubmit}
-                onRenameKeyDown={handleRenameKeyDown}
-              />
+              <TrayItem key={item.id} item={item} isSelected={selectedIds.has(item.id)} isEditing={editingId === item.id} renameValue={renameValue} actionText={actionText} onItemClick={handleItemClick} onContextMenu={handleContextMenu} onRenameChange={setRenameValue} onRenameSubmit={handleRenameSubmit} onRenameKeyDown={handleRenameKeyDown} />
             ))}
           </ul>
         )}
       </div>
 
       {contextMenu && (
-        <div
-          className="context-menu"
-          style={{
-            top: contextMenu.y,
-            left: contextMenu.x,
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="context-menu" style={{ top: contextMenu.y, left: contextMenu.x }} onClick={(e) => e.stopPropagation()}>
           <ul className="context-menu__list">
             <li className="context-menu__item" onClick={() => startRename(contextMenu.id)}>
               <Edit2 size={14} />名前の変更

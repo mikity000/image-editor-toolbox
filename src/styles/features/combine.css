@@ -212,6 +212,12 @@
     display: none !important;
   }
 
+  /* 2. 画像一覧表示 */
+  .combiner-container.mobile-view-list .combiner-main,
+  .combiner-container.mobile-view-list .editor-sidebar {
+    display: none !important;
+  }
+
   .combiner-container.mobile-view-list .editor-left-sidebar {
     display: flex !important;
     flex: 1;
@@ -220,9 +226,9 @@
     width: 100%;
   }
 
-  /* 一覧タブでは共有ギャラリーを折りたたみ/非表示にし一覧を前面化 */
-  .combiner-container.mobile-view-list .editor-left-sidebar .sidebar-tray:first-child .sidebar-tray__content {
-    display: none;
+  /* 一覧タブでは共有ギャラリーを完全に非表示にし、画像一覧のみを表示 */
+  .combiner-container.mobile-view-list .editor-left-sidebar .sidebar-tray:first-child {
+    display: none !important;
   }
 
   .combiner-container.mobile-view-list .editor-left-sidebar .sidebar-tray:last-child .sidebar-tray__content {
@@ -245,8 +251,9 @@
     width: 100%;
   }
 
+  /* ギャラリータブでは画像一覧を完全に非表示にし、共有ギャラリーのみを表示 */
   .combiner-container.mobile-view-gallery .editor-left-sidebar .sidebar-tray:last-child {
-    display: none;
+    display: none !important;
   }
 
   .combiner-container.mobile-view-gallery .editor-left-sidebar .sidebar-tray:first-child .sidebar-tray__content {
@@ -269,6 +276,39 @@
     padding: 1rem;
     box-sizing: border-box;
     width: 100%;
+  }
+
+  .mobile-combiner-quickbar {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 6px 8px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .mobile-combiner-quickbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-combiner-quickbar .quick-btn {
+    width: 35px;
+    height: 35px;
+    min-width: 35px;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .mobile-combiner-quickbar .quickbar-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border-color);
+    margin: 0 2px;
+    flex-shrink: 0;
   }
 
   /* モバイル用クイックバーコンテナ＆サブバー */
@@ -294,11 +334,16 @@
     align-items: center;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 10px;
-    padding: 8px 12px 10px 12px;
+    gap: 6px;
+    padding: 6px 8px 8px 8px;
     border-top: 1px dashed var(--border-color);
     background: rgba(0, 0, 0, 0.15);
     animation: fadeIn 0.2s ease;
+  }
+
+  .mobile-combiner-subbar .btn--sm {
+    padding: 5px 8px;
+    font-size: 0.8rem;
   }
 
   .mobile-combiner-slider-row {

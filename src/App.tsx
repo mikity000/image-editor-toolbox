@@ -63,26 +63,16 @@ function AppContent(): React.ReactElement {
         </nav>
 
         <div className="header-actions">
-          <button
-            className="help-btn-header"
-            onClick={() => setIsHelpOpen(true)}
-            aria-label="ヘルプ・操作ガイドを開く"
-            title="操作方法・ヘルプ"
-          >
+          <button className="help-btn-header" onClick={() => setIsHelpOpen(true)} aria-label="ヘルプ・操作ガイドを開く" title="操作方法・ヘルプ">
             <HelpCircle size={20} />
           </button>
-
           <button className="theme-toggle-btn" onClick={toggleTheme} aria-label="テーマ切り替え" title="テーマ切り替え">
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>
         </div>
       </header>
 
-      <HelpModal
-        isOpen={isHelpOpen}
-        onClose={() => setIsHelpOpen(false)}
-        currentPath={currentPath}
-      />
+      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} currentPath={currentPath} />
 
       <div className="app-body">
         <main className="main-content main-content--relative">

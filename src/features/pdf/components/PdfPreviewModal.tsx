@@ -1,16 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import {
-  X,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  FileText,
-  Layers,
-  Loader2,
-} from 'lucide-react';
+import { X, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, FileText, Layers, Loader2 } from 'lucide-react';
 import { loadPdfDocument, renderPdfPage, RenderedPdfPage } from '../utils/pdfRenderUtils';
 
 export interface PdfPreviewModalProps {
@@ -403,13 +392,7 @@ export default function PdfPreviewModal({
   const currentScaledWidth = Math.round(BASE_PAGE_WIDTH * scale);
 
   return (
-    <div
-      className="pdf-preview-modal-overlay"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="pdf-preview-title"
-    >
+    <div className="pdf-preview-modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="pdf-preview-title">
       <div className="pdf-preview-modal-container" onClick={(e) => e.stopPropagation()}>
         {/* モーダルヘッダー */}
         <div className="pdf-preview-modal-header">
@@ -427,52 +410,22 @@ export default function PdfPreviewModal({
           <div className="pdf-preview-toolbar">
             {/* 表示モード切り替え */}
             <div className="preview-toolbar-group preview-mode-switch">
-              <button
-                type="button"
-                className={`preview-tool-btn ${viewMode === 'single' ? 'active' : ''}`}
-                onClick={() => toggleViewMode('single')}
-                title="単一ページ表示"
-                aria-label="単一ページ表示"
-              >
-                <Maximize2 size={16} />
-                <span className="btn-label-desktop">1ページ</span>
+              <button type="button" className={`preview-tool-btn ${viewMode === 'single' ? 'active' : ''}`} onClick={() => toggleViewMode('single')} title="単一ページ表示" aria-label="単一ページ表示">
+                <Maximize2 size={16} /><span className="btn-label-desktop">1ページ</span>
               </button>
-              <button
-                type="button"
-                className={`preview-tool-btn ${viewMode === 'continuous' ? 'active' : ''}`}
-                onClick={() => toggleViewMode('continuous')}
-                title="全ページ連続スクロール"
-                aria-label="全ページ連続スクロール"
-              >
-                <Layers size={16} />
-                <span className="btn-label-desktop">連続表示</span>
+              <button type="button" className={`preview-tool-btn ${viewMode === 'continuous' ? 'active' : ''}`} onClick={() => toggleViewMode('continuous')} title="全ページ連続スクロール" aria-label="全ページ連続スクロール">
+                <Layers size={16} /><span className="btn-label-desktop">連続表示</span>
               </button>
             </div>
 
             {/* ページナビゲーション（単一・連続スクロールどちらでも表示） */}
             {numPages > 0 && (
               <div className="preview-toolbar-group page-navigator">
-                <button
-                  type="button"
-                  className="preview-tool-btn icon-only"
-                  onClick={handlePrevPage}
-                  disabled={currentPage <= 1}
-                  title="前のページ (←)"
-                  aria-label="前のページ"
-                >
+                <button type="button" className="preview-tool-btn icon-only" onClick={handlePrevPage} disabled={currentPage <= 1} title="前のページ (←)" aria-label="前のページ">
                   <ChevronLeft size={18} />
                 </button>
-                <span className="page-indicator">
-                  <strong>{currentPage}</strong> / {numPages}
-                </span>
-                <button
-                  type="button"
-                  className="preview-tool-btn icon-only"
-                  onClick={handleNextPage}
-                  disabled={currentPage >= numPages}
-                  title="次のページ (→)"
-                  aria-label="次のページ"
-                >
+                <span className="page-indicator"><strong>{currentPage}</strong> / {numPages}</span>
+                <button type="button" className="preview-tool-btn icon-only" onClick={handleNextPage} disabled={currentPage >= numPages} title="次のページ (→)" aria-label="次のページ">
                   <ChevronRight size={18} />
                 </button>
               </div>
@@ -480,47 +433,21 @@ export default function PdfPreviewModal({
 
             {/* ズーム操作 */}
             <div className="preview-toolbar-group zoom-controls">
-              <button
-                type="button"
-                className="preview-tool-btn icon-only"
-                onClick={handleZoomOut}
-                disabled={scale <= 0.4}
-                title="縮小 (-)"
-                aria-label="縮小"
-              >
+              <button type="button" className="preview-tool-btn icon-only" onClick={handleZoomOut} disabled={scale <= 0.4} title="縮小 (-)" aria-label="縮小">
                 <ZoomOut size={16} />
               </button>
-              <button
-                type="button"
-                className="preview-tool-btn text-btn"
-                onClick={handleResetZoom}
-                title="ズームを100%にリセット"
-              >
+              <button type="button" className="preview-tool-btn text-btn" onClick={handleResetZoom} title="ズームを100%にリセット">
                 {Math.round(scale * 100)}%
               </button>
-              <button
-                type="button"
-                className="preview-tool-btn icon-only"
-                onClick={handleZoomIn}
-                disabled={scale >= 2.5}
-                title="拡大 (+)"
-                aria-label="拡大"
-              >
+              <button type="button" className="preview-tool-btn icon-only" onClick={handleZoomIn} disabled={scale >= 2.5} title="拡大 (+)" aria-label="拡大">
                 <ZoomIn size={16} />
               </button>
             </div>
           </div>
 
           <div className="pdf-preview-header-right">
-            <button
-              type="button"
-              className="btn btn--primary btn--icon-flex preview-header-save-btn"
-              onClick={onDownload}
-              disabled={isDownloading || isLoading}
-              title="作成されたPDFをダウンロード保存"
-            >
-              <Download size={16} />
-              <span>{isDownloading ? '保存中...' : 'PDFを保存'}</span>
+            <button type="button" className="btn btn--primary btn--icon-flex preview-header-save-btn" onClick={onDownload} disabled={isDownloading || isLoading} title="作成されたPDFをダウンロード保存">
+              <Download size={16} /><span>{isDownloading ? '保存中...' : 'PDFを保存'}</span>
             </button>
             <button className="pdf-preview-close-btn" onClick={onClose} aria-label="プレビューを閉じる">
               <X size={20} />
@@ -529,12 +456,7 @@ export default function PdfPreviewModal({
         </div>
 
         {/* プレビュー表示エリア */}
-        <div
-          ref={containerRef}
-          className={`pdf-preview-body ${viewMode}`}
-          onScroll={handleScroll}
-          onClick={handlePreviewAreaClick}
-        >
+        <div ref={containerRef} className={`pdf-preview-body ${viewMode}`} onScroll={handleScroll} onClick={handlePreviewAreaClick}>
           {isLoading && (
             <div className="preview-loading-state">
               <Loader2 className="spinner" size={40} />
@@ -562,15 +484,8 @@ export default function PdfPreviewModal({
                   const isZoomed = scale !== 1.0;
                   return (
                     <div className={`preview-page-card single-card ${isZoomed ? 'is-zoomed' : ''}`}>
-                      <div
-                        className={`preview-canvas-container single-page-container ${isZoomed ? 'is-zoomed' : ''}`}
-                        style={isZoomed ? { width: `${currentScaledWidth}px` } : undefined}
-                      >
-                        <img
-                          src={page.dataUrl}
-                          alt={`PDFページ ${page.pageNumber}`}
-                          className="preview-page-img"
-                        />
+                      <div className={`preview-canvas-container single-page-container ${isZoomed ? 'is-zoomed' : ''}`} style={isZoomed ? { width: `${currentScaledWidth}px` } : undefined}>
+                        <img src={page.dataUrl} alt={`PDFページ ${page.pageNumber}`} className="preview-page-img" />
                       </div>
                     </div>
                   );
@@ -579,20 +494,9 @@ export default function PdfPreviewModal({
                 // 全ページ連続スクロール表示（DOM幅ベースでスケーリングし、下部隙間を根治）
                 <div className="continuous-pages-list" style={{ width: `${currentScaledWidth}px` }}>
                   {renderedPages.map((page) => (
-                    <div
-                      key={page.pageNumber}
-                      ref={(el) => {
-                        if (el) pageRefs.current.set(page.pageNumber, el);
-                        else pageRefs.current.delete(page.pageNumber);
-                      }}
-                      className={`preview-page-card ${currentPage === page.pageNumber ? 'current' : ''}`}
-                    >
+                    <div key={page.pageNumber} ref={(el) => { if (el) pageRefs.current.set(page.pageNumber, el); else pageRefs.current.delete(page.pageNumber); }} className={`preview-page-card ${currentPage === page.pageNumber ? 'current' : ''}`}>
                       <div className="preview-canvas-container">
-                        <img
-                          src={page.dataUrl}
-                          alt={`PDFページ ${page.pageNumber}`}
-                          className="preview-page-img"
-                        />
+                        <img src={page.dataUrl} alt={`PDFページ ${page.pageNumber}`} className="preview-page-img" />
                       </div>
                     </div>
                   ))}

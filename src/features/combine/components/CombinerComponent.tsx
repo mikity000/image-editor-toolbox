@@ -31,12 +31,7 @@ export default function CombinerComponent() {
   const { toast } = useToast();
 
   const galleryItems: TrayItemData[] = useMemo(() => {
-    return galleryImages.map(img => ({
-      id: img.id,
-      name: img.name,
-      dataUrl: img.dataUrl,
-      rawItem: img
-    }));
+    return galleryImages.map(img => ({ id: img.id, name: img.name, dataUrl: img.dataUrl, rawItem: img }));
   }, [galleryImages]);
 
   // カスタムフック
@@ -67,16 +62,7 @@ export default function CombinerComponent() {
         scale = Math.min(maxW / (imgEl.width || 1), maxH / (imgEl.height || 1));
       }
 
-      const fabricImg = new FabricImage(imgEl, {
-        left: left - (imgEl.width * scale) / 2,
-        top: top - (imgEl.height * scale) / 2,
-        scaleX: scale,
-        scaleY: scale,
-        angle: 0,
-        selectable: true,
-        hasControls: true,
-        lockUniScaling: false,
-      });
+      const fabricImg = new FabricImage(imgEl, { left: left - (imgEl.width * scale) / 2, top: top - (imgEl.height * scale) / 2, scaleX: scale, scaleY: scale, angle: 0, selectable: true, hasControls: true, lockUniScaling: false });
       fabricImg.id = generateUniqueId('canvas-img');
       fabricImg.origSrc = image.dataUrl;
       fabricImg.fileName = image.name;
@@ -159,16 +145,7 @@ export default function CombinerComponent() {
           imgEl.crossOrigin = 'anonymous';
           imgEl.src = dataURL;
           imgEl.onload = () => {
-            const fabricImg = new FabricImage(imgEl, {
-              left,
-              top,
-              scaleX: 1,
-              scaleY: 1,
-              angle: 0,
-              selectable: true,
-              hasControls: true,
-              lockUniScaling: false,
-            });
+            const fabricImg = new FabricImage(imgEl, { left, top, scaleX: 1, scaleY: 1, angle: 0, selectable: true, hasControls: true, lockUniScaling: false });
             fabricImg.id = generateUniqueId('canvas-img');
             fabricImg.origSrc = dataURL;
             fabricImg.fileName = file.name;
@@ -347,10 +324,7 @@ export default function CombinerComponent() {
     try {
       const newName = getSequentialName('結合', galleryImages);
       const dataURL = await convertToWebP(dataURLPng);
-      addImages({
-        name: newName,
-        dataUrl: dataURL
-      });
+      addImages({ name: newName, dataUrl: dataURL });
     } catch (err) {
       console.error('ギャラリーへの保存に失敗しました:', err);
       toast.error('ギャラリーへの保存に失敗しました。');
@@ -376,15 +350,8 @@ export default function CombinerComponent() {
 
   const normalizedCanvasItems: TrayItemData[] = useMemo(() => {
     return imageList.map((imgObj) => {
-      if (!imgObj.id) {
-        imgObj.id = generateUniqueId('canvas-img');
-      }
-      return {
-        id: imgObj.id,
-        name: imgObj.fileName || '名称未設定',
-        dataUrl: imgObj.origSrc || '',
-        rawItem: imgObj
-      };
+      if (!imgObj.id) imgObj.id = generateUniqueId('canvas-img');
+      return { id: imgObj.id, name: imgObj.fileName || '名称未設定', dataUrl: imgObj.origSrc || '', rawItem: imgObj };
     });
   }, [imageList]);
 
@@ -394,32 +361,14 @@ export default function CombinerComponent() {
     <div className={`editor-container combiner-container mobile-view-${mobileTab}`}>
       {/* モバイル専用セグメントタブバー */}
       <div className="mobile-combiner-tabs" role="tablist" aria-label="表示切り替え">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mobileTab === 'canvas'}
-          className={`mobile-combiner-tab ${mobileTab === 'canvas' ? 'is-active' : ''}`}
-          onClick={() => setMobileTab('canvas')}
-        >
+        <button type="button" role="tab" aria-selected={mobileTab === 'canvas'} className={`mobile-combiner-tab ${mobileTab === 'canvas' ? 'is-active' : ''}`} onClick={() => setMobileTab('canvas')}>
           <span>キャンバス</span>
         </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mobileTab === 'list'}
-          className={`mobile-combiner-tab ${mobileTab === 'list' ? 'is-active' : ''}`}
-          onClick={() => setMobileTab('list')}
-        >
+        <button type="button" role="tab" aria-selected={mobileTab === 'list'} className={`mobile-combiner-tab ${mobileTab === 'list' ? 'is-active' : ''}`} onClick={() => setMobileTab('list')}>
           <span>一覧</span>
           {normalizedCanvasItems.length > 0 && <span className="mobile-tab-count">({normalizedCanvasItems.length})</span>}
         </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mobileTab === 'gallery'}
-          className={`mobile-combiner-tab ${mobileTab === 'gallery' ? 'is-active' : ''}`}
-          onClick={() => setMobileTab('gallery')}
-        >
+        <button type="button" role="tab" aria-selected={mobileTab === 'gallery'} className={`mobile-combiner-tab ${mobileTab === 'gallery' ? 'is-active' : ''}`} onClick={() => setMobileTab('gallery')}>
           <span>ギャラリー</span>
           {galleryItems.length > 0 && <span className="mobile-tab-count">({galleryItems.length})</span>}
         </button>
@@ -427,30 +376,9 @@ export default function CombinerComponent() {
 
       <div className="editor-layout">
         <div className="editor-left-sidebar">
-          <SidebarTray
-            title="共有ギャラリー"
-            trayType="gallery"
-            isOpen={isGalleryOpen}
-            onToggle={() => setIsGalleryOpen(!isGalleryOpen)}
-            emptyMessage={<>ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。</>}
-            items={galleryItems}
-            onClickItem={addImageFromGallery}
-            onDeleteItems={removeImage}
-            onRenameItem={renameImage}
-            actionText="追加する"
-          />
+          <SidebarTray title="共有ギャラリー" trayType="gallery" isOpen={isGalleryOpen} onToggle={() => setIsGalleryOpen(!isGalleryOpen)} emptyMessage={<>ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。</>} items={galleryItems} onClickItem={addImageFromGallery} onDeleteItems={removeImage} onRenameItem={renameImage} actionText="追加する" />
           
-          <SidebarTray
-            title="画像一覧"
-            trayType="list"
-            isOpen={isCanvasListOpen}
-            onToggle={() => setIsCanvasListOpen(!isCanvasListOpen)}
-            emptyMessage={<>キャンバスは空です。<br />画像をアップロードするか、ギャラリーから追加してください。</>}
-            items={normalizedCanvasItems}
-            onClickItem={clickImageList}
-            onDeleteItems={deleteCanvasImages}
-            onRenameItem={renameCanvasImage}
-          />
+          <SidebarTray title="画像一覧" trayType="list" isOpen={isCanvasListOpen} onToggle={() => setIsCanvasListOpen(!isCanvasListOpen)} emptyMessage={<>キャンバスは空です。<br />画像をアップロードするか、ギャラリーから追加してください。</>} items={normalizedCanvasItems} onClickItem={clickImageList} onDeleteItems={deleteCanvasImages} onRenameItem={renameCanvasImage} />
         </div>
 
         <div className="editor-main combiner-main">
@@ -465,14 +393,7 @@ export default function CombinerComponent() {
                   <label className="btn btn--primary btn--icon-flex empty-placeholder-upload-btn">
                     <Upload size={18} />
                     画像を選択
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      multiple
-                      style={{ display: 'none' }}
-                      onClick={e => { (e.target as HTMLInputElement).value = ''; }} 
-                      onChange={uploadImage} 
-                    />
+                    <input type="file" accept="image/*" multiple style={{ display: 'none' }} onClick={e => { (e.target as HTMLInputElement).value = ''; }} onChange={uploadImage} />
                   </label>
                 </div>
               </div>
@@ -484,88 +405,36 @@ export default function CombinerComponent() {
             <div className="mobile-combiner-quickbar">
               <label className="btn quick-btn quick-upload-label" title="画像を追加">
                 <Upload size={18} />
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  multiple
-                  style={{ display: 'none' }}
-                  onClick={e => { (e.target as HTMLInputElement).value = ''; }} 
-                  onChange={uploadImage} 
-                />
+                <input type="file" accept="image/*" multiple style={{ display: 'none' }} onClick={e => { (e.target as HTMLInputElement).value = ''; }} onChange={uploadImage} />
               </label>
               <div className="quickbar-divider" />
-              <button 
-                type="button" 
-                className="btn quick-btn" 
-                onClick={() => adjustLayer('front')} 
-                title="最前面へ"
-              >
+              <button type="button" className="btn quick-btn" onClick={() => adjustLayer('front')} title="最前面へ">
                 <ChevronsUp size={18} />
               </button>
-              <button 
-                type="button" 
-                className="btn quick-btn" 
-                onClick={() => adjustLayer('back')} 
-                title="最背面へ"
-              >
+              <button type="button" className="btn quick-btn" onClick={() => adjustLayer('back')} title="最背面へ">
                 <ChevronsDown size={18} />
               </button>
-              <button 
-                type="button" 
-                className="btn quick-btn" 
-                onClick={() => adjustLayer('forward')} 
-                title="前面へ"
-              >
+              <button type="button" className="btn quick-btn" onClick={() => adjustLayer('forward')} title="前面へ">
                 <ChevronUp size={18} />
               </button>
-              <button 
-                type="button" 
-                className="btn quick-btn" 
-                onClick={() => adjustLayer('backward')} 
-                title="背面へ"
-              >
+              <button type="button" className="btn quick-btn" onClick={() => adjustLayer('backward')} title="背面へ">
                 <ChevronDown size={18} />
               </button>
               <div className="quickbar-divider" />
-              <button 
-                type="button" 
-                onClick={undo} 
-                className="btn quick-btn" 
-                title="元に戻す"
-              >
+              <button type="button" onClick={undo} className="btn quick-btn" title="元に戻す">
                 <Undo2 size={18} />
               </button>
-              <button 
-                type="button" 
-                onClick={redo} 
-                className="btn quick-btn" 
-                title="やり直す"
-              >
+              <button type="button" onClick={redo} className="btn quick-btn" title="やり直す">
                 <Redo2 size={18} />
               </button>
-              <button 
-                type="button" 
-                onClick={deleteSelected} 
-                className="btn quick-btn btn--danger" 
-                title="選択画像を削除"
-              >
+              <button type="button" onClick={deleteSelected} className="btn quick-btn btn--danger" title="選択画像を削除">
                 <Trash2 size={18} />
               </button>
               <div className="quickbar-divider" />
-              <button 
-                type="button" 
-                onClick={download} 
-                className="btn quick-btn btn--primary" 
-                title="結合画像をダウンロード"
-              >
+              <button type="button" onClick={download} className="btn quick-btn btn--primary" title="結合画像をダウンロード">
                 <Download size={18} />
               </button>
-              <button 
-                type="button" 
-                onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)} 
-                className={`btn quick-btn ${isMoreMenuOpen ? 'is-selected' : ''}`} 
-                title="追加設定・保存メニュー"
-              >
+              <button type="button" onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)} className={`btn quick-btn ${isMoreMenuOpen ? 'is-selected' : ''}`} title="追加設定・保存メニュー">
                 <SlidersHorizontal size={18} />
               </button>
             </div>
@@ -573,23 +442,12 @@ export default function CombinerComponent() {
             {/* 2行目折りたたみサブバー */}
             {isMoreMenuOpen && (
               <div className="mobile-combiner-subbar">
-                <button
-                  type="button"
-                  onClick={saveToGallery}
-                  className="btn btn--sm btn--success btn--icon-flex"
-                >
-                  <FolderPlus size={15} /> 共有ギャラリー保存
+                <button type="button" onClick={saveToGallery} className="btn quick-btn btn--success" title="共有ギャラリーに保存" aria-label="共有ギャラリーに保存">
+                  <FolderPlus size={18} />
                 </button>
                 <div className="mobile-combiner-slider-row">
                   <span className="mobile-slider-label">ガイド: {guideThickness}px</span>
-                  <input 
-                    type="range" 
-                    min={GUIDE_THICKNESS_MIN} 
-                    max={GUIDE_THICKNESS_MAX} 
-                    value={guideThickness}
-                    onChange={e => setGuideThickness(parseInt(e.target.value, 10))}
-                    className="mobile-subbar-slider"
-                  />
+                  <input type="range" min={GUIDE_THICKNESS_MIN} max={GUIDE_THICKNESS_MAX} value={guideThickness} onChange={e => setGuideThickness(parseInt(e.target.value, 10))} className="mobile-subbar-slider" />
                 </div>
                 {selectedSize && (
                   <span className="mobile-size-badge">
@@ -604,24 +462,13 @@ export default function CombinerComponent() {
         <div className="editor-sidebar">
           <div className="sidebar-sticky-content">
             <div className="file-input">
-              <input 
-                type="file" 
-                accept="image/*" 
-                multiple 
-                className="file-input__control"
-                onClick={e => { (e.target as HTMLInputElement).value = ''; }} 
-                onChange={uploadImage}
-              />
+              <input type="file" accept="image/*" multiple className="file-input__control" onClick={e => { (e.target as HTMLInputElement).value = ''; }} onChange={uploadImage} />
             </div>
 
             <div className="button-group sidebar-buttons">
               <div className="undo-redo-wrapper">
-                <button onClick={undo} className="btn btn-undo-redo" aria-label="元に戻す">
-                  <Undo2 size={18} />
-                </button>
-                <button onClick={redo} className="btn btn-undo-redo" aria-label="やり直す">
-                  <Redo2 size={18} />
-                </button>
+                <button onClick={undo} className="btn btn-undo-redo" aria-label="元に戻す"><Undo2 size={18} /></button>
+                <button onClick={redo} className="btn btn-undo-redo" aria-label="やり直す"><Redo2 size={18} /></button>
               </div>
 
               <div className="btn-full layer-controls-grid">
@@ -638,14 +485,7 @@ export default function CombinerComponent() {
 
             <div className="slider-group">
               <label>ガイドラインの太さ</label>
-              <input 
-                type="range" 
-                min={GUIDE_THICKNESS_MIN} 
-                max={GUIDE_THICKNESS_MAX} 
-                value={guideThickness}
-                onChange={e => setGuideThickness(parseInt(e.target.value, 10))}
-                style={{ '--thumb-percent': `${((guideThickness - GUIDE_THICKNESS_MIN) / (GUIDE_THICKNESS_MAX - GUIDE_THICKNESS_MIN)) * 100}%` } as React.CSSProperties}
-              />
+              <input type="range" min={GUIDE_THICKNESS_MIN} max={GUIDE_THICKNESS_MAX} value={guideThickness} onChange={e => setGuideThickness(parseInt(e.target.value, 10))} style={{ '--thumb-percent': `${((guideThickness - GUIDE_THICKNESS_MIN) / (GUIDE_THICKNESS_MAX - GUIDE_THICKNESS_MIN)) * 100}%` } as React.CSSProperties} />
               <span className="slider-group__value">{guideThickness}px</span>
             </div>
 

@@ -47,12 +47,7 @@ export default function PdfComponent() {
   const { galleryImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useContext(GalleryContext);
   
   const galleryItems = useMemo(() => {
-    return galleryImages.map(img => ({
-      id: img.id,
-      name: img.name,
-      dataUrl: img.dataUrl,
-      rawItem: img
-    }));
+    return galleryImages.map(img => ({ id: img.id, name: img.name, dataUrl: img.dataUrl, rawItem: img }));
   }, [galleryImages]);
 
   const [images, setImages] = useState<PdfPageItem[]>([]);
@@ -433,23 +428,11 @@ export default function PdfComponent() {
 
       {/* モバイル専用セグメントタブバー */}
       <div className="mobile-pdf-tabs" role="tablist" aria-label="表示切り替え">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mobileTab === 'list'}
-          className={`mobile-pdf-tab ${mobileTab === 'list' ? 'is-active' : ''}`}
-          onClick={() => setMobileTab('list')}
-        >
+        <button type="button" role="tab" aria-selected={mobileTab === 'list'} className={`mobile-pdf-tab ${mobileTab === 'list' ? 'is-active' : ''}`} onClick={() => setMobileTab('list')}>
           <span>ページ一覧</span>
           {images.length > 0 && <span className="mobile-tab-count">({images.length})</span>}
         </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mobileTab === 'gallery'}
-          className={`mobile-pdf-tab ${mobileTab === 'gallery' ? 'is-active' : ''}`}
-          onClick={() => setMobileTab('gallery')}
-        >
+        <button type="button" role="tab" aria-selected={mobileTab === 'gallery'} className={`mobile-pdf-tab ${mobileTab === 'gallery' ? 'is-active' : ''}`} onClick={() => setMobileTab('gallery')}>
           <span>ギャラリー</span>
           {galleryItems.length > 0 && <span className="mobile-tab-count">({galleryItems.length})</span>}
         </button>
@@ -472,29 +455,13 @@ export default function PdfComponent() {
         </div>
         
         <div className="editor-main pdf-main-content">
-          <DndContext 
-            sensors={sensors} 
-            collisionDetection={closestCenter} 
-            onDragStart={dragStart}
-            onDragOver={dragOver} 
-            onDragEnd={dragEnd} 
-            modifiers={[restrictToFirstScrollableAncestor]}
-          >
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart} onDragOver={dragOver} onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
             <SortableContext items={images.map(img => img.id)}>
               <div className="image-list-container">
                 {images.length > 0 ? (
                   <div className="image-list">
                     {images.map((image, index) => (
-                      <SortableImagePreview 
-                        key={image.id} 
-                        image={image} 
-                        images={images} 
-                        index={index}
-                        isSelected={selectedImages.has(image.id)} 
-                        onSelect={selectImage}
-                        activeId={activeId} 
-                        selectedImages={selectedImages}
-                      />
+                      <SortableImagePreview key={image.id} image={image} images={images} index={index} isSelected={selectedImages.has(image.id)} onSelect={selectImage} activeId={activeId} selectedImages={selectedImages} />
                     ))}
                   </div>
                 ) : (
@@ -506,15 +473,7 @@ export default function PdfComponent() {
                       <label className="btn btn--primary btn--icon-flex empty-placeholder-upload-btn">
                         <Upload size={18} />
                         ファイルを選択
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf"
-                          multiple
-                          disabled={isAnyLoading}
-                          onClick={e => { (e.target as HTMLInputElement).value = ''; }}
-                          onChange={handleFileInput}
-                          style={{ display: 'none' }}
-                        />
+                        <input type="file" accept="image/*,application/pdf" multiple disabled={isAnyLoading} onClick={e => { (e.target as HTMLInputElement).value = ''; }} onChange={handleFileInput} style={{ display: 'none' }} />
                       </label>
                     </div>
                   </div>
@@ -528,49 +487,22 @@ export default function PdfComponent() {
             <div className="mobile-pdf-actionbar">
               <label className="btn quick-btn quick-upload-label" title="画像・PDFを追加">
                 <Upload size={18} />
-                <input 
-                  type="file" 
-                  accept="image/*,application/pdf" 
-                  multiple 
-                  style={{ display: 'none' }}
-                  disabled={isAnyLoading}
-                  onClick={e => { (e.target as HTMLInputElement).value = ''; }} 
-                  onChange={handleFileInput}
-                />
+                <input type="file" accept="image/*,application/pdf" multiple style={{ display: 'none' }} disabled={isAnyLoading} onClick={e => { (e.target as HTMLInputElement).value = ''; }} onChange={handleFileInput} />
               </label>
-              <button
-                type="button"
-                onClick={handleOpenPreview}
-                disabled={images.length === 0 || isAnyLoading}
-                className="btn quick-btn"
-                title="プレビュー"
-              >
+              <button type="button" onClick={handleOpenPreview} disabled={images.length === 0 || isAnyLoading} className="btn quick-btn" title="プレビュー">
                 <Eye size={18} />
               </button>
-              <button
-                type="button"
-                onClick={handleGeneratePdf}
-                disabled={images.length === 0 || isAnyLoading}
-                className="btn btn--primary mobile-pdf-generate-btn"
-              >
-                <FileText size={18} />
-                <span>{isProcessing && !isPreviewGenerating ? `${pdfProgress}%` : 'PDF生成'}</span>
+              <button type="button" onClick={handleGeneratePdf} disabled={images.length === 0 || isAnyLoading} className={`btn quick-btn btn--primary mobile-pdf-generate-btn ${isProcessing && !isPreviewGenerating ? 'is-processing' : ''}`} title="PDF生成" aria-label="PDF生成">
+                {isProcessing && !isPreviewGenerating ? (
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{pdfProgress}%</span>
+                ) : (
+                  <FileText size={18} />
+                )}
               </button>
-              <button
-                type="button"
-                onClick={deleteSelected}
-                disabled={selectedImages.size === 0 || isAnyLoading}
-                className="btn quick-btn btn--danger"
-                title="選択画像を削除"
-              >
+              <button type="button" onClick={deleteSelected} disabled={selectedImages.size === 0 || isAnyLoading} className="btn quick-btn btn--danger" title="選択画像を削除">
                 <Trash2 size={18} />
               </button>
-              <button
-                type="button"
-                onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
-                className={`btn quick-btn ${isMoreMenuOpen ? 'is-selected' : ''}`}
-                title="その他メニュー（一括DL・リセット）"
-              >
+              <button type="button" onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)} className={`btn quick-btn ${isMoreMenuOpen ? 'is-selected' : ''}`} title="その他メニュー（一括DL・リセット）">
                 <SlidersHorizontal size={18} />
               </button>
             </div>
@@ -578,21 +510,11 @@ export default function PdfComponent() {
             {/* 2行目折りたたみサブバー */}
             {isMoreMenuOpen && (
               <div className="mobile-pdf-subbar">
-                <button
-                  type="button"
-                  onClick={downloadAllImages}
-                  disabled={images.length === 0 || isAnyLoading}
-                  className="btn btn--sm btn--primary btn--icon-flex"
-                >
-                  <Download size={15} /> {isZipping ? '準備中...' : '画像を一括DL'}
+                <button type="button" onClick={downloadAllImages} disabled={images.length === 0 || isAnyLoading} className="btn quick-btn btn--primary" title="画像を一括ダウンロード" aria-label="画像を一括ダウンロード">
+                  <Download size={18} />
                 </button>
-                <button
-                  type="button"
-                  onClick={resetImages}
-                  disabled={images.length === 0 || isAnyLoading}
-                  className="btn btn--sm btn--danger btn--icon-flex"
-                >
-                  <RotateCcw size={15} /> リセット
+                <button type="button" onClick={resetImages} disabled={images.length === 0 || isAnyLoading} className="btn quick-btn btn--danger" title="リセット" aria-label="リセット">
+                  <RotateCcw size={18} />
                 </button>
               </div>
             )}
@@ -603,53 +525,24 @@ export default function PdfComponent() {
           <div className="sidebar-sticky-content">
             {/* ファイル入力セクション */}
             <div className="file-input">
-              <input 
-                type="file" 
-                accept="image/*,application/pdf" 
-                multiple 
-                className="file-input__control" 
-                disabled={isAnyLoading}
-                onClick={e => { (e.target as HTMLInputElement).value = ''; }} 
-                onChange={handleFileInput}
-              />
+              <input type="file" accept="image/*,application/pdf" multiple className="file-input__control" disabled={isAnyLoading} onClick={e => { (e.target as HTMLInputElement).value = ''; }} onChange={handleFileInput} />
             </div>
 
             {/* 操作ボタン群 */}
             <div className="button-group sidebar-buttons">
-              <button 
-                onClick={deleteSelected} 
-                disabled={selectedImages.size === 0 || isAnyLoading} 
-                className="btn btn--danger btn-full btn--icon-flex"
-              >
+              <button onClick={deleteSelected} disabled={selectedImages.size === 0 || isAnyLoading} className="btn btn--danger btn-full btn--icon-flex">
                 <Trash2 size={18} />選択画像削除
               </button>
-              <button 
-                onClick={resetImages} 
-                disabled={images.length === 0 || isAnyLoading} 
-                className="btn btn--danger btn-full btn--icon-flex"
-              >
+              <button onClick={resetImages} disabled={images.length === 0 || isAnyLoading} className="btn btn--danger btn-full btn--icon-flex">
                 <RotateCcw size={18} />リセット
               </button>
-              <button 
-                onClick={handleOpenPreview} 
-                disabled={images.length === 0 || isAnyLoading} 
-                className="btn btn--primary btn-full btn--icon-flex"
-                title="作成予定のPDFをプレビュー"
-              >
+              <button onClick={handleOpenPreview} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full btn--icon-flex" title="作成予定のPDFをプレビュー">
                 <Eye size={18} />{isPreviewGenerating ? `プレビュー作成中... (${pdfProgress}%)` : 'PDFプレビュー'}
               </button>
-              <button 
-                onClick={handleGeneratePdf} 
-                disabled={images.length === 0 || isAnyLoading} 
-                className="btn btn--primary btn-full btn--icon-flex"
-              >
+              <button onClick={handleGeneratePdf} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full btn--icon-flex">
                 <FileText size={18} />{isProcessing && !isPreviewGenerating ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
               </button>
-              <button 
-                onClick={downloadAllImages} 
-                disabled={images.length === 0 || isAnyLoading} 
-                className="btn btn--primary btn-full btn--icon-flex"
-              >
+              <button onClick={downloadAllImages} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full btn--icon-flex">
                 <Download size={18} />{isZipping ? 'ダウンロード準備中...' : '画像を一括DL'}
               </button>
             </div>
@@ -688,15 +581,7 @@ interface SortableImagePreviewProps {
   selectedImages: Set<string>;
 }
 
-const SortableImagePreview = memo(function SortableImagePreview({
-  image,
-  images,
-  index,
-  isSelected,
-  onSelect,
-  activeId,
-  selectedImages,
-}: SortableImagePreviewProps) {
+const SortableImagePreview = memo(function SortableImagePreview({ image, images, index, isSelected, onSelect, activeId, selectedImages }: SortableImagePreviewProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: image.id });
   
   const showPlaceholder = isDragging || (activeId !== null && selectedImages.has(activeId) && isSelected);
@@ -709,13 +594,7 @@ const SortableImagePreview = memo(function SortableImagePreview({
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={wrapperStyle}
-      {...attributes}
-      {...listeners}
-      id={`preview-${image.id}`}
-    >
+    <div ref={setNodeRef} style={wrapperStyle} {...attributes} {...listeners} id={`preview-${image.id}`}>
       <div style={{ visibility: showPlaceholder ? 'hidden' : 'visible' }}>
         <ImagePreview image={image} index={index} isSelected={isSelected} onSelect={onSelect} />
       </div>
@@ -772,11 +651,7 @@ const DraggedItemStack = memo(function DraggedItemStack({
         const target = images.find(img => img.id === selId);
         if (!target) return null;
         return (
-          <div 
-            key={selId} 
-            className="image-preview-item selected stack"
-            style={{ zIndex: -(i + 1), transform: `translate(${(i + 1) * 5}px, ${(i + 1) * 5}px)` }}
-          >
+          <div key={selId} className="image-preview-item selected stack" style={{ zIndex: -(i + 1), transform: `translate(${(i + 1) * 5}px, ${(i + 1) * 5}px)` }}>
             <img src={target.dataUrl} alt="" className="thumbnail" />
           </div>
         );

@@ -103,3 +103,41 @@
 .image-info--no-margin {
   margin-top: 0px;
 }
+
+/* Quick Button & Toolbar Utilities for Mobile/Compact Views */
+.quick-btn {
+  width: 35px;
+  height: 35px;
+  min-width: 35px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius-sm);
+  background: var(--box-bg);
+  border: 1px solid var(--box-border);
+  color: var(--text-color);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-btn:hover:not(:disabled) {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.quick-btn.is-selected {
+  background: var(--nav-active-bg);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  box-shadow: 0 0 10px rgba(102, 252, 241, 0.25);
+}
+
+.quickbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-color);
+  margin: 0 2px;
+  flex-shrink: 0;
+}

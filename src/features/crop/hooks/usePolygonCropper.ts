@@ -278,11 +278,7 @@ export function usePolygonCropper(
       }
 
       if (initialPoints.length > 0) {
-        tempPointsRef.current = initialPoints.map((p) => ({
-          x: p.x,
-          y: p.y,
-          isSelected: false,
-        }));
+        tempPointsRef.current = initialPoints.map((p) => ({ x: p.x, y: p.y, isSelected: false }));
         rebuildTempShapes(canvas);
 
         magneticPreviewLineRef.current = null;
@@ -730,26 +726,5 @@ export function usePolygonCropper(
     return tempPointsRef.current.map((p) => ({ x: p.x, y: p.y, isSelected: !!p.isSelected }));
   }, []);
 
-  return {
-    polygonPointsRef,
-    tempPointsRef,
-    isMagneticMode,
-    setIsMagneticMode,
-    magneticThreshold,
-    setMagneticThreshold,
-    startPolygonDrawing,
-    handlePolygonMouseDown,
-    handlePolygonMouseMove,
-    handlePolygonMouseUp,
-    handlePolygonVertexMoving,
-    finishPolygonDrawing,
-    editPolygonVertices,
-    adjustActiveVertex,
-    deleteActiveVertex,
-    selectVertexAtPosition,
-    getTempPolygon,
-    getTempPoints,
-    handlePolygonVertexMouseDown,
-    clearVertexSelection,
-  };
+  return { polygonPointsRef, tempPointsRef, isMagneticMode, setIsMagneticMode, magneticThreshold, setMagneticThreshold, startPolygonDrawing, handlePolygonMouseDown, handlePolygonMouseMove, handlePolygonMouseUp, handlePolygonVertexMoving, finishPolygonDrawing, editPolygonVertices, adjustActiveVertex, deleteActiveVertex, selectVertexAtPosition, getTempPolygon, getTempPoints, handlePolygonVertexMouseDown, clearVertexSelection };
 }

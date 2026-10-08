@@ -1,23 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
-  Pencil,
-  Highlighter,
-  Eraser,
-  PaintBucket,
-  Undo2,
-  Redo2,
-  Trash2,
-  Download,
-  FileText,
-  FolderPlus,
-  ChevronLeft,
-  ChevronRight,
-  Upload,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  Pipette,
-  SlidersHorizontal,
+  Pencil, Highlighter, Eraser, PaintBucket, Undo2, Redo2, Trash2, Download,
+  FileText, FolderPlus, ChevronLeft, ChevronRight, Upload, ZoomIn, ZoomOut, Maximize2, Pipette, SlidersHorizontal
 } from 'lucide-react';
 import { usePaintCanvas } from '../hooks/usePaintCanvas';
 import { useGallery } from '../../gallery/context/GalleryContext';
@@ -75,53 +59,13 @@ export default function PaintComponent() {
   const [mobileDrawer, setMobileDrawer] = useState<'color' | 'size' | 'menu' | null>(null);
   const paletteRef = useRef<HTMLDivElement | null>(null);
   const {
-    containerRef,
-    bgCanvasRef,
-    paintCanvasRef,
-    mediaType,
-    fileName,
-    totalPages,
-    currentPage,
-    isLoading,
-    loadingText,
-    canvasDimensions,
-    activeTool,
-    setActiveTool,
-    fillMode,
-    setFillMode,
-    eraserMode,
-    setEraserMode,
-    color,
-    setColor,
-    brushSize,
-    setBrushSize,
-    tolerance,
-    setTolerance,
-    fillOpacity,
-    setFillOpacity,
-    gapClosing,
-    setGapClosing,
-    canUndo,
-    canRedo,
-    zoom,
-    pan,
-    isAltPressed,
-    handleWheel,
-    zoomIn,
-    zoomOut,
-    resetZoomPan,
-    loadFile,
-    loadImageFromDataUrl,
-    changePage,
-    handlePointerDown,
-    handlePointerMove,
-    handlePointerUp,
-    undo,
-    redo,
-    clearCurrentCanvas,
-    getCurrentMergedDataUrl,
-    exportAsImage,
-    exportAsPdf,
+    containerRef, bgCanvasRef, paintCanvasRef, mediaType, fileName, totalPages, currentPage,
+    isLoading, loadingText, canvasDimensions, activeTool, setActiveTool, fillMode, setFillMode,
+    eraserMode, setEraserMode, color, setColor, brushSize, setBrushSize, tolerance, setTolerance,
+    fillOpacity, setFillOpacity, gapClosing, setGapClosing, canUndo, canRedo, zoom, pan,
+    isAltPressed, handleWheel, zoomIn, zoomOut, resetZoomPan, loadFile, loadImageFromDataUrl,
+    changePage, handlePointerDown, handlePointerMove, handlePointerUp, undo, redo,
+    clearCurrentCanvas, getCurrentMergedDataUrl, exportAsImage, exportAsPdf,
   } = usePaintCanvas();
 
   const { galleryImages, addImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useGallery();
@@ -165,12 +109,7 @@ export default function PaintComponent() {
   const isWiderThanContainer = imgAspect >= containerAspect;
 
   const galleryItems: TrayItemData[] = useMemo(() => {
-    return galleryImages.map((img) => ({
-      id: img.id,
-      name: img.name,
-      dataUrl: img.dataUrl,
-      rawItem: img,
-    }));
+    return galleryImages.map((img) => ({ id: img.id, name: img.name, dataUrl: img.dataUrl, rawItem: img }));
   }, [galleryImages]);
 
   // ファイル選択ハンドラ
@@ -329,22 +268,10 @@ export default function PaintComponent() {
 
       {/* モバイル専用セグメントタブバー */}
       <div className="mobile-paint-tabs" role="tablist" aria-label="表示切り替え">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mobileTab === 'canvas'}
-          className={`mobile-paint-tab ${mobileTab === 'canvas' ? 'is-active' : ''}`}
-          onClick={() => { setMobileTab('canvas'); setMobileDrawer(null); }}
-        >
+        <button type="button" role="tab" aria-selected={mobileTab === 'canvas'} className={`mobile-paint-tab ${mobileTab === 'canvas' ? 'is-active' : ''}`} onClick={() => { setMobileTab('canvas'); setMobileDrawer(null); }}>
           <span>ペイント</span>
         </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mobileTab === 'gallery'}
-          className={`mobile-paint-tab ${mobileTab === 'gallery' ? 'is-active' : ''}`}
-          onClick={() => { setMobileTab('gallery'); setMobileDrawer(null); }}
-        >
+        <button type="button" role="tab" aria-selected={mobileTab === 'gallery'} className={`mobile-paint-tab ${mobileTab === 'gallery' ? 'is-active' : ''}`} onClick={() => { setMobileTab('gallery'); setMobileDrawer(null); }}>
           <span>ギャラリー</span>
           {galleryItems.length > 0 && <span className="mobile-tab-count">({galleryItems.length})</span>}
         </button>
@@ -358,13 +285,7 @@ export default function PaintComponent() {
             trayType="gallery"
             isOpen={isGalleryOpen}
             onToggle={() => setIsGalleryOpen(!isGalleryOpen)}
-            emptyMessage={
-              <>
-                ギャラリーは空です。
-                <br />
-                [共有ギャラリーに保存]ボタンを押下して画像を追加してください。
-              </>
-            }
+            emptyMessage={<>ギャラリーは空です。<br />[共有ギャラリーに保存]ボタンを押下して画像を追加してください。</>}
             items={galleryItems}
             onClickItem={handleGalleryItemClick}
             onDeleteItems={removeImage}
@@ -384,12 +305,7 @@ export default function PaintComponent() {
                   <label className="btn btn--primary btn--icon-flex paint-upload-btn">
                     <Upload size={18} />
                     ファイルを選択
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,application/pdf"
-                      onChange={handleFileInput}
-                      style={{ display: 'none' }}
-                    />
+                    <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleFileInput} style={{ display: 'none' }} />
                   </label>
                 </div>
               </div>
@@ -398,23 +314,11 @@ export default function PaintComponent() {
                 {/* 複数ページPDF ナビゲーションバー */}
                 {totalPages > 1 && (
                   <div className="paint-page-bar">
-                    <button
-                      type="button"
-                      className="btn btn--secondary btn--sm btn--icon-flex"
-                      onClick={() => changePage(currentPage - 1)}
-                      disabled={currentPage <= 1 || isLoading}
-                    >
+                    <button type="button" className="btn btn--secondary btn--sm btn--icon-flex" onClick={() => changePage(currentPage - 1)} disabled={currentPage <= 1 || isLoading}>
                       <ChevronLeft size={16} /> 前へ
                     </button>
-                    <span className="paint-page-indicator">
-                      {currentPage} / {totalPages} ページ
-                    </span>
-                    <button
-                      type="button"
-                      className="btn btn--secondary btn--sm btn--icon-flex"
-                      onClick={() => changePage(currentPage + 1)}
-                      disabled={currentPage >= totalPages || isLoading}
-                    >
+                    <span className="paint-page-indicator">{currentPage} / {totalPages} ページ</span>
+                    <button type="button" className="btn btn--secondary btn--sm btn--icon-flex" onClick={() => changePage(currentPage + 1)} disabled={currentPage >= totalPages || isLoading}>
                       次へ <ChevronRight size={16} />
                     </button>
                   </div>
@@ -426,8 +330,7 @@ export default function PaintComponent() {
                   style={{
                     width: isWiderThanContainer ? '100%' : 'auto',
                     height: isWiderThanContainer ? 'auto' : '100%',
-                    maxWidth: '100%',
-                    maxHeight: '100%',
+                    maxWidth: '100%', maxHeight: '100%',
                     aspectRatio: `${canvasDimensions.width} / ${canvasDimensions.height}`,
                     transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                     transformOrigin: 'center center',
@@ -440,20 +343,13 @@ export default function PaintComponent() {
                   <canvas
                     ref={paintCanvasRef}
                     className={`paint-canvas-draw tool-${activeTool} ${showBrushCursor ? 'has-brush-cursor' : ''} ${isAltPressed ? 'is-alt-pan' : ''}`}
-                    onPointerDown={onCanvasPointerDown}
-                    onPointerMove={onCanvasPointerMove}
-                    onPointerUp={onCanvasPointerUp}
-                    onPointerEnter={onCanvasPointerEnter}
-                    onPointerLeave={onCanvasPointerLeave}
+                    onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove} onPointerUp={onCanvasPointerUp}
+                    onPointerEnter={onCanvasPointerEnter} onPointerLeave={onCanvasPointerLeave}
                   />
 
                   {/* ブラシカーソルプレビュー (太さ・色・透明度のリアルタイム表示) */}
                   {showBrushCursor && (
-                    <div
-                      ref={cursorPreviewRef}
-                      className={`paint-cursor-preview tool-${activeTool}`}
-                      style={cursorPreviewStyle}
-                    >
+                    <div ref={cursorPreviewRef} className={`paint-cursor-preview tool-${activeTool}`} style={cursorPreviewStyle}>
                       <div className="paint-cursor-dot" />
                     </div>
                   )}
@@ -461,38 +357,16 @@ export default function PaintComponent() {
 
                 {/* フローティングズーム操作バー */}
                 <div className="paint-zoom-bar">
-                  <button
-                    type="button"
-                    className="btn-zoom"
-                    onClick={zoomOut}
-                    disabled={zoom <= 0.2}
-                    title="縮小 (ホイール下スクロール)"
-                  >
+                  <button type="button" className="btn-zoom" onClick={zoomOut} disabled={zoom <= 0.2} title="縮小 (ホイール下スクロール)">
                     <ZoomOut size={16} />
                   </button>
-                  <button
-                    type="button"
-                    className="btn-zoom-value"
-                    onClick={resetZoomPan}
-                    title="クリックで100%にリセット"
-                  >
+                  <button type="button" className="btn-zoom-value" onClick={resetZoomPan} title="クリックで100%にリセット">
                     {Math.round(zoom * 100)}%
                   </button>
-                  <button
-                    type="button"
-                    className="btn-zoom"
-                    onClick={zoomIn}
-                    disabled={zoom >= 5.0}
-                    title="拡大 (ホイール上スクロール)"
-                  >
+                  <button type="button" className="btn-zoom" onClick={zoomIn} disabled={zoom >= 5.0} title="拡大 (ホイール上スクロール)">
                     <ZoomIn size={16} />
                   </button>
-                  <button
-                    type="button"
-                    className="btn-zoom"
-                    onClick={resetZoomPan}
-                    title="表示位置・倍率リセット"
-                  >
+                  <button type="button" className="btn-zoom" onClick={resetZoomPan} title="表示位置・倍率リセット">
                     <Maximize2 size={15} />
                   </button>
                 </div>
@@ -506,15 +380,8 @@ export default function PaintComponent() {
                   {TOOLS.map((tool) => {
                     const Icon = tool.icon;
                     return (
-                      <button
-                        key={tool.id}
-                        type="button"
-                        className={`btn-tool mobile-tool-btn ${activeTool === tool.id ? 'is-active' : ''}`}
-                        onClick={() => { setActiveTool(tool.id); setMobileDrawer(null); }}
-                        title={tool.title}
-                      >
-                        <Icon size={18} />
-                        <span>{tool.label}</span>
+                      <button key={tool.id} type="button" className={`btn-tool mobile-tool-btn ${activeTool === tool.id ? 'is-active' : ''}`} onClick={() => { setActiveTool(tool.id); setMobileDrawer(null); }} title={tool.title} aria-label={tool.title}>
+                        <Icon size={20} />
                       </button>
                     );
                   })}
@@ -523,66 +390,33 @@ export default function PaintComponent() {
                 <div className="mobile-paint-quick-controls">
                   {/* 描画色サークルボタン (タップでカラーパレットドロワー) */}
                   {activeTool !== 'eraser' && (
-                    <button
-                      type="button"
-                      className="mobile-paint-color-swatch-btn"
-                      onClick={() => setMobileDrawer(prev => prev === 'color' ? null : 'color')}
-                      title="色を選択"
-                    >
+                    <button type="button" className="mobile-paint-color-swatch-btn" onClick={() => setMobileDrawer(prev => prev === 'color' ? null : 'color')} title="色を選択">
                       <span className="mobile-color-circle" style={{ backgroundColor: color }} />
                     </button>
                   )}
 
                   {/* ブラシ太さボタン (タップでサイズスライダードロワー) */}
-                  <button
-                    type="button"
-                    className="mobile-paint-size-btn"
-                    onClick={() => setMobileDrawer(prev => prev === 'size' ? null : 'size')}
-                    title="太さを変更"
-                  >
+                  <button type="button" className="mobile-paint-size-btn" onClick={() => setMobileDrawer(prev => prev === 'size' ? null : 'size')} title="太さを変更">
                     <span>{brushSize}px</span>
                   </button>
 
                   <div className="quickbar-divider" />
 
                   {/* Undo / Redo */}
-                  <button
-                    type="button"
-                    onClick={undo}
-                    disabled={!canUndo || isLoading}
-                    className="btn quick-btn"
-                    title="1つ戻る"
-                  >
+                  <button type="button" onClick={undo} disabled={!canUndo || isLoading} className="btn quick-btn" title="1つ戻る">
                     <Undo2 size={18} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={redo}
-                    disabled={!canRedo || isLoading}
-                    className="btn quick-btn"
-                    title="やり直す"
-                  >
+                  <button type="button" onClick={redo} disabled={!canRedo || isLoading} className="btn quick-btn" title="やり直す">
                     <Redo2 size={18} />
                   </button>
 
                   {/* WebPクイック保存 */}
-                  <button
-                    type="button"
-                    onClick={exportAsImage}
-                    disabled={isLoading}
-                    className="btn quick-btn btn--primary"
-                    title="画像として保存 (WebP)"
-                  >
+                  <button type="button" onClick={exportAsImage} disabled={isLoading} className="btn quick-btn btn--primary" title="画像として保存 (WebP)">
                     <Download size={18} />
                   </button>
 
                   {/* メニュー展開ボタン */}
-                  <button
-                    type="button"
-                    onClick={() => setMobileDrawer(prev => prev === 'menu' ? null : 'menu')}
-                    className={`btn quick-btn ${mobileDrawer === 'menu' ? 'is-selected' : ''}`}
-                    title="保存・その他メニュー"
-                  >
+                  <button type="button" onClick={() => setMobileDrawer(prev => prev === 'menu' ? null : 'menu')} className={`btn quick-btn ${mobileDrawer === 'menu' ? 'is-selected' : ''}`} title="保存・その他メニュー">
                     <SlidersHorizontal size={18} />
                   </button>
                 </div>
@@ -594,30 +428,15 @@ export default function PaintComponent() {
                       <span>保存・その他メニュー</span>
                       <button type="button" className="mobile-drawer-close" onClick={() => setMobileDrawer(null)}>×</button>
                     </div>
-                    <div className="mobile-drawer-content" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => { exportAsPdf(); setMobileDrawer(null); }}
-                        disabled={isLoading}
-                        className="btn btn--primary btn-full btn--icon-flex"
-                      >
-                        <FileText size={16} /> {totalPages > 1 ? `全${totalPages}ページをPDF保存` : 'PDFとして保存'}
+                    <div className="mobile-drawer-content" style={{ padding: '8px 12px', display: 'flex', flexDirection: 'row', justifyContent: 'center', gap: '12px' }}>
+                      <button type="button" onClick={() => { exportAsPdf(); setMobileDrawer(null); }} disabled={isLoading} className="btn quick-btn btn--primary" title={totalPages > 1 ? `全${totalPages}ページをPDF保存` : 'PDFとして保存'} aria-label={totalPages > 1 ? `全${totalPages}ページをPDF保存` : 'PDFとして保存'}>
+                        <FileText size={18} />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => { handleSaveToGallery(); setMobileDrawer(null); }}
-                        disabled={isLoading}
-                        className="btn btn--secondary btn-full btn--icon-flex"
-                      >
-                        <FolderPlus size={16} /> 共有ギャラリーに保存
+                      <button type="button" onClick={() => { handleSaveToGallery(); setMobileDrawer(null); }} disabled={isLoading} className="btn quick-btn btn--secondary" title="共有ギャラリーに保存" aria-label="共有ギャラリーに保存">
+                        <FolderPlus size={18} />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => { clearCurrentCanvas(); setMobileDrawer(null); }}
-                        disabled={!canUndo || isLoading}
-                        className="btn btn--danger btn-full btn--icon-flex"
-                      >
-                        <Trash2 size={16} /> 描画を全消去
+                      <button type="button" onClick={() => { clearCurrentCanvas(); setMobileDrawer(null); }} disabled={!canUndo || isLoading} className="btn quick-btn btn--danger" title="描画を全消去" aria-label="描画を全消去">
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </div>
@@ -632,18 +451,7 @@ export default function PaintComponent() {
                     </div>
                     <div className="paint-palette-grid">
                       {PAINT_CONFIG.COLOR_PALETTE.map((item) => (
-                        <button
-                          key={item.color}
-                          type="button"
-                          className={`paint-color-swatch ${color.toLowerCase() === item.color.toLowerCase() ? 'is-selected' : ''}`}
-                          style={{ backgroundColor: item.color }}
-                          onClick={() => {
-                            setColor(item.color);
-                            setMobileDrawer(null);
-                          }}
-                          title={item.label}
-                          aria-label={item.label}
-                        />
+                        <button key={item.color} type="button" className={`paint-color-swatch ${color.toLowerCase() === item.color.toLowerCase() ? 'is-selected' : ''}`} style={{ backgroundColor: item.color }} onClick={() => { setColor(item.color); setMobileDrawer(null); }} title={item.label} aria-label={item.label} />
                       ))}
                     </div>
                   </div>
@@ -657,14 +465,7 @@ export default function PaintComponent() {
                       <button type="button" className="mobile-drawer-close" onClick={() => setMobileDrawer(null)}>×</button>
                     </div>
                     <div className="mobile-size-slider-row">
-                      <input
-                        type="range"
-                        min={PAINT_CONFIG.MIN_BRUSH_SIZE}
-                        max={PAINT_CONFIG.MAX_BRUSH_SIZE}
-                        value={brushSize}
-                        onChange={(e) => setBrushSize(Number(e.target.value))}
-                        className="slider"
-                      />
+                      <input type="range" min={PAINT_CONFIG.MIN_BRUSH_SIZE} max={PAINT_CONFIG.MAX_BRUSH_SIZE} value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="slider" />
                     </div>
                   </div>
                 )}
@@ -677,16 +478,7 @@ export default function PaintComponent() {
           <div className="sidebar-sticky-content">
             {/* ファイル入力セクション */}
             <div className="file-input">
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp,application/pdf"
-                className="file-input__control"
-                disabled={isLoading}
-                onClick={(e) => {
-                  (e.target as HTMLInputElement).value = '';
-                }}
-                onChange={handleFileInput}
-              />
+              <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="file-input__control" disabled={isLoading} onClick={(e) => { (e.target as HTMLInputElement).value = ''; }} onChange={handleFileInput} />
             </div>
 
             {mediaType && (
@@ -698,15 +490,8 @@ export default function PaintComponent() {
                     {TOOLS.map((tool) => {
                       const Icon = tool.icon;
                       return (
-                        <button
-                          key={tool.id}
-                          type="button"
-                          className={`btn-tool ${activeTool === tool.id ? 'is-active' : ''}`}
-                          onClick={() => setActiveTool(tool.id)}
-                          title={tool.title}
-                        >
-                          <Icon size={18} />
-                          <span>{tool.label}</span>
+                        <button key={tool.id} type="button" className={`btn-tool ${activeTool === tool.id ? 'is-active' : ''}`} onClick={() => setActiveTool(tool.id)} title={tool.title}>
+                          <Icon size={18} /><span>{tool.label}</span>
                         </button>
                       );
                     })}
@@ -718,12 +503,7 @@ export default function PaintComponent() {
                   <div className="control-group" ref={paletteRef} style={{ position: 'relative' }}>
                     <div className="control-label-row">
                       <label className="control-label">描画色</label>
-                      <button
-                        type="button"
-                        className="paint-current-color-btn"
-                        onClick={() => setIsPaletteOpen((prev) => !prev)}
-                        title="カラーパレットを開く"
-                      >
+                      <button type="button" className="paint-current-color-btn" onClick={() => setIsPaletteOpen((prev) => !prev)} title="カラーパレットを開く">
                         <span className="paint-color-swatch-circle" style={{ backgroundColor: color }} />
                         <span className="paint-color-code">{color.toUpperCase()}</span>
                       </button>
@@ -735,29 +515,14 @@ export default function PaintComponent() {
                         <div className="paint-popover-header">
                           <span className="paint-popover-title">パレット（20色）</span>
                           <label className="paint-custom-picker-trigger" title="自由選択カラーピッカー">
-                            <input
-                              type="color"
-                              value={color}
-                              onChange={(e) => setColor(e.target.value)}
-                            />
+                            <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
                             <Pipette size={14} />
                             <span>カスタム色</span>
                           </label>
                         </div>
                         <div className="paint-palette-grid">
                           {PAINT_CONFIG.COLOR_PALETTE.map((item) => (
-                            <button
-                              key={item.color}
-                              type="button"
-                              className={`paint-color-swatch ${color.toLowerCase() === item.color.toLowerCase() ? 'is-selected' : ''}`}
-                              style={{ backgroundColor: item.color }}
-                              onClick={() => {
-                                setColor(item.color);
-                                setIsPaletteOpen(false);
-                              }}
-                              title={item.label}
-                              aria-label={item.label}
-                            />
+                            <button key={item.color} type="button" className={`paint-color-swatch ${color.toLowerCase() === item.color.toLowerCase() ? 'is-selected' : ''}`} style={{ backgroundColor: item.color }} onClick={() => { setColor(item.color); setIsPaletteOpen(false); }} title={item.label} aria-label={item.label} />
                           ))}
                         </div>
                       </div>
@@ -771,12 +536,7 @@ export default function PaintComponent() {
                     <label className="control-label">消しゴムタイプ</label>
                     <div className="paint-eraser-mode-buttons">
                       {ERASER_MODES.map((mode) => (
-                        <button
-                          key={mode.id}
-                          type="button"
-                          className={`btn-eraser-mode ${eraserMode === mode.id ? 'is-active' : ''}`}
-                          onClick={() => setEraserMode(mode.id)}
-                        >
+                        <button key={mode.id} type="button" className={`btn-eraser-mode ${eraserMode === mode.id ? 'is-active' : ''}`} onClick={() => setEraserMode(mode.id)}>
                           {mode.label}
                         </button>
                       ))}
@@ -788,20 +548,11 @@ export default function PaintComponent() {
                 {(activeTool === 'pen' || activeTool === 'highlighter' || (activeTool === 'eraser' && eraserMode === 'pixel')) && (
                   <div className="control-group">
                     <div className="control-label-row">
-                      <label className="control-label">
-                        {activeTool === 'eraser' ? '消しゴムの太さ' : '線の太さ'}
-                      </label>
+                      <label className="control-label">{activeTool === 'eraser' ? '消しゴムの太さ' : '線の太さ'}</label>
                       <span className="control-value">{brushSize} px</span>
                     </div>
 
-                    <input
-                      type="range"
-                      min={PAINT_CONFIG.MIN_BRUSH_SIZE}
-                      max={PAINT_CONFIG.MAX_BRUSH_SIZE}
-                      value={brushSize}
-                      onChange={(e) => setBrushSize(Number(e.target.value))}
-                      className="slider"
-                    />
+                    <input type="range" min={PAINT_CONFIG.MIN_BRUSH_SIZE} max={PAINT_CONFIG.MAX_BRUSH_SIZE} value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="slider" />
 
                     {/* ブラシプレビュー */}
                     <div className="paint-brush-preview-box">
@@ -825,13 +576,7 @@ export default function PaintComponent() {
                     <label className="control-label">塗りつぶしタイプ</label>
                     <div className="paint-fill-mode-buttons">
                       {FILL_MODES.map((mode) => (
-                        <button
-                          key={mode.id}
-                          type="button"
-                          className={`btn-fill-mode ${fillMode === mode.id ? 'is-active' : ''}`}
-                          onClick={() => setFillMode(mode.id)}
-                          title={mode.title}
-                        >
+                        <button key={mode.id} type="button" className={`btn-fill-mode ${fillMode === mode.id ? 'is-active' : ''}`} onClick={() => setFillMode(mode.id)} title={mode.title}>
                           {mode.label}
                         </button>
                       ))}
@@ -843,50 +588,25 @@ export default function PaintComponent() {
                 {activeTool === 'bucket' && (
                   <div className="control-group">
                     <div className="control-label-row">
-                      <label className="control-label">
-                        {fillMode === 'handwriting' ? '塗りつぶし許容度' : '輪郭認識感度 (許容度)'}
-                      </label>
+                      <label className="control-label">{fillMode === 'handwriting' ? '塗りつぶし許容度' : '輪郭認識感度 (許容度)'}</label>
                       <span className="control-value">{tolerance}%</span>
                     </div>
 
-                    <input
-                      type="range"
-                      min={1}
-                      max={100}
-                      value={tolerance}
-                      onChange={(e) => setTolerance(Number(e.target.value))}
-                      className="slider"
-                    />
+                    <input type="range" min={1} max={100} value={tolerance} onChange={(e) => setTolerance(Number(e.target.value))} className="slider" />
 
                     <div className="control-label-row" style={{ marginTop: '12px' }}>
                       <label className="control-label">塗りつぶし不透明度</label>
                       <span className="control-value">{fillOpacity}%</span>
                     </div>
 
-                    <input
-                      type="range"
-                      min={10}
-                      max={100}
-                      step={5}
-                      value={fillOpacity}
-                      onChange={(e) => setFillOpacity(Number(e.target.value))}
-                      className="slider"
-                    />
+                    <input type="range" min={10} max={100} step={5} value={fillOpacity} onChange={(e) => setFillOpacity(Number(e.target.value))} className="slider" />
 
                     <div className="control-label-row" style={{ marginTop: '12px' }}>
                       <label className="control-label">線の途切れ許容</label>
                       <span className="control-value">{gapClosing}px</span>
                     </div>
 
-                    <input
-                      type="range"
-                      min={PAINT_CONFIG.MIN_GAP_CLOSING}
-                      max={PAINT_CONFIG.MAX_GAP_CLOSING}
-                      value={gapClosing}
-                      onChange={(e) => setGapClosing(Number(e.target.value))}
-                      className="slider"
-                      title="線の隙間・開口部があっても外に漏れ出さずに塞いで塗る許容幅"
-                    />
+                    <input type="range" min={PAINT_CONFIG.MIN_GAP_CLOSING} max={PAINT_CONFIG.MAX_GAP_CLOSING} value={gapClosing} onChange={(e) => setGapClosing(Number(e.target.value))} className="slider" title="線の隙間・開口部があっても外に漏れ出さずに塞いで塗る許容幅" />
                   </div>
                 )}
 
@@ -894,32 +614,14 @@ export default function PaintComponent() {
                 <div className="control-group">
                   <label className="control-label">操作・履歴</label>
                   <div className="paint-history-buttons">
-                    <button
-                      type="button"
-                      onClick={undo}
-                      disabled={!canUndo || isLoading}
-                      className="btn btn--secondary btn--icon-flex"
-                      title="1つ戻る (Ctrl+Z)"
-                    >
+                    <button type="button" onClick={undo} disabled={!canUndo || isLoading} className="btn btn--secondary btn--icon-flex" title="1つ戻る (Ctrl+Z)">
                       <Undo2 size={16} /> 1つ戻る
                     </button>
-                    <button
-                      type="button"
-                      onClick={redo}
-                      disabled={!canRedo || isLoading}
-                      className="btn btn--secondary btn--icon-flex"
-                      title="やり直す (Ctrl+Y)"
-                    >
+                    <button type="button" onClick={redo} disabled={!canRedo || isLoading} className="btn btn--secondary btn--icon-flex" title="やり直す (Ctrl+Y)">
                       <Redo2 size={16} /> やり直す
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={clearCurrentCanvas}
-                    disabled={!canUndo || isLoading}
-                    className="btn btn--danger btn-full btn--icon-flex"
-                    style={{ marginTop: '8px' }}
-                  >
+                  <button type="button" onClick={clearCurrentCanvas} disabled={!canUndo || isLoading} className="btn btn--danger btn-full btn--icon-flex" style={{ marginTop: '8px' }}>
                     <Trash2 size={16} /> 描画を全消去
                   </button>
                 </div>
@@ -928,34 +630,14 @@ export default function PaintComponent() {
                 <div className="control-group">
                   <label className="control-label">保存・エクスポート</label>
                   <div className="button-group sidebar-buttons">
-                    <button
-                      type="button"
-                      onClick={exportAsImage}
-                      disabled={isLoading}
-                      className="btn btn--primary btn-full btn--icon-flex"
-                    >
-                      <Download size={18} />
-                      画像として保存 (WebP)
+                    <button type="button" onClick={exportAsImage} disabled={isLoading} className="btn btn--primary btn-full btn--icon-flex">
+                      <Download size={18} /> 画像として保存 (WebP)
                     </button>
-
-                    <button
-                      type="button"
-                      onClick={exportAsPdf}
-                      disabled={isLoading}
-                      className="btn btn--primary btn-full btn--icon-flex"
-                    >
-                      <FileText size={18} />
-                      {totalPages > 1 ? `全${totalPages}ページをPDF保存` : 'PDFとして保存'}
+                    <button type="button" onClick={exportAsPdf} disabled={isLoading} className="btn btn--primary btn-full btn--icon-flex">
+                      <FileText size={18} /> {totalPages > 1 ? `全${totalPages}ページをPDF保存` : 'PDFとして保存'}
                     </button>
-
-                    <button
-                      type="button"
-                      onClick={handleSaveToGallery}
-                      disabled={isLoading}
-                      className="btn btn--secondary btn-full btn--icon-flex"
-                    >
-                      <FolderPlus size={18} />
-                      共有ギャラリーに保存
+                    <button type="button" onClick={handleSaveToGallery} disabled={isLoading} className="btn btn--secondary btn-full btn--icon-flex">
+                      <FolderPlus size={18} /> 共有ギャラリーに保存
                     </button>
                   </div>
                 </div>

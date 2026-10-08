@@ -53,10 +53,7 @@ export function GalleryProvider({ children }: GalleryProviderProps) {
   const addImages = useCallback((newImages: Partial<GalleryImage> | Partial<GalleryImage>[]) => {
     const imagesArray = Array.isArray(newImages) ? newImages : [newImages];
     const formattedImages: GalleryImage[] = imagesArray.map((img) => ({
-      id: img.id || generateUniqueId('gallery'),
-      name: img.name || '名称未設定',
-      dataUrl: img.dataUrl || '',
-      createdAt: new Date().toISOString(),
+      id: img.id || generateUniqueId('gallery'), name: img.name || '名称未設定', dataUrl: img.dataUrl || '', createdAt: new Date().toISOString(),
     }));
     setGalleryImages((prev) => [...prev, ...formattedImages]);
   }, []);
@@ -81,29 +78,9 @@ export function GalleryProvider({ children }: GalleryProviderProps) {
   }, []);
 
   const contextValue: GalleryContextType = useMemo(() => ({
-    galleryImages,
-    addImages,
-    removeImage,
-    renameImage,
-    clearGallery,
-    isGalleryOpen,
-    setIsGalleryOpen,
-    galleryViewMode,
-    setGalleryViewMode,
-    listViewMode,
-    setListViewMode,
-  }), [
-    galleryImages,
-    addImages,
-    removeImage,
-    renameImage,
-    clearGallery,
-    isGalleryOpen,
-    galleryViewMode,
-    setGalleryViewMode,
-    listViewMode,
-    setListViewMode,
-  ]);
+    galleryImages, addImages, removeImage, renameImage, clearGallery,
+    isGalleryOpen, setIsGalleryOpen, galleryViewMode, setGalleryViewMode, listViewMode, setListViewMode,
+  }), [galleryImages, addImages, removeImage, renameImage, clearGallery, isGalleryOpen, galleryViewMode, setGalleryViewMode, listViewMode, setListViewMode]);
 
   return (
     <GalleryContext value={contextValue}>

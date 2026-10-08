@@ -71,13 +71,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
   const displayTitle = title !== undefined ? title : DEFAULT_TITLES[type];
 
   return (
-    <div
-      className={`toast-item toast-item--${type} ${isExiting ? 'toast-item--exiting' : ''}`}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      role="alert"
-      aria-live="assertive"
-    >
+    <div className={`toast-item toast-item--${type} ${isExiting ? 'toast-item--exiting' : ''}`} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} role="alert" aria-live="assertive">
       <div className="toast-item__indicator" />
       <div className="toast-item__icon-wrapper">
         <IconComponent size={20} className="toast-item__icon" />
@@ -88,22 +82,13 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
         <div className="toast-item__message">{message}</div>
       </div>
 
-      <button
-        type="button"
-        className="toast-item__close-btn"
-        onClick={handleDismiss}
-        aria-label="閉じる"
-        title="閉じる"
-      >
+      <button type="button" className="toast-item__close-btn" onClick={handleDismiss} aria-label="閉じる" title="閉じる">
         <X size={16} />
       </button>
 
       {/* GPU支援のCSSアニメーションプログレスバー */}
       <div className="toast-item__progress-bar-bg">
-        <div
-          className="toast-item__progress-bar"
-          style={{ animationDuration: `${duration}ms` }}
-        />
+        <div className="toast-item__progress-bar" style={{ animationDuration: `${duration}ms` }} />
       </div>
     </div>
   );

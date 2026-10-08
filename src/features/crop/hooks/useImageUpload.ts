@@ -28,8 +28,19 @@ export function useImageUpload(
     imgEl.crossOrigin = 'anonymous';
     imgEl.src = dataURL;
     imgEl.onload = () => {
-      const canvasW = canvas.getWidth();
-      const canvasH = canvas.getHeight();
+      // 親コンテナの実サイズを取得（未初期化または0の場合へのフォールバック）
+      const canvasEl = canvas.getElement();
+      const parentEl = canvasEl?.parentElement?.parentElement || canvasEl?.parentElement;
+      const containerW = parentEl && parentEl.clientWidth > 0 ? parentEl.clientWidth : 0;
+      const containerH = parentEl && parentEl.clientHeight > 0 ? parentEl.clientHeight : 0;
+
+      const canvasW = containerW > 0 ? containerW : (canvas.getWidth() || 300);
+      const canvasH = containerH > 0 ? containerH : (canvas.getHeight() || 300);
+
+      if (canvas.getWidth() !== canvasW || canvas.getHeight() !== canvasH) {
+        canvas.setDimensions({ width: canvasW, height: canvasH });
+      }
+
       const origW = imgEl.naturalWidth || imgEl.width || canvasW;
       const origH = imgEl.naturalHeight || imgEl.height || canvasH;
 
@@ -42,14 +53,7 @@ export function useImageUpload(
       const left = (canvasW - scaledWidth) / 2;
       const top = (canvasH - scaledHeight) / 2;
 
-      const fabricImg = new FabricImage(imgEl, {
-        left,
-        top,
-        scaleX: scale,
-        scaleY: scale,
-        selectable: false,
-        evented: false,
-      });
+      const fabricImg = new FabricImage(imgEl, { left, top, scaleX: scale, scaleY: scale, selectable: false, evented: false });
 
       fabricImg.origSrc = dataURL;
       canvas.backgroundImage = fabricImg;

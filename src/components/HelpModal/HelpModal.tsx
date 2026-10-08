@@ -1,16 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  X,
-  BookOpen,
-  FileText,
-  Crop,
-  Layers,
-  Palette,
-  FolderPlus,
-  Keyboard,
-  Sparkles,
-  HelpCircle,
-} from 'lucide-react';
+import { X, BookOpen, FileText, Crop, Layers, Palette, FolderPlus, Keyboard, Sparkles, HelpCircle } from 'lucide-react';
 import { HelpModalProps, HelpSection } from '../../shared/types/ui';
 import IntroSection from './sections/IntroSection';
 import PdfSection from './sections/PdfSection';
@@ -80,10 +69,7 @@ export default function HelpModal({ isOpen, onClose, currentPath }: HelpModalPro
             <ul>
               {SECTIONS.map(({ id, label, icon: Icon }) => (
                 <li key={id}>
-                  <button
-                    className={`help-nav-btn ${activeSection === id ? 'active' : ''}`}
-                    onClick={() => setActiveSection(id)}
-                  >
+                  <button className={`help-nav-btn ${activeSection === id ? 'active' : ''}`} onClick={() => setActiveSection(id)}>
                     <Icon size={18} />
                     <span>{label}</span>
                   </button>
