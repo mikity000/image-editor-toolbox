@@ -5,6 +5,7 @@ import { COMBINE_CONFIG } from '../../../shared/constants/Constants';
 export interface UseCanvasZoomPanReturn {
   zoomLevel: number;
   setZoomLevel: React.Dispatch<React.SetStateAction<number>>;
+  isScrolling: boolean;
 }
 
 export function useCanvasZoomPan(
@@ -12,8 +13,29 @@ export function useCanvasZoomPan(
   isMobile: boolean
 ): UseCanvasZoomPanReturn {
   const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [isScrolling, setIsScrolling] = useState<boolean>(false);
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPanning = useRef<boolean>(false);
   const lastPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // スクロール（ズーム・パン）操作検知用タイマー処理
+  const triggerScroll = () => {
+    setIsScrolling(true);
+    if (scrollTimerRef.current) {
+      clearTimeout(scrollTimerRef.current);
+    }
+    scrollTimerRef.current = setTimeout(() => {
+      setIsScrolling(false);
+    }, 1500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (scrollTimerRef.current) {
+        clearTimeout(scrollTimerRef.current);
+      }
+    };
+  }, []);
 
   const touchData = useRef<{
     isTwoFing: boolean;
@@ -32,6 +54,7 @@ export function useCanvasZoomPan(
 
     if (!isMobile) {
       const handleWheel = (opt: any) => {
+        triggerScroll();
         const evt = opt.e as WheelEvent;
         let zoom = fabricCanvas.getZoom();
         zoom *= 0.999 ** evt.deltaY;
@@ -55,6 +78,7 @@ export function useCanvasZoomPan(
 
       const handleMouseMove = (opt: any) => {
         if (isPanning.current && opt.e) {
+          triggerScroll();
           const evt = opt.e as MouseEvent;
           const deltaX = evt.clientX - lastPos.current.x;
           const deltaY = evt.clientY - lastPos.current.y;
@@ -105,6 +129,7 @@ export function useCanvasZoomPan(
       const touchMove = (e: TouchEvent) => {
         if (touchData.current.isTwoFing && e.touches?.length === 2) {
           e.preventDefault();
+          triggerScroll();
           const newDist = getTouchDist(e);
           const distDiff = Math.abs(newDist - touchData.current.lastDist);
 
@@ -155,5 +180,5 @@ export function useCanvasZoomPan(
     }
   }, [fabricCanvas, isMobile]);
 
-  return { zoomLevel, setZoomLevel };
+  return { zoomLevel, setZoomLevel, isScrolling };
 }

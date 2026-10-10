@@ -8,6 +8,7 @@ import { useSnappingGuides } from '../hooks/useSnappingGuides';
 import { useGallery } from '../../gallery/context/GalleryContext';
 import { useToast } from '../../../shared/context/ToastContext';
 import SidebarTray from '../../gallery/components/SidebarTray';
+import ScaleBar from './ScaleBar';
 import { convertToWebP } from '../../../shared/utils/webpConverter';
 import { getSequentialName, fileToDataUrl, generateUniqueId } from '../../../shared/utils/imageUtils';
 import { isMobileDevice } from '../../../shared/utils/deviceUtils';
@@ -36,7 +37,7 @@ export default function CombinerComponent() {
 
   // カスタムフック
   const { saveState, undo, redo } = useUndoRedo(fabricCanvas, setImageList);
-  const { zoomLevel } = useCanvasZoomPan(fabricCanvas, isMobile);
+  const { zoomLevel, isScrolling } = useCanvasZoomPan(fabricCanvas, isMobile);
   
   useSnappingGuides(fabricCanvas, guideThickness, setSelectedSize, saveState);
 
@@ -384,6 +385,7 @@ export default function CombinerComponent() {
         <div className="editor-main combiner-main">
           <div className="canvas-wrapper">
             <canvas ref={canvasRef} />
+            <ScaleBar zoomLevel={zoomLevel} isVisible={isScrolling} />
             {imageList.length === 0 && (
               <div className="empty-placeholder-wrapper combiner-empty-overlay">
                 <div className="empty-placeholder-card">
