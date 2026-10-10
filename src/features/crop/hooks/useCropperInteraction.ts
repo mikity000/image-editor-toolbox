@@ -58,6 +58,27 @@ export function useCropperInteraction(
 
   const triggerAutoCrop = useCallback(() => setAutoCropCount((c) => c + 1), []);
 
+  const globalUnsubsRef = useRef<(() => void)[]>([]);
+  const drawingUnsubsRef = useRef<(() => void)[]>([]);
+
+  const clearDrawingListeners = useCallback(() => {
+    drawingUnsubsRef.current.forEach((unsub) => unsub());
+    drawingUnsubsRef.current = [];
+  }, []);
+
+  const clearAllListeners = useCallback(() => {
+    drawingUnsubsRef.current.forEach((unsub) => unsub());
+    drawingUnsubsRef.current = [];
+    globalUnsubsRef.current.forEach((unsub) => unsub());
+    globalUnsubsRef.current = [];
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearAllListeners();
+    };
+  }, [clearAllListeners]);
+
   const { saveState, undo, redo, clearHistory, canUndo, canRedo } = useCropperUndoRedo();
 
   const {
@@ -86,7 +107,8 @@ export function useCropperInteraction(
     setActiveVertices,
     isDrawingPolygon,
     setIsDrawingPolygon,
-    setCroppingMode
+    setCroppingMode,
+    clearDrawingListeners
   );
 
   const getCurrentSnapshot = useCallback((): SerializedCropperState => {
@@ -138,16 +160,7 @@ export function useCropperInteraction(
         if (obj.isDrawingTemp || obj.isDrawingTempCircle) canvas.remove(obj);
       });
 
-      canvas.off('mouse:down');
-      canvas.off('mouse:move');
-      canvas.off('mouse:up');
-      canvas.off('object:moving');
-      canvas.off('object:scaling');
-      canvas.off('object:modified');
-      canvas.off('path:created');
-      canvas.off('selection:created');
-      canvas.off('selection:updated');
-      canvas.off('selection:cleared');
+      clearAllListeners();
 
       disableFreehand();
 
@@ -162,112 +175,113 @@ export function useCropperInteraction(
         }
       };
 
-      canvas.on('selection:created', handleSelection);
-      canvas.on('selection:updated', handleSelection);
-      canvas.on('selection:cleared', handleSelection);
+      globalUnsubsRef.current.push(
+        canvas.on('selection:created', handleSelection),
+        canvas.on('selection:updated', handleSelection),
+        canvas.on('selection:cleared', handleSelection),
+        canvas.on('object:moving', (e: any) => {
+          const target = e.target;
+          if (!target) return;
+
+          if (target.isDrawingTempCircle) {
+            handlePolygonVertexMoving(target);
+          } else if (target.isCroppingShape) {
+            clampMoveToImageBounds(target, canvas);
+          }
+        }),
+        canvas.on('object:scaling', ({ target }: any) => {
+          if (target && target.isCroppingShape) clampScaleToImageBounds(target, canvas);
+        }),
+        canvas.on('object:modified', ({ target }: any) => {
+          if (target) delete target._orig;
+          if (dragStartSnapshotRef.current) {
+            saveState(dragStartSnapshotRef.current);
+            dragStartSnapshotRef.current = null;
+          }
+          if (target && (target.isCroppingShape || target.isDrawingTempCircle)) triggerAutoCrop();
+        })
+      );
 
       if (mode === 'polygon') {
         startPolygonDrawing(initialPolygonPoints);
       } else if (mode === 'path' || mode === 'freehand') {
         enableFreehand();
-        canvas.on('path:created', () => {
-          if (startDrawingSnapshotRef.current) {
-            saveState(startDrawingSnapshotRef.current);
-            startDrawingSnapshotRef.current = null;
-          }
-        });
+        drawingUnsubsRef.current.push(
+          canvas.on('path:created', () => {
+            if (startDrawingSnapshotRef.current) {
+              saveState(startDrawingSnapshotRef.current);
+              startDrawingSnapshotRef.current = null;
+            }
+          })
+        );
       }
 
       let startPoint: any = null;
       let currentShape: FabricObject | null = null;
 
-      canvas.on('mouse:down', (options: any) => {
-        if (!imageLoaded) return;
+      drawingUnsubsRef.current.push(
+        canvas.on('mouse:down', (options: any) => {
+          if (!imageLoaded) return;
 
-        if (
-          !options.target ||
-          (!options.target.isCroppingShape && !options.target.isDrawingTempCircle)
-        ) {
-          startDrawingSnapshotRef.current = getCurrentSnapshot();
-        }
+          if (
+            !options.target ||
+            (!options.target.isCroppingShape && !options.target.isDrawingTempCircle)
+          ) {
+            startDrawingSnapshotRef.current = getCurrentSnapshot();
+          }
 
-        if (options.target && options.target.isCroppingShape) {
-          dragStartSnapshotRef.current = getCurrentSnapshot();
-          return;
-        }
-
-        const pointer = (canvas as any).getPointer(options.e);
-
-        if (mode === 'polygon') {
-          if (options.target && options.target.isDrawingTempCircle) {
+          if (options.target && options.target.isCroppingShape) {
             dragStartSnapshotRef.current = getCurrentSnapshot();
-            handlePolygonVertexMouseDown(options.target, options.e);
-          } else {
-            saveState(getCurrentSnapshot());
-            clearVertexSelection(options.e);
-            handlePolygonMouseDown(pointer, options.target);
+            return;
           }
-        } else if (mode === 'rect' || mode === 'circle') {
-          startPoint = pointer;
-          currentShape = startDrawing(mode, startPoint);
-          canvas.add(currentShape);
-          setDrawingObject(currentShape);
-        }
-      });
 
-      canvas.on('mouse:move', (options: any) => {
-        const pointer = (canvas as any).getPointer(options.e);
-        if (mode === 'rect' || mode === 'circle') {
-          updateDrawing(mode, currentShape, startPoint, pointer);
-          canvas.renderAll();
-        } else if (mode === 'polygon') {
-          handlePolygonMouseMove(pointer);
-        }
-      });
+          const pointer = (canvas as any).getPointer(options.e);
 
-      canvas.on('mouse:up', () => {
-        if (mode === 'rect' || mode === 'circle') {
-          if (startDrawingSnapshotRef.current && currentShape) {
-            saveState(startDrawingSnapshotRef.current);
-            startDrawingSnapshotRef.current = null;
+          if (mode === 'polygon') {
+            if (options.target && options.target.isDrawingTempCircle) {
+              dragStartSnapshotRef.current = getCurrentSnapshot();
+              handlePolygonVertexMouseDown(options.target, options.e);
+            } else {
+              saveState(getCurrentSnapshot());
+              clearVertexSelection(options.e);
+              handlePolygonMouseDown(pointer, options.target);
+            }
+          } else if (mode === 'rect' || mode === 'circle') {
+            startPoint = pointer;
+            currentShape = startDrawing(mode, startPoint);
+            canvas.add(currentShape);
+            setDrawingObject(currentShape);
           }
-          finishDrawing(currentShape, canvas);
-          currentShape = null;
-        } else if (mode === 'polygon') {
-          handlePolygonMouseUp();
-          if (dragStartSnapshotRef.current) {
+        }),
+        canvas.on('mouse:move', (options: any) => {
+          const pointer = (canvas as any).getPointer(options.e);
+          if (mode === 'rect' || mode === 'circle') {
+            updateDrawing(mode, currentShape, startPoint, pointer);
+            canvas.renderAll();
+          } else if (mode === 'polygon') {
+            handlePolygonMouseMove(pointer);
+          }
+        }),
+        canvas.on('mouse:up', () => {
+          if (mode === 'rect' || mode === 'circle') {
+            if (startDrawingSnapshotRef.current && currentShape) {
+              saveState(startDrawingSnapshotRef.current);
+              startDrawingSnapshotRef.current = null;
+            }
+            finishDrawing(currentShape, canvas);
+            currentShape = null;
+          } else if (mode === 'polygon') {
+            handlePolygonMouseUp();
+            if (dragStartSnapshotRef.current) {
+              saveState(dragStartSnapshotRef.current);
+              dragStartSnapshotRef.current = null;
+            }
+          } else if (dragStartSnapshotRef.current) {
             saveState(dragStartSnapshotRef.current);
             dragStartSnapshotRef.current = null;
           }
-        } else if (dragStartSnapshotRef.current) {
-          saveState(dragStartSnapshotRef.current);
-          dragStartSnapshotRef.current = null;
-        }
-      });
-
-      canvas.on('object:moving', (e: any) => {
-        const target = e.target;
-        if (!target) return;
-
-        if (target.isDrawingTempCircle) {
-          handlePolygonVertexMoving(target);
-        } else if (target.isCroppingShape) {
-          clampMoveToImageBounds(target, canvas);
-        }
-      });
-
-      canvas.on('object:scaling', ({ target }: any) => {
-        if (target && target.isCroppingShape) clampScaleToImageBounds(target, canvas);
-      });
-
-      canvas.on('object:modified', ({ target }: any) => {
-        if (target) delete target._orig;
-        if (dragStartSnapshotRef.current) {
-          saveState(dragStartSnapshotRef.current);
-          dragStartSnapshotRef.current = null;
-        }
-        if (target && (target.isCroppingShape || target.isDrawingTempCircle)) triggerAutoCrop();
-      });
+        })
+      );
     },
     [
       fabricCanvasRef,
@@ -287,6 +301,7 @@ export function useCropperInteraction(
       clearVertexSelection,
       getCurrentSnapshot,
       saveState,
+      clearAllListeners,
     ]
   );
 
@@ -325,13 +340,7 @@ export function useCropperInteraction(
     const canvas = fabricCanvasRef.current;
     if (canvas) {
       canvas.getObjects().forEach((obj) => canvas.remove(obj));
-      canvas.off('mouse:down');
-      canvas.off('mouse:move');
-      canvas.off('mouse:up');
-      canvas.off('path:created');
-      canvas.off('selection:created');
-      canvas.off('selection:updated');
-      canvas.off('selection:cleared');
+      clearAllListeners();
       canvas.isDrawingMode = false;
     }
     setCroppedImageUrl?.(null);
@@ -340,7 +349,7 @@ export function useCropperInteraction(
     setIsDrawingPolygon(false);
     setActiveVertices([]);
     startPolygonDrawing([]);
-  }, [fabricCanvasRef, setCroppedImageUrl, startPolygonDrawing, recordState]);
+  }, [fabricCanvasRef, setCroppedImageUrl, startPolygonDrawing, recordState, clearAllListeners]);
 
   const wrappedAdjustCroppingShape = useCallback(
     (side: 'top' | 'bottom' | 'left' | 'right', direction: number) => {

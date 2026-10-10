@@ -34,21 +34,13 @@ export const ScaleBar: React.FC<ScaleBarProps> = ({ zoomLevel, isVisible }) => {
     }
 
     const calculatedWidth = Math.max(Math.round(niceValue * validZoom), 10);
-    const labelText = niceValue >= 1
-      ? `${niceValue.toLocaleString()} px`
-      : `${Number(niceValue.toPrecision(2))} px`;
+    const labelText = niceValue >= 1 ? `${niceValue.toLocaleString()} px` : `${Number(niceValue.toPrecision(2))} px`;
 
-    return {
-      barWidth: calculatedWidth,
-      label: labelText,
-    };
+    return { barWidth: calculatedWidth, label: labelText };
   }, [zoomLevel]);
 
   return (
-    <div
-      className={`canvas-scale-bar ${isVisible ? 'is-visible' : ''}`}
-      aria-hidden="true"
-    >
+    <div className={`canvas-scale-bar ${isVisible ? 'is-visible' : ''}`} aria-hidden="true">
       <span className="canvas-scale-bar__label">{label}</span>
       <div className="canvas-scale-bar__line" style={{ width: `${barWidth}px` }} />
     </div>

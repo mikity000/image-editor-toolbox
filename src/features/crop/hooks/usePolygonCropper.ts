@@ -66,7 +66,8 @@ export function usePolygonCropper(
   setActiveVertices?: ((vertices: Array<{ x: number; y: number }>) => void) | null,
   isDrawingPolygon: boolean = false,
   setIsDrawingPolygon?: ((isDrawing: boolean) => void) | null,
-  setCroppingMode?: ((mode: CroppingMode) => void) | null
+  setCroppingMode?: ((mode: CroppingMode) => void) | null,
+  clearDrawingListeners?: (() => void) | null
 ): UsePolygonCropperReturn {
   const { toast } = useToast();
   const polygonPointsRef = useRef<Array<{ x: number; y: number }>>([]);
@@ -490,13 +491,11 @@ export function usePolygonCropper(
     setIsDrawingPolygon?.(false);
     setCroppingMode?.(null);
 
-    canvas.off('mouse:down');
-    canvas.off('mouse:move');
-    canvas.off('mouse:up');
+    clearDrawingListeners?.();
 
     updateActiveVertices();
     triggerAutoCrop?.();
-  }, [fabricCanvasRef, setDrawingObject, setIsDrawingPolygon, setCroppingMode, triggerAutoCrop, updateActiveVertices, toast]);
+  }, [fabricCanvasRef, setDrawingObject, setIsDrawingPolygon, setCroppingMode, triggerAutoCrop, updateActiveVertices, toast, clearDrawingListeners]);
 
   const editPolygonVertices = useCallback(
     (
