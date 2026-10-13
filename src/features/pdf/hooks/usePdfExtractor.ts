@@ -12,7 +12,8 @@ export interface ExtractedPdfImage {
 export interface UsePdfExtractorReturn {
   extractImagesFromPdfs: (
     files: File[] | FileList,
-    onImagesExtracted?: (images: ExtractedPdfImage[]) => void
+    onImagesExtracted?: (images: ExtractedPdfImage[]) => void,
+    onSingleImageExtracted?: (image: ExtractedPdfImage) => void
   ) => Promise<ExtractedPdfImage[]>;
   isExtracting: boolean;
   extractProgress: number;
@@ -25,7 +26,8 @@ export function usePdfExtractor(): UsePdfExtractorReturn {
   const extractImagesFromPdfs = useCallback(
     async (
       files: File[] | FileList,
-      onImagesExtracted?: (images: ExtractedPdfImage[]) => void
+      onImagesExtracted?: (images: ExtractedPdfImage[]) => void,
+      onSingleImageExtracted?: (image: ExtractedPdfImage) => void
     ): Promise<ExtractedPdfImage[]> => {
       const fileList = Array.from(files);
       if (fileList.length === 0) return [];
@@ -65,12 +67,19 @@ export function usePdfExtractor(): UsePdfExtractorReturn {
                 totalFiles > 1 ? `${baseName}_${pageNum}.jpg` : `${pageNum}.jpg`;
               const extractedFile = new File([rendered.blob], fileName, { type: 'image/jpeg' });
 
-              currentPdfImages.push({
+              const singleItem: ExtractedPdfImage = {
                 id: `extracted-${Date.now()}-${f}-${pageNum}-${Math.random().toString(36).slice(2, 9)}`,
                 file: extractedFile,
                 name: extractedFile.name,
                 dataUrl: rendered.dataUrl,
-              });
+              };
+
+              currentPdfImages.push(singleItem);
+
+              // 1ページ抽出されるごとにリアルタイムでコールバックを実行
+              if (onSingleImageExtracted) {
+                onSingleImageExtracted(singleItem);
+              }
 
               // ファイル内ページ進捗と全体進捗の算出
               const currentFileProgress = pageNum / numPages;

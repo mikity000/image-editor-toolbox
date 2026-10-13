@@ -5,7 +5,8 @@ import { loadPdfDocument, renderPdfPage, RenderedPdfPage } from '../utils/pdfRen
 export interface PdfPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  pdfBlob: Blob | null;
+  images?: Array<{ id?: string; name?: string; dataUrl: string }>;
+  pdfBlob?: Blob | null;
   onDownload: () => void;
   isDownloading?: boolean;
 }
@@ -24,6 +25,7 @@ const BASE_PAGE_WIDTH = 800;
 export default function PdfPreviewModal({
   isOpen,
   onClose,
+  images,
   pdfBlob,
   onDownload,
   isDownloading = false,
@@ -33,7 +35,7 @@ export default function PdfPreviewModal({
   const [viewMode, setViewMode] = useState<ViewMode>('single');
   const [scale, setScale] = useState<number>(1.0);
   const [renderedPages, setRenderedPages] = useState<PageRenderItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadingProgress, setLoadingProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,13 +52,42 @@ export default function PdfPreviewModal({
     currentPageRef.current = currentPage;
   }, [currentPage]);
 
-  // PDF.jsドキュメントの読み込みと全ページレンダリング
+  // 画像リスト直接プレビューまたはPDF.jsドキュメント読み込み
   useEffect(() => {
-    if (!isOpen || !pdfBlob) {
+    if (!isOpen) {
       setRenderedPages([]);
       setNumPages(0);
       setCurrentPage(1);
       setError(null);
+      setIsLoading(false);
+      return;
+    }
+
+    // 1. 画像リストが直接渡された場合：PDF展開を待たずに即座に直接表示
+    if (images && images.length > 0) {
+      const validImages = images.filter(img => Boolean(img.dataUrl));
+      setRenderedPages(
+        validImages.map((img, idx) => ({
+          pageNumber: idx + 1,
+          dataUrl: img.dataUrl,
+          width: BASE_PAGE_WIDTH,
+          height: Math.round(BASE_PAGE_WIDTH * 1.414),
+        }))
+      );
+      setNumPages(validImages.length);
+      setIsLoading(false);
+      setLoadingProgress(100);
+      setError(null);
+      return;
+    }
+
+    // 2. pdfBlob の場合のフォールバック
+    if (!pdfBlob) {
+      setRenderedPages([]);
+      setNumPages(0);
+      setCurrentPage(1);
+      setError(null);
+      setIsLoading(false);
       return;
     }
 
@@ -71,9 +102,8 @@ export default function PdfPreviewModal({
         if (!isMounted) return;
 
         setNumPages(total);
-        const pages: PageRenderItem[] = [];
 
-        // ページを順次レンダリング
+        // ページを順次レンダリング（1ページ目完了時点からリアルタイム表示開始）
         for (let i = 1; i <= total; i++) {
           if (!isMounted) return;
           // 高精細レンダリングのためscale=2.0で描画
@@ -83,18 +113,25 @@ export default function PdfPreviewModal({
             quality: 0.92,
           });
 
-          pages.push({
+          if (!isMounted) return;
+
+          const pageItem: PageRenderItem = {
             pageNumber: i,
             dataUrl: rendered.dataUrl,
             width: rendered.width,
             height: rendered.height,
-          });
+          };
 
+          setRenderedPages((prev) => [...prev, pageItem]);
           setLoadingProgress(Math.round((i / total) * 100));
+
+          // 1ページ目のレンダリングが完了したら直ちに初期ローディングを解除
+          if (i === 1) {
+            setIsLoading(false);
+          }
         }
 
         if (isMounted) {
-          setRenderedPages(pages);
           setIsLoading(false);
         }
       } catch (err: any) {
@@ -111,7 +148,7 @@ export default function PdfPreviewModal({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, pdfBlob]);
+  }, [isOpen, pdfBlob, images]);
 
   // 前のページへ
   const handlePrevPage = useCallback(() => {
@@ -401,7 +438,15 @@ export default function PdfPreviewModal({
             <div>
               <h2 id="pdf-preview-title">PDFプレビュー</h2>
               <span className="pdf-preview-page-badge">
-                {numPages > 0 ? `${currentPage} / ${numPages} ページ` : '読み込み中...'}
+                {numPages > 0 ? (
+                  loadingProgress < 100 ? (
+                    `${currentPage} / ${numPages} ページ (展開中: ${loadingProgress}%)`
+                  ) : (
+                    `${currentPage} / ${numPages} ページ`
+                  )
+                ) : (
+                  '読み込み中...'
+                )}
               </span>
             </div>
           </div>
@@ -446,7 +491,7 @@ export default function PdfPreviewModal({
           </div>
 
           <div className="pdf-preview-header-right">
-            <button type="button" className="btn btn--primary btn--icon-flex preview-header-save-btn" onClick={onDownload} disabled={isDownloading || isLoading} title="作成されたPDFをダウンロード保存">
+            <button type="button" className="btn btn--primary btn--icon-flex preview-header-save-btn" onClick={onDownload} disabled={isDownloading} title="作成されたPDFをダウンロード保存">
               <Download size={16} /><span>{isDownloading ? '保存中...' : 'PDFを保存'}</span>
             </button>
             <button className="pdf-preview-close-btn" onClick={onClose} aria-label="プレビューを閉じる">
@@ -457,7 +502,7 @@ export default function PdfPreviewModal({
 
         {/* プレビュー表示エリア */}
         <div ref={containerRef} className={`pdf-preview-body ${viewMode}`} onScroll={handleScroll} onClick={handlePreviewAreaClick}>
-          {isLoading && (
+          {isLoading && renderedPages.length === 0 && (
             <div className="preview-loading-state">
               <Loader2 className="spinner" size={40} />
               <p>プレビュー用PDFを展開中... ({loadingProgress}%)</p>
@@ -467,20 +512,29 @@ export default function PdfPreviewModal({
             </div>
           )}
 
-          {error && !isLoading && (
+          {error && renderedPages.length === 0 && (
             <div className="preview-error-state">
               <p className="error-title">プレビューの生成に失敗しました</p>
               <p className="error-message">{error}</p>
             </div>
           )}
 
-          {!isLoading && !error && renderedPages.length > 0 && (
+          {renderedPages.length > 0 && (
             <div className="preview-pages-wrapper">
               {viewMode === 'single' ? (
                 // 単一ページ表示（エリア全体の左右クリックでページング可能）
                 (() => {
                   const page = renderedPages[currentPage - 1];
-                  if (!page) return null;
+                  if (!page) {
+                    return (
+                      <div className="preview-page-card single-card">
+                        <div className="preview-canvas-container single-page-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+                          <Loader2 className="spinner" size={32} />
+                          <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>ページを展開中... ({loadingProgress}%)</p>
+                        </div>
+                      </div>
+                    );
+                  }
                   const isZoomed = scale !== 1.0;
                   return (
                     <div className={`preview-page-card single-card ${isZoomed ? 'is-zoomed' : ''}`}>
@@ -491,7 +545,7 @@ export default function PdfPreviewModal({
                   );
                 })()
               ) : (
-                // 全ページ連続スクロール表示（DOM幅ベースでスケーリングし、下部隙間を根治）
+                // 全ページ連続スクロール表示（順次レンダリングされたページを即時表示）
                 <div className="continuous-pages-list" style={{ width: `${currentScaledWidth}px` }}>
                   {renderedPages.map((page) => (
                     <div key={page.pageNumber} ref={(el) => { if (el) pageRefs.current.set(page.pageNumber, el); else pageRefs.current.delete(page.pageNumber); }} className={`preview-page-card ${currentPage === page.pageNumber ? 'current' : ''}`}>
@@ -500,6 +554,12 @@ export default function PdfPreviewModal({
                       </div>
                     </div>
                   ))}
+                  {loadingProgress < 100 && (
+                    <div className="continuous-loading-indicator" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', padding: '1.5rem', color: 'var(--text-secondary)' }}>
+                      <Loader2 className="spinner" size={20} />
+                      <span>残りのページを展開中... ({loadingProgress}%)</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

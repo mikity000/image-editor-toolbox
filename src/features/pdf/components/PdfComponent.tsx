@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useContext, useMemo, memo } from 'react';
-import { Trash2, RotateCcw, FileText, Download, Eye, Upload, SlidersHorizontal } from 'lucide-react';
+import { Trash2, RotateCcw, FileText, Download, Eye, Upload, SlidersHorizontal, Loader2 } from 'lucide-react';
 import PdfPreviewModal from './PdfPreviewModal';
 
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
@@ -24,6 +24,7 @@ export interface PdfPageItem {
   name: string;
   dataUrl: string;
   file?: File;
+  isLoading?: boolean;
 }
 
 // 複数アイテムをまとめて移動する純粋関数
@@ -65,10 +66,8 @@ export default function PdfComponent() {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isZipping, setIsZipping] = useState<boolean>(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
-  const [previewPdfBlob, setPreviewPdfBlob] = useState<Blob | null>(null);
-  const [isPreviewGenerating, setIsPreviewGenerating] = useState<boolean>(false);
 
-  const { generatePdf, generatePdfBlob, isProcessing, progress: pdfProgress } = usePdfGenerator();
+  const { generatePdf, isProcessing, progress: pdfProgress } = usePdfGenerator();
   const { extractImagesFromPdfs, isExtracting, extractProgress } = usePdfExtractor();
   const { toast } = useToast();
 
@@ -101,7 +100,7 @@ export default function PdfComponent() {
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 8 } });
   const sensors = useSensors(isMobile ? touchSensor : pointerSensor);
 
-  // ファイル入力ハンドラ（画像・PDF両対応）
+  // ファイル入力ハンドラ（画像・PDF両対応、リアルタイム順次表示対応）
   const handleFileInput = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) return;
     const files = Array.from(event.target.files);
@@ -110,51 +109,72 @@ export default function PdfComponent() {
     const pdfFiles = files.filter(f => f.type === 'application/pdf');
     const imageFiles = files.filter(f => f.type.startsWith('image/'));
 
-    // PDFファイルからの画像抽出
+    // PDFファイルからの画像抽出（ページ単位でリアルタイム順次追加）
     if (pdfFiles.length > 0) {
-      await extractImagesFromPdfs(pdfFiles, (extractedImages) => {
-        setImages(prev => [...prev, ...extractedImages]);
-      });
+      await extractImagesFromPdfs(
+        pdfFiles,
+        undefined,
+        (singleImage) => {
+          setImages(prev => [...prev, singleImage]);
+        }
+      );
     }
 
-    // 画像ファイルの処理（WebP変換による高品質・高圧縮化 + JPEG化）
+    // 画像ファイルの処理（スケルトンを即時配置し、変換完了したものからリアルタイム反映）
     if (imageFiles.length > 0) {
       setIsUploading(true);
       setUploadProgress(0);
       const totalFiles = imageFiles.length;
       let completed = 0;
 
+      // ファイル選択順を維持するため、プレースホルダーを先行追加
+      const placeholders: PdfPageItem[] = imageFiles.map((file, idx) => ({
+        id: `img-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 9)}`,
+        name: file.name,
+        dataUrl: '',
+        file,
+        isLoading: true,
+      }));
+
+      setImages(prev => [...prev, ...placeholders]);
+
       try {
-        const compressPromises = imageFiles.map(async (file) => {
-          try {
-            // 1. ファイルをDataURLに読み込む
-            const originalDataUrl = await fileToDataUrl(file);
+        await Promise.all(
+          imageFiles.map(async (file, idx) => {
+            const targetId = placeholders[idx].id;
+            try {
+              // 1. ファイルをDataURLに読み込む
+              const originalDataUrl = await fileToDataUrl(file);
 
-            // 2. WebP（品質85）に変換（高品質・最小サイズ化）
-            const webpDataUrl = await convertToWebP(originalDataUrl, {
-              quality: PDF_CONFIG.DEFAULT_WEBP_QUALITY
-            });
+              // 2. WebP（品質85）に変換（高品質・最小サイズ化）
+              const webpDataUrl = await convertToWebP(originalDataUrl, {
+                quality: PDF_CONFIG.DEFAULT_WEBP_QUALITY,
+              });
 
-            // 3. PDF埋め込み用にBlob経由でJPEG化
-            const res = await fetch(webpDataUrl);
-            const blob = await res.blob();
-            const webpFile = new File([blob], file.name, { type: 'image/webp' });
-            const finalJpegDataUrl = await compressImage(webpFile);
+              // 3. PDF埋め込み用にBlob経由でJPEG化
+              const res = await fetch(webpDataUrl);
+              const blob = await res.blob();
+              const webpFile = new File([blob], file.name, { type: 'image/webp' });
+              const finalJpegDataUrl = await compressImage(webpFile);
 
-            return {
-              id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
-              file,
-              name: file.name,
-              dataUrl: finalJpegDataUrl,
-            };
-          } finally {
-            completed++;
-            setUploadProgress(Math.round((completed / totalFiles) * 100));
-          }
-        });
-
-        const newImages = await Promise.all(compressPromises);
-        setImages(prev => [...prev, ...newImages]);
+              // 変換が完了した画像からリアルタイムにプレビュー表示へ更新
+              setImages(prev =>
+                prev.map(item =>
+                  item.id === targetId
+                    ? { ...item, dataUrl: finalJpegDataUrl, isLoading: false }
+                    : item
+                )
+              );
+            } catch (err) {
+              console.error(`画像処理エラー (${file.name}):`, err);
+              // 失敗時は該当プレースホルダーを除去
+              setImages(prev => prev.filter(item => item.id !== targetId));
+            } finally {
+              completed++;
+              setUploadProgress(Math.round((completed / totalFiles) * 100));
+            }
+          })
+        );
       } catch (err: any) {
         console.error('画像処理中にエラーが発生しました:', err);
         toast.error(err?.message || '画像の処理中にエラーが発生しました。');
@@ -328,34 +348,16 @@ export default function PdfComponent() {
     generatePdf(images);
   }, [generatePdf, images]);
 
-  // プレビュー用PDFの生成とモーダルオープン
-  const handleOpenPreview = useCallback(async () => {
+  // プレビューモーダルを直接オープン（事前PDF生成を待たずに即時表示）
+  const handleOpenPreview = useCallback(() => {
     if (images.length === 0) return;
-    setIsPreviewGenerating(true);
-    try {
-      const blob = await generatePdfBlob(images);
-      if (blob) {
-        setPreviewPdfBlob(blob);
-        setIsPreviewOpen(true);
-      } else {
-        toast.error('PDFプレビューの生成に失敗しました。');
-      }
-    } catch (err: any) {
-      console.error('プレビュー生成エラー:', err);
-      toast.error('PDFプレビューの生成中にエラーが発生しました。');
-    } finally {
-      setIsPreviewGenerating(false);
-    }
-  }, [generatePdfBlob, images, toast]);
+    setIsPreviewOpen(true);
+  }, [images.length]);
 
   // プレビューモーダルからの直接ダウンロード
   const handleDownloadFromPreview = useCallback(() => {
-    if (previewPdfBlob) {
-      saveAs(previewPdfBlob, 'images.pdf');
-    } else {
-      generatePdf(images);
-    }
-  }, [previewPdfBlob, generatePdf, images]);
+    generatePdf(images);
+  }, [generatePdf, images]);
 
   // 画像一括ZIPダウンロード（並列フェッチによる高速化）
   const downloadAllImages = useCallback(async () => {
@@ -382,17 +384,16 @@ export default function PdfComponent() {
     }
   }, [images, toast]);
 
-  const isAnyLoading = isUploading || isProcessing || isExtracting || isZipping || isPreviewGenerating;
-  const currentProgress = isUploading ? uploadProgress : (isExtracting ? extractProgress : pdfProgress);
-  const loadingText = isUploading 
-    ? '画像をアップロード中...' 
-    : (isExtracting 
-        ? 'PDFから画像を抽出中...' 
-        : (isZipping 
-            ? '画像をZIPに圧縮中...' 
-            : (isPreviewGenerating 
-                ? 'プレビュー用PDFを生成中...' 
-                : 'PDFを生成中...')));
+  const isInlineLoading = isUploading || isExtracting;
+  const inlineProgress = isUploading ? uploadProgress : extractProgress;
+  const inlineLoadingText = isUploading ? '画像を変換・読み込み中...' : 'PDFから画像を抽出中...';
+
+  const isModalLoading = isProcessing || isZipping;
+  const modalLoadingProgress = pdfProgress;
+  const modalLoadingText = isZipping ? '画像をZIPに圧縮中...' : 'PDFを生成中...';
+
+  const hasLoadingImages = images.some(img => img.isLoading);
+  const isAnyLoading = isModalLoading || isInlineLoading || hasLoadingImages;
 
   const dragActiveItem = useMemo(() => images.find(img => img.id === activeId), [images, activeId]);
   const dragActiveIndex = useMemo(() => images.findIndex(img => img.id === activeId), [images, activeId]);
@@ -413,15 +414,15 @@ export default function PdfComponent() {
 
   return (
     <div className={`editor-container pdf-container mobile-view-${mobileTab}`}>
-      {/* ローディングオーバーレイ */}
-      {isAnyLoading && (
+      {/* 重い生成・圧縮処理時のモーダルローディングオーバーレイ */}
+      {isModalLoading && (
         <div className="loading-overlay">
           <div className="loading-content">
-            <p>{loadingText}</p>
+            <p>{modalLoadingText}</p>
             <div className="progress-bar-container">
-              <div className="progress-bar" style={{ width: `${currentProgress}%` }}></div>
+              <div className="progress-bar" style={{ width: `${modalLoadingProgress}%` }}></div>
             </div>
-            <p>{currentProgress}%</p>
+            <p>{modalLoadingProgress}%</p>
           </div>
         </div>
       )}
@@ -455,6 +456,19 @@ export default function PdfComponent() {
         </div>
         
         <div className="editor-main pdf-main-content">
+          {/* インライン進捗バナー（プレビューのリアルタイム表示を遮らない進捗バー） */}
+          {isInlineLoading && (
+            <div className="pdf-inline-progress-banner" role="status" aria-live="polite">
+              <div className="pdf-inline-progress-info">
+                <Loader2 size={16} />
+                <span>{inlineLoadingText} ({inlineProgress}%)</span>
+              </div>
+              <div className="pdf-inline-progress-bar-bg">
+                <div className="pdf-inline-progress-bar-fill" style={{ width: `${inlineProgress}%` }}></div>
+              </div>
+            </div>
+          )}
+
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart} onDragOver={dragOver} onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
             <SortableContext items={images.map(img => img.id)}>
               <div className="image-list-container">
@@ -492,8 +506,8 @@ export default function PdfComponent() {
               <button type="button" onClick={handleOpenPreview} disabled={images.length === 0 || isAnyLoading} className="btn quick-btn" title="プレビュー">
                 <Eye size={18} />
               </button>
-              <button type="button" onClick={handleGeneratePdf} disabled={images.length === 0 || isAnyLoading} className={`btn quick-btn btn--primary mobile-pdf-generate-btn ${isProcessing && !isPreviewGenerating ? 'is-processing' : ''}`} title="PDF生成" aria-label="PDF生成">
-                {isProcessing && !isPreviewGenerating ? (
+              <button type="button" onClick={handleGeneratePdf} disabled={images.length === 0 || isAnyLoading} className={`btn quick-btn btn--primary mobile-pdf-generate-btn ${isProcessing ? 'is-processing' : ''}`} title="PDF生成" aria-label="PDF生成">
+                {isProcessing ? (
                   <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{pdfProgress}%</span>
                 ) : (
                   <FileText size={18} />
@@ -537,10 +551,10 @@ export default function PdfComponent() {
                 <RotateCcw size={18} />リセット
               </button>
               <button onClick={handleOpenPreview} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full btn--icon-flex" title="作成予定のPDFをプレビュー">
-                <Eye size={18} />{isPreviewGenerating ? `プレビュー作成中... (${pdfProgress}%)` : 'PDFプレビュー'}
+                <Eye size={18} />PDFプレビュー
               </button>
               <button onClick={handleGeneratePdf} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full btn--icon-flex">
-                <FileText size={18} />{isProcessing && !isPreviewGenerating ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
+                <FileText size={18} />{isProcessing ? `PDF生成中... (${pdfProgress}%)` : 'PDFを生成'}
               </button>
               <button onClick={downloadAllImages} disabled={images.length === 0 || isAnyLoading} className="btn btn--primary btn-full btn--icon-flex">
                 <Download size={18} />{isZipping ? 'ダウンロード準備中...' : '画像を一括DL'}
@@ -559,11 +573,11 @@ export default function PdfComponent() {
         </div>
       )}
 
-      {/* PDFプレビューモーダル */}
+      {/* PDFプレビューモーダル（画像を直接即時プレビュー表示） */}
       <PdfPreviewModal
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
-        pdfBlob={previewPdfBlob}
+        images={images}
         onDownload={handleDownloadFromPreview}
         isDownloading={isProcessing}
       />
@@ -582,7 +596,10 @@ interface SortableImagePreviewProps {
 }
 
 const SortableImagePreview = memo(function SortableImagePreview({ image, images, index, isSelected, onSelect, activeId, selectedImages }: SortableImagePreviewProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: image.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
+    id: image.id,
+    disabled: image.isLoading,
+  });
   
   const showPlaceholder = isDragging || (activeId !== null && selectedImages.has(activeId) && isSelected);
 
@@ -616,8 +633,18 @@ interface ImagePreviewProps {
 
 const ImagePreview = memo(function ImagePreview({ image, index, isSelected, onSelect }: ImagePreviewProps) {
   return (
-    <div className={`image-preview-item ${isSelected ? 'selected' : ''}`} onClick={(e) => onSelect(image.id, e)}>
-      <img src={image.dataUrl} alt={image.name} className="thumbnail" />
+    <div 
+      className={`image-preview-item ${isSelected ? 'selected' : ''} ${image.isLoading ? 'loading-card' : ''}`} 
+      onClick={(e) => !image.isLoading && onSelect(image.id, e)}
+    >
+      {image.isLoading ? (
+        <div className="thumbnail-skeleton">
+          <Loader2 size={24} />
+          <span className="skeleton-label">読み込み中...</span>
+        </div>
+      ) : (
+        <img src={image.dataUrl} alt={image.name} className="thumbnail" />
+      )}
       <div className="image-info image-info--no-margin">
         <p className="file-name">{image.name}</p>
         <p className="page-number">{index + 1} ページ</p>
