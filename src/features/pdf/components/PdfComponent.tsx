@@ -63,12 +63,11 @@ export default function PdfComponent() {
   const dragPreviewRef = useRef<HTMLDivElement | null>(null);
   const dragCleanupRef = useRef<(() => void) | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isZipping, setIsZipping] = useState<boolean>(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
 
   const { generatePdf, isProcessing, progress: pdfProgress } = usePdfGenerator();
-  const { extractImagesFromPdfs, isExtracting, extractProgress } = usePdfExtractor();
+  const { extractImagesFromPdfs, isExtracting } = usePdfExtractor();
   const { toast } = useToast();
 
   // ギャラリーからの画像追加
@@ -123,9 +122,6 @@ export default function PdfComponent() {
     // 画像ファイルの処理（スケルトンを即時配置し、変換完了したものからリアルタイム反映）
     if (imageFiles.length > 0) {
       setIsUploading(true);
-      setUploadProgress(0);
-      const totalFiles = imageFiles.length;
-      let completed = 0;
 
       // ファイル選択順を維持するため、プレースホルダーを先行追加
       const placeholders: PdfPageItem[] = imageFiles.map((file, idx) => ({
@@ -169,9 +165,6 @@ export default function PdfComponent() {
               console.error(`画像処理エラー (${file.name}):`, err);
               // 失敗時は該当プレースホルダーを除去
               setImages(prev => prev.filter(item => item.id !== targetId));
-            } finally {
-              completed++;
-              setUploadProgress(Math.round((completed / totalFiles) * 100));
             }
           })
         );
@@ -180,7 +173,6 @@ export default function PdfComponent() {
         toast.error(err?.message || '画像の処理中にエラーが発生しました。');
       } finally {
         setIsUploading(false);
-        setUploadProgress(0);
         event.target.value = '';
       }
     }
