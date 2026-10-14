@@ -385,8 +385,6 @@ export default function PdfComponent() {
   }, [images, toast]);
 
   const isInlineLoading = isUploading || isExtracting;
-  const inlineProgress = isUploading ? uploadProgress : extractProgress;
-  const inlineLoadingText = isUploading ? '画像を変換・読み込み中...' : 'PDFから画像を抽出中...';
 
   const isModalLoading = isProcessing || isZipping;
   const modalLoadingProgress = pdfProgress;
@@ -456,19 +454,6 @@ export default function PdfComponent() {
         </div>
         
         <div className="editor-main pdf-main-content">
-          {/* インライン進捗バナー（プレビューのリアルタイム表示を遮らない進捗バー） */}
-          {isInlineLoading && (
-            <div className="pdf-inline-progress-banner" role="status" aria-live="polite">
-              <div className="pdf-inline-progress-info">
-                <Loader2 size={16} />
-                <span>{inlineLoadingText} ({inlineProgress}%)</span>
-              </div>
-              <div className="pdf-inline-progress-bar-bg">
-                <div className="pdf-inline-progress-bar-fill" style={{ width: `${inlineProgress}%` }}></div>
-              </div>
-            </div>
-          )}
-
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart} onDragOver={dragOver} onDragEnd={dragEnd} modifiers={[restrictToFirstScrollableAncestor]}>
             <SortableContext items={images.map(img => img.id)}>
               <div className="image-list-container">
