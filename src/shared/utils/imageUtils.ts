@@ -20,9 +20,9 @@ export const generateUniqueId = (prefix: string = 'item'): string => {
 export const compressImage = async (file: File | Blob): Promise<string> => {
   const options = {
     maxSizeMB: Number.POSITIVE_INFINITY, // サイズ制限なし（品質優先）
-    maxWidthOrHeight: 1920,              // 大きすぎる画像だけリサイズ
     useWebWorker: true,                  // Web Worker で非同期処理
     initialQuality: 1.0,                 // 画質劣化なし
+    alwaysKeepResolution: true,          // 原寸解像度を維持（リサイズ・間引きなし）
     fileType: 'image/jpeg',              // PDF埋め込み用にJPEG固定
   };
 
