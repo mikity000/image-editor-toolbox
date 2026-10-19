@@ -19,7 +19,7 @@ export const initEdgeDetectionCanvas = (fabricCanvas: Canvas | null | undefined)
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return;
   
-  const imgEl: any = (bgImage as any).getElement?.() || (bgImage as any)._element;
+  const imgEl: any = (bgImage as any).originalElement || (bgImage as any).getElement?.() || (bgImage as any)._element;
   if (!imgEl) return;
 
   const naturalW = imgEl.naturalWidth || imgEl.width || 0;
@@ -31,8 +31,8 @@ export const initEdgeDetectionCanvas = (fabricCanvas: Canvas | null | undefined)
     imgEl, 
     0, 0, naturalW, naturalH,
     bgImage.left || 0, bgImage.top || 0, 
-    naturalW * (bgImage.scaleX || 1), 
-    naturalH * (bgImage.scaleY || 1)
+    bgImage.getScaledWidth(), 
+    bgImage.getScaledHeight()
   );
   
   edgeCanvasContext = ctx;

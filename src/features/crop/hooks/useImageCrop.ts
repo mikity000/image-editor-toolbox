@@ -38,7 +38,7 @@ export function useImageCrop(
 
       const targetShapes = overrideObj ? [...shapes, overrideObj] : shapes;
 
-      const imgEl = (image as any).getElement?.() || (image as any)._element;
+      const imgEl = (image as any).originalElement || (image as any).getElement?.() || (image as any)._element;
       const originalImageWidth = imgEl.naturalWidth || imgEl.width || 0;
       const originalImageHeight = imgEl.naturalHeight || imgEl.height || 0;
       if (originalImageWidth === 0 || originalImageHeight === 0) return;

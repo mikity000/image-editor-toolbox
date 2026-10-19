@@ -70,3 +70,84 @@ export const fileToDataUrl = (fileOrBlob: File | Blob): Promise<string> => {
     reader.readAsDataURL(fileOrBlob);
   });
 };
+
+/**
+ * 高解像度画像を縮小表示する際のモアレ（エイリアシング）を防ぐため、
+ * 段階的ダウンサンプリング（Step-down / Halving）を行って高品質な縮小 Canvas を生成します。
+ * 
+ * @param source 元画像（HTMLImageElement または HTMLCanvasElement）
+ * @param targetWidth 縮小先の目標幅 (px)
+ * @param targetHeight 縮小先の目標高さ (px)
+ * @returns アンチエイリアス処理された HTMLCanvasElement
+ */
+export const createAntialiasedCanvas = (
+  source: HTMLImageElement | HTMLCanvasElement,
+  targetWidth: number,
+  targetHeight: number
+): HTMLCanvasElement => {
+  const origW = (source as HTMLImageElement).naturalWidth || source.width;
+  const origH = (source as HTMLImageElement).naturalHeight || source.height;
+
+  const tW = Math.max(1, Math.round(targetWidth));
+  const tH = Math.max(1, Math.round(targetHeight));
+
+  // 縮小率が緩やかな場合（目標サイズが元の50%以上）は単一段階で高品質描画
+  if (origW <= tW * 2 && origH <= tH * 2) {
+    const canvas = document.createElement('canvas');
+    canvas.width = tW;
+    canvas.height = tH;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(source, 0, 0, tW, tH);
+    }
+    return canvas;
+  }
+
+  // 1回の縮小率が0.5倍（半分）を超えないように50%ずつ段階的縮小（ボックス平均化フィルタ）
+  let curW = origW;
+  let curH = origH;
+
+  let currentCanvas = document.createElement('canvas');
+  currentCanvas.width = curW;
+  currentCanvas.height = curH;
+  const currentCtx = currentCanvas.getContext('2d');
+  if (currentCtx) {
+    currentCtx.drawImage(source, 0, 0);
+  }
+
+  while (curW * 0.5 > tW && curH * 0.5 > tH) {
+    const nextW = Math.max(tW, Math.round(curW * 0.5));
+    const nextH = Math.max(tH, Math.round(curH * 0.5));
+
+    const stepCanvas = document.createElement('canvas');
+    stepCanvas.width = nextW;
+    stepCanvas.height = nextH;
+    const stepCtx = stepCanvas.getContext('2d');
+
+    if (stepCtx) {
+      stepCtx.imageSmoothingEnabled = true;
+      stepCtx.imageSmoothingQuality = 'high';
+      stepCtx.drawImage(currentCanvas, 0, 0, curW, curH, 0, 0, nextW, nextH);
+    }
+
+    currentCanvas = stepCanvas;
+    curW = nextW;
+    curH = nextH;
+  }
+
+  // 最終目標サイズへの縮小
+  const finalCanvas = document.createElement('canvas');
+  finalCanvas.width = tW;
+  finalCanvas.height = tH;
+  const finalCtx = finalCanvas.getContext('2d');
+  if (finalCtx) {
+    finalCtx.imageSmoothingEnabled = true;
+    finalCtx.imageSmoothingQuality = 'high';
+    finalCtx.drawImage(currentCanvas, 0, 0, curW, curH, 0, 0, tW, tH);
+  }
+
+  return finalCanvas;
+};
+

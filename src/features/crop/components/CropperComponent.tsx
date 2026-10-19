@@ -8,7 +8,7 @@ import { useImageUpload } from '../hooks/useImageUpload';
 import { useGallery } from '../../gallery/context/GalleryContext';
 import { useToast } from '../../../shared/context/ToastContext';
 import SidebarTray from '../../gallery/components/SidebarTray';
-import { getSequentialName } from '../../../shared/utils/imageUtils';
+import { getSequentialName, createAntialiasedCanvas } from '../../../shared/utils/imageUtils';
 import { CROP_CONFIG } from '../../../shared/constants/Constants';
 import { GalleryImage } from '../../gallery/types/gallery';
 import { CropShapeData } from '../types/crop';
@@ -174,6 +174,10 @@ export default function CropperComponent() {
       height: wrapperEl.clientHeight,
     });
     fabricCanvasRef.current = canvas;
+    if (canvas.contextContainer) {
+      canvas.contextContainer.imageSmoothingEnabled = true;
+      canvas.contextContainer.imageSmoothingQuality = 'high';
+    }
 
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -182,16 +186,27 @@ export default function CropperComponent() {
           canvas.setDimensions({ width, height });
           const bgImg = canvas.backgroundImage as FabricImage | undefined;
           if (bgImg && (bgImg as any)._element) {
-            const imgEl = (bgImg as any).getElement?.() || (bgImg as any)._element;
-            const origW = imgEl.naturalWidth || imgEl.width || width;
-            const origH = imgEl.naturalHeight || imgEl.height || height;
+            const rawEl = (bgImg as any).originalElement || (bgImg as any).getElement?.() || (bgImg as any)._element;
+            const origW = rawEl.naturalWidth || rawEl.width || width;
+            const origH = rawEl.naturalHeight || rawEl.height || height;
             const scale = Math.min(width / (origW || 1), height / (origH || 1));
+            const scaledWidth = origW * scale;
+            const scaledHeight = origH * scale;
+
+            const dpr = Math.max(1, Math.min(2, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1));
+            const displayCanvas = createAntialiasedCanvas(rawEl, scaledWidth * dpr, scaledHeight * dpr);
+
+            bgImg.setElement(displayCanvas);
             bgImg.set({
-              scaleX: scale,
-              scaleY: scale,
-              left: (width - origW * scale) / 2,
-              top: (height - origH * scale) / 2,
+              scaleX: 1 / dpr,
+              scaleY: 1 / dpr,
+              left: (width - scaledWidth) / 2,
+              top: (height - scaledHeight) / 2,
             });
+          }
+          if (canvas.contextContainer) {
+            canvas.contextContainer.imageSmoothingEnabled = true;
+            canvas.contextContainer.imageSmoothingQuality = 'high';
           }
           canvas.requestRenderAll();
         }

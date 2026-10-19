@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Canvas, FabricImage } from 'fabric';
-import { fileToDataUrl } from '../../../shared/utils/imageUtils';
+import { fileToDataUrl, createAntialiasedCanvas } from '../../../shared/utils/imageUtils';
 
 export interface UseImageUploadReturn {
   imageLoaded: boolean;
@@ -53,10 +53,28 @@ export function useImageUpload(
       const left = (canvasW - scaledWidth) / 2;
       const top = (canvasH - scaledHeight) / 2;
 
-      const fabricImg = new FabricImage(imgEl, { left, top, scaleX: scale, scaleY: scale, selectable: false, evented: false });
+      // 高解像度ディスプレイ（Retina）とモアレ防止を両立した段階的縮小表示キャンバスを生成
+      const dpr = Math.max(1, Math.min(2, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1));
+      const displayCanvas = createAntialiasedCanvas(imgEl, scaledWidth * dpr, scaledHeight * dpr);
 
-      fabricImg.origSrc = dataURL;
+      const fabricImg = new FabricImage(displayCanvas, {
+        left,
+        top,
+        scaleX: 1 / dpr,
+        scaleY: 1 / dpr,
+        selectable: false,
+        evented: false,
+      });
+
+      // 原寸クロップおよびリサイズ再計算用に元画像とスケール情報を保持
+      (fabricImg as any).originalElement = imgEl;
+      (fabricImg as any).origSrc = dataURL;
+
       canvas.backgroundImage = fabricImg;
+      if (canvas.contextContainer) {
+        canvas.contextContainer.imageSmoothingEnabled = true;
+        canvas.contextContainer.imageSmoothingQuality = 'high';
+      }
       canvas.renderAll();
       setImageLoaded(true);
     };
