@@ -31,7 +31,6 @@ export default function CropperComponent() {
   const croppedImageRef = useRef<HTMLImageElement | null>(null);
   const [isZoomEnabled, setIsZoomEnabled] = useState<boolean>(false);
   const [isZoomHovered, setIsZoomHovered] = useState<boolean>(false);
-  const [zoomScale, setZoomScale] = useState<number>(CROP_CONFIG.ZOOM_SCALE_DEFAULT);
   const [zoomPos, setZoomPos] = useState<{ x: number; y: number; width: number; height: number }>({ x: 0, y: 0, width: 0, height: 0 });
 
   const handleResultImageMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -353,13 +352,7 @@ export default function CropperComponent() {
                     <div className="result-zoom-controls">
                       <button type="button" onClick={() => setIsZoomEnabled(prev => !prev)} className={`result-zoom-btn ${isZoomEnabled ? 'is-active' : ''}`} title={isZoomEnabled ? 'ホバーズームを無効化' : 'ホバーズームを有効化'} aria-label="ホバーズーム切り替え">
                         <ZoomIn size={15} />
-                        <span>{isZoomEnabled ? `` : 'OFF'}</span>
                       </button>
-                      {isZoomEnabled && (
-                        <button type="button" onClick={() => setZoomScale(prev => { const scales = CROP_CONFIG.ZOOM_SCALES; const currentIndex = scales.indexOf(prev as any); return scales[(currentIndex + 1) % scales.length]; })} className="result-zoom-scale-btn" title={`ズーム倍率切り替え (${CROP_CONFIG.ZOOM_SCALES.map(s => `${s}x`).join(' / ')})`}>
-                          {zoomScale}x
-                        </button>
-                      )}
                     </div>
                     <div className="result-image-box" style={{ aspectRatio: cropAspectRatio }} onMouseMove={handleResultImageMouseMove} onMouseLeave={handleResultImageMouseLeave}>
                       <img ref={croppedImageRef} src={croppedImageUrl} alt="Cropped Result" id="croppedResult" onLoad={(e) => {
@@ -381,8 +374,7 @@ export default function CropperComponent() {
                       )}
                       {isZoomEnabled && isZoomHovered && croppedImageUrl && (
                         <div className="crop-zoom-lens" style={{ left: `${zoomPos.x}px`, top: `${zoomPos.y}px`, width: `${CROP_CONFIG.ZOOM_LENS_SIZE}px`, height: `${CROP_CONFIG.ZOOM_LENS_SIZE}px`, transform: 'translate(-50%, -50%)' }}>
-                          <div className="crop-zoom-lens__image" style={{ backgroundImage: `url(${croppedImageUrl})`, backgroundSize: `${zoomPos.width * zoomScale}px ${zoomPos.height * zoomScale}px`, backgroundPosition: `${-zoomPos.x * zoomScale + CROP_CONFIG.ZOOM_LENS_SIZE / 2}px ${-zoomPos.y * zoomScale + CROP_CONFIG.ZOOM_LENS_SIZE / 2}px` }} />
-                          <div className="crop-zoom-lens__crosshair" />
+                          <div className="crop-zoom-lens__image" style={{ backgroundImage: `url(${croppedImageUrl})`, backgroundSize: `${zoomPos.width * CROP_CONFIG.ZOOM_SCALE}px ${zoomPos.height * CROP_CONFIG.ZOOM_SCALE}px`, backgroundPosition: `${-zoomPos.x * CROP_CONFIG.ZOOM_SCALE + CROP_CONFIG.ZOOM_LENS_SIZE / 2}px ${-zoomPos.y * CROP_CONFIG.ZOOM_SCALE + CROP_CONFIG.ZOOM_LENS_SIZE / 2}px` }} />
                         </div>
                       )}
                     </div>

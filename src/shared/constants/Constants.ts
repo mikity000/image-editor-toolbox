@@ -57,8 +57,7 @@ export const CROP_CONFIG = Object.freeze({
   PATH_SMOOTHING_MAX: 50, // フリーハンド曲線の滑らかさ最大値
   MIN_SHAPE_SIZE: 10, // クロップ図形の最小サイズ（幅・高さ）
   ZOOM_LENS_SIZE: 180, // クロップ結果プレビューのホバーズーム（ルーペ）サイズ (px)
-  ZOOM_SCALES: [2, 2.5, 3.5] as const, // ホバーズームの選択可能倍率リスト
-  ZOOM_SCALE_DEFAULT: 2.5, // ホバーズームの初期倍率
+  ZOOM_SCALE: 2.5, // クロップ結果プレビューのホバーズーム倍率
 } as const);
 
 export interface ColorPaletteItem {

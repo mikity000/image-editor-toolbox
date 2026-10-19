@@ -168,23 +168,6 @@
   background: var(--nav-active-bg);
 }
 
-.result-zoom-scale-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--box-border);
-  color: var(--accent-color);
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.result-zoom-scale-btn:hover {
-  background: var(--accent-color);
-  color: #0b0c10;
-}
-
 /* ホバーズーム（拡大ルーペ） */
 .crop-zoom-lens {
   position: absolute;
@@ -202,38 +185,6 @@
   height: 100%;
   background-repeat: no-repeat;
   image-rendering: auto;
-}
-
-.crop-zoom-lens__crosshair {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 14px;
-  height: 14px;
-  pointer-events: none;
-}
-
-.crop-zoom-lens__crosshair::before,
-.crop-zoom-lens__crosshair::after {
-  content: '';
-  position: absolute;
-  background: rgba(102, 252, 241, 0.85);
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
-}
-
-.crop-zoom-lens__crosshair::before {
-  top: 6px;
-  left: 0;
-  width: 14px;
-  height: 2px;
-}
-
-.crop-zoom-lens__crosshair::after {
-  top: 0;
-  left: 6px;
-  width: 2px;
-  height: 14px;
 }
 
 /* Custom Checkbox & Options */
