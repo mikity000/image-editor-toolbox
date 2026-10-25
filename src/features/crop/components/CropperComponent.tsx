@@ -29,9 +29,10 @@ export default function CropperComponent() {
   const { toast } = useToast();
 
   const croppedImageRef = useRef<HTMLImageElement | null>(null);
+  const resultWrapperRef = useRef<HTMLDivElement | null>(null);
   const [isZoomEnabled, setIsZoomEnabled] = useState<boolean>(false);
   const [isZoomHovered, setIsZoomHovered] = useState<boolean>(false);
-  const [zoomPos, setZoomPos] = useState<{ x: number; y: number; width: number; height: number }>({ x: 0, y: 0, width: 0, height: 0 });
+  const [zoomPos, setZoomPos] = useState<{ x: number; y: number; width: number; height: number; isNearTopRight: boolean }>({ x: 0, y: 0, width: 0, height: 0, isNearTopRight: false });
 
   const handleResultImageMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!isZoomEnabled || !croppedImageRef.current) return;
@@ -42,7 +43,16 @@ export default function CropperComponent() {
     const y = e.clientY - rect.top;
 
     if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
-      setZoomPos({ x, y, width: rect.width, height: rect.height, });
+      let isNearTopRight = false;
+      if (resultWrapperRef.current) {
+        const wrapperRect = resultWrapperRef.current.getBoundingClientRect();
+        const threshold = CROP_CONFIG.ZOOM_WINDOW_SIZE + 30;
+        const distFromRight = wrapperRect.right - e.clientX;
+        const distFromTop = e.clientY - wrapperRect.top;
+        isNearTopRight = distFromRight <= threshold && distFromTop <= threshold;
+      }
+
+      setZoomPos({ x, y, width: rect.width, height: rect.height, isNearTopRight });
       setIsZoomHovered(true);
     } else {
       setIsZoomHovered(false);
@@ -52,6 +62,48 @@ export default function CropperComponent() {
   const handleResultImageMouseLeave = useCallback(() => {
     setIsZoomHovered(false);
   }, []);
+
+  // ホバーズームの対象範囲（オーバーレイ）および拡大表示の計算
+  const zoomCalculations = useMemo(() => {
+    if (!isZoomEnabled || !isZoomHovered || !croppedImageUrl || !zoomPos.width || !zoomPos.height) {
+      return null;
+    }
+
+    const lensSize = CROP_CONFIG.ZOOM_LENS_SIZE;
+    const windowSize = CROP_CONFIG.ZOOM_WINDOW_SIZE;
+
+    // プレビュー画像上のズーム対象範囲サイズ（ルーペサイズと連動）
+    const overlayWidth = Math.min(zoomPos.width, lensSize);
+    const overlayHeight = Math.min(zoomPos.height, lensSize);
+
+    // カーソル位置を中心としたオーバーレイ左上座標（画像枠内に収まるようクランプ）
+    const overlayX = Math.max(0, Math.min(zoomPos.width - overlayWidth, zoomPos.x - overlayWidth / 2));
+    const overlayY = Math.max(0, Math.min(zoomPos.height - overlayHeight, zoomPos.y - overlayHeight / 2));
+
+    // マウスカーソルが右上の拡大ウィンドウ領域に接近した時のみ左上に退避
+    const isCursorNearTopRight = !!zoomPos.isNearTopRight;
+
+    // 拡大プレビューウィンドウ内の拡大倍率
+    const effectiveScale = windowSize / overlayWidth;
+
+    // 拡大プレビューウィンドウ内の背景画像位置
+    const bgPositionX = -overlayX * effectiveScale;
+    const bgPositionY = -overlayY * effectiveScale;
+    const bgSizeWidth = zoomPos.width * effectiveScale;
+    const bgSizeHeight = zoomPos.height * effectiveScale;
+
+    return {
+      overlayX,
+      overlayY,
+      overlayWidth,
+      overlayHeight,
+      isCursorNearTopRight,
+      bgPositionX,
+      bgPositionY,
+      bgSizeWidth,
+      bgSizeHeight,
+    };
+  }, [isZoomEnabled, isZoomHovered, croppedImageUrl, zoomPos]);
 
   const { galleryImages, addImages, removeImage, renameImage, isGalleryOpen, setIsGalleryOpen } = useGallery();
   const { imageLoaded, uploadImage, loadImageFromUrl, imageName, setImageName } = useImageUpload(fabricCanvasRef, setCroppedImageUrl);
@@ -363,7 +415,7 @@ export default function CropperComponent() {
             <div className="result-container-wrapper">
               <div className="result-container">
                 {croppedImageUrl ? (
-                  <div className="result-image-wrapper">
+                  <div className="result-image-wrapper" ref={resultWrapperRef}>
                     <div className="result-zoom-controls">
                       <button type="button" onClick={() => setIsZoomEnabled(prev => !prev)} className={`result-zoom-btn ${isZoomEnabled ? 'is-active' : ''}`} title={isZoomEnabled ? 'ホバーズームを無効化' : 'ホバーズームを有効化'} aria-label="ホバーズーム切り替え">
                         <ZoomIn size={15} />
@@ -387,12 +439,36 @@ export default function CropperComponent() {
                           }} />
                         ))
                       )}
-                      {isZoomEnabled && isZoomHovered && croppedImageUrl && (
-                        <div className="crop-zoom-lens" style={{ left: `${zoomPos.x}px`, top: `${zoomPos.y}px`, width: `${CROP_CONFIG.ZOOM_LENS_SIZE}px`, height: `${CROP_CONFIG.ZOOM_LENS_SIZE}px`, transform: 'translate(-50%, -50%)' }}>
-                          <div className="crop-zoom-lens__image" style={{ backgroundImage: `url(${croppedImageUrl})`, backgroundSize: `${zoomPos.width * CROP_CONFIG.ZOOM_SCALE}px ${zoomPos.height * CROP_CONFIG.ZOOM_SCALE}px`, backgroundPosition: `${-zoomPos.x * CROP_CONFIG.ZOOM_SCALE + CROP_CONFIG.ZOOM_LENS_SIZE / 2}px ${-zoomPos.y * CROP_CONFIG.ZOOM_SCALE + CROP_CONFIG.ZOOM_LENS_SIZE / 2}px` }} />
-                        </div>
+                      {/* ホバーズーム対象範囲オーバーレイ（プレビュー画像上に表示） */}
+                      {zoomCalculations && (
+                        <div
+                          className="crop-zoom-target-overlay"
+                          style={{
+                            left: `${zoomCalculations.overlayX}px`,
+                            top: `${zoomCalculations.overlayY}px`,
+                            width: `${zoomCalculations.overlayWidth}px`,
+                            height: `${zoomCalculations.overlayHeight}px`,
+                          }}
+                        />
                       )}
                     </div>
+
+                    {/* ホバーズーム拡大プレビューウィンドウ（プレビュー枠隅・カーソル回避配置） */}
+                    {zoomCalculations && croppedImageUrl && (
+                      <div
+                        className={`crop-zoom-window ${zoomCalculations.isCursorNearTopRight ? 'is-left' : 'is-right'}`}
+                        aria-hidden="true"
+                      >
+                        <div
+                          className="crop-zoom-window__image"
+                          style={{
+                            backgroundImage: `url(${croppedImageUrl})`,
+                            backgroundSize: `${zoomCalculations.bgSizeWidth}px ${zoomCalculations.bgSizeHeight}px`,
+                            backgroundPosition: `${zoomCalculations.bgPositionX}px ${zoomCalculations.bgPositionY}px`,
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="result-placeholder">

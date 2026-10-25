@@ -56,7 +56,8 @@ export const CROP_CONFIG = Object.freeze({
   PATH_SMOOTHING_MIN: 0, // フリーハンド曲線の滑らかさ最小値
   PATH_SMOOTHING_MAX: 50, // フリーハンド曲線の滑らかさ最大値
   MIN_SHAPE_SIZE: 10, // クロップ図形の最小サイズ（幅・高さ）
-  ZOOM_LENS_SIZE: 180, // クロップ結果プレビューのホバーズーム（ルーペ）サイズ (px)
+  ZOOM_LENS_SIZE: 220, // クロップ結果プレビューのルーペ（対象範囲枠）サイズ (px)
+  ZOOM_WINDOW_SIZE: 320, // クロップ結果プレビューの拡大ウィンドウサイズ (px)
   ZOOM_SCALE: 2.5, // クロップ結果プレビューのホバーズーム倍率
 } as const);
 

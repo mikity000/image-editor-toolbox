@@ -168,23 +168,64 @@
   background: var(--nav-active-bg);
 }
 
-/* ホバーズーム（拡大ルーペ） */
-.crop-zoom-lens {
+/* ホバーズーム対象範囲オーバーレイ（プレビュー画像上） */
+.crop-zoom-target-overlay {
   position: absolute;
-  border-radius: 50%;
   pointer-events: none;
-  overflow: hidden;
-  background-color: var(--canvas-bg);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85), 0 0 16px rgba(102, 252, 241, 0.5), 0 10px 28px rgba(0, 0, 0, 0.6);
-  z-index: 30;
-  will-change: left, top;
+  border: 2px solid var(--accent-color, #66fcf1);
+  background-color: rgba(102, 252, 241, 0.18);
+  box-shadow: 0 0 8px rgba(102, 252, 241, 0.4), inset 0 0 4px rgba(102, 252, 241, 0.2);
+  border-radius: var(--border-radius-xs, 2px);
+  z-index: 20;
+  box-sizing: border-box;
 }
 
-.crop-zoom-lens__image {
+/* ホバーズーム拡大プレビューウィンドウ（独立した表示ウィンドウ） */
+.crop-zoom-window {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: var(--border-radius-md, 8px);
+  overflow: hidden;
+  pointer-events: none;
+  background-color: var(--canvas-bg, #0b0c10);
+  border: 2px solid var(--accent-color, #66fcf1);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.65), 0 0 18px rgba(102, 252, 241, 0.3);
+  z-index: 30;
+  opacity: 0;
+  animation: cropZoomFadeIn 0.15s ease-out forwards;
+}
+
+/* 基本位置：右上（ヘッダーと隙間なく、虫眼鏡の上に配置） */
+.crop-zoom-window.is-right {
+  top: 0;
+  right: 0;
+  left: auto;
+}
+
+/* 退避位置：左上（カーソルが右側接近時、ヘッダーと隙間なく配置） */
+.crop-zoom-window.is-left {
+  top: 0;
+  left: 0;
+  right: auto;
+}
+
+.crop-zoom-window__image {
   width: 100%;
   height: 100%;
   background-repeat: no-repeat;
   image-rendering: auto;
+}
+
+@keyframes cropZoomFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* Custom Checkbox & Options */
@@ -549,5 +590,22 @@
     border-bottom: 1px solid var(--border-color);
     box-sizing: border-box;
     z-index: 21;
+  }
+
+  .crop-zoom-window {
+    width: 180px;
+    height: 180px;
+  }
+
+  .crop-zoom-window.is-right {
+    top: 0;
+    right: 0;
+    left: auto;
+  }
+
+  .crop-zoom-window.is-left {
+    top: 0;
+    left: 0;
+    right: auto;
   }
 }
