@@ -65,7 +65,7 @@ export const fileToDataUrl = (fileOrBlob: File | Blob): Promise<string> => {
 };
 
 /**
- * 面積平均（Area/Box リサンプリング）用の重み情報
+ * 面積平均・アンチエイリアス用のリサンプリング重み情報
  */
 interface ResampleWeight {
   index: number;
@@ -73,8 +73,9 @@ interface ResampleWeight {
 }
 
 /**
- * 1次元の面積平均（Area resampling）用重みテーブルを事前計算します。
- * 各出力ピクセルがカバーする入力ピクセルの重複幅を計算して正規化します。
+ * 1次元のリサンプリング用重みテーブルを事前計算します。
+ * 従来の単純な矩形（Box）積分ではなく、出力ピクセル中心からの距離に応じた滑らかな窓関数（Hann / Cosine窓）を
+ * 適用することで、網点やドットパターンなどの周期構造が四角いブロック模様（モアレ）に変形するのを防ぎます。
  * 
  * @param srcSize 元画像のサイズ（px）
  * @param dstSize 出力画像のサイズ（px）
@@ -84,20 +85,36 @@ function precomputeAreaWeights(srcSize: number, dstSize: number): ResampleWeight
   const ratio = srcSize / dstSize;
   const weights: ResampleWeight[][] = new Array(dstSize);
 
+  if (ratio <= 1.0) {
+    for (let dst = 0; dst < dstSize; dst++) {
+      const src = Math.min(srcSize - 1, Math.floor(dst * ratio));
+      weights[dst] = [{ index: src, weight: 1.0 }];
+    }
+    return weights;
+  }
+
+  // 窓関数のサポート半径:
+  // 出力ピクセルのフットプリントに滑らかな減衰を持たせ、直交格子の四角い角（サイドローブ）をカット
+  const radius = ratio * 1.05;
+
   for (let dst = 0; dst < dstSize; dst++) {
-    const start = dst * ratio;
-    const end = Math.min(srcSize, (dst + 1) * ratio);
-    const startFloor = Math.floor(start);
-    const endCeil = Math.min(srcSize, Math.ceil(end));
+    const center = (dst + 0.5) * ratio;
+    const start = Math.max(0, Math.floor(center - radius));
+    const end = Math.min(srcSize - 1, Math.ceil(center + radius));
 
     const rowWeights: ResampleWeight[] = [];
     let totalWeight = 0;
 
-    for (let src = startFloor; src < endCeil; src++) {
-      const w = Math.min(src + 1, end) - Math.max(src, start);
-      if (w > 0) {
-        rowWeights.push({ index: src, weight: w });
-        totalWeight += w;
+    for (let src = start; src <= end; src++) {
+      const dist = Math.abs((src + 0.5) - center);
+      if (dist < radius) {
+        // Hann / Cosine 窓関数: 境界で滑らかに0に減衰し、高周波の折り返し雑音（モアレ）を遮断
+        const normDist = dist / radius; // 0 to 1
+        const w = 0.5 * (1 + Math.cos(Math.PI * normDist));
+        if (w > 0) {
+          rowWeights.push({ index: src, weight: w });
+          totalWeight += w;
+        }
       }
     }
 
@@ -105,6 +122,9 @@ function precomputeAreaWeights(srcSize: number, dstSize: number): ResampleWeight
       for (let i = 0; i < rowWeights.length; i++) {
         rowWeights[i].weight /= totalWeight;
       }
+    } else {
+      const fallbackSrc = Math.min(srcSize - 1, Math.max(0, Math.round(center - 0.5)));
+      rowWeights.push({ index: fallbackSrc, weight: 1.0 });
     }
 
     weights[dst] = rowWeights;
@@ -114,9 +134,93 @@ function precomputeAreaWeights(srcSize: number, dstSize: number): ResampleWeight
 }
 
 /**
- * 厳密な Area（面積平均 / INTER_AREA）アルゴリズムを用いて画像を縮小した HTMLCanvasElement を生成します。
- * 出力ピクセルがカバーする入力画像の領域面積で各入力ピクセルを加重平均（面積積分）するため、
- * 周期パターン（網点、ハーフトーン、ストライプ等）によるモアレ（エイリアシング）を数学的に完全に防止します。
+ * 縮小スケールに応じた適応型ローパスフィルタ（1次元分離可能ガウシアンブラー）を適用します。
+ * サンプリング定理のナイキスト周波数を超える網点ピークを事前に滑らかに均一化し、
+ * ドットパターンが四角いブロック状の干渉縞（モアレ）に変形するのを防止します。
+ * 
+ * @param srcData 元のピクセルデータ (Uint8ClampedArray)
+ * @param width 幅
+ * @param height 高さ
+ * @param sigma ガウス分布の標準偏差
+ * @returns フィルタ適用後のピクセルデータ (Uint8ClampedArray)
+ */
+function applyAdaptiveLowPassFilter(
+  srcData: Uint8ClampedArray,
+  width: number,
+  height: number,
+  sigma: number
+): Uint8ClampedArray {
+  if (sigma <= 0.08) {
+    return new Uint8ClampedArray(srcData);
+  }
+
+  const radius = Math.max(1, Math.min(10, Math.ceil(sigma * 2.5)));
+  const kernelSize = radius * 2 + 1;
+  const kernel = new Float32Array(kernelSize);
+  let kSum = 0;
+  const twoSigmaSq = 2 * sigma * sigma;
+
+  for (let i = -radius; i <= radius; i++) {
+    const val = Math.exp(-(i * i) / twoSigmaSq);
+    kernel[i + radius] = val;
+    kSum += val;
+  }
+  for (let i = 0; i < kernelSize; i++) {
+    kernel[i] /= kSum;
+  }
+
+  // Pass 1: 水平方向（X軸）の平滑化
+  const tempBuf = new Float32Array(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    const rowOffset = y * width * 4;
+    for (let x = 0; x < width; x++) {
+      let r = 0, g = 0, b = 0, a = 0;
+      for (let k = -radius; k <= radius; k++) {
+        const px = Math.min(width - 1, Math.max(0, x + k));
+        const srcIdx = rowOffset + px * 4;
+        const kw = kernel[k + radius];
+        r += srcData[srcIdx] * kw;
+        g += srcData[srcIdx + 1] * kw;
+        b += srcData[srcIdx + 2] * kw;
+        a += srcData[srcIdx + 3] * kw;
+      }
+      const dstIdx = rowOffset + x * 4;
+      tempBuf[dstIdx] = r;
+      tempBuf[dstIdx + 1] = g;
+      tempBuf[dstIdx + 2] = b;
+      tempBuf[dstIdx + 3] = a;
+    }
+  }
+
+  // Pass 2: 垂直方向（Y軸）の平滑化
+  const outBuf = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let r = 0, g = 0, b = 0, a = 0;
+      for (let k = -radius; k <= radius; k++) {
+        const py = Math.min(height - 1, Math.max(0, y + k));
+        const srcIdx = py * width * 4 + x * 4;
+        const kw = kernel[k + radius];
+        r += tempBuf[srcIdx] * kw;
+        g += tempBuf[srcIdx + 1] * kw;
+        b += tempBuf[srcIdx + 2] * kw;
+        a += tempBuf[srcIdx + 3] * kw;
+      }
+      const dstIdx = y * width * 4 + x * 4;
+      outBuf[dstIdx] = Math.round(r);
+      outBuf[dstIdx + 1] = Math.round(g);
+      outBuf[dstIdx + 2] = Math.round(b);
+      outBuf[dstIdx + 3] = Math.round(a);
+    }
+  }
+
+  return outBuf;
+}
+
+/**
+ * 適応型アンチエイリアシング前処理と滑らかな窓関数付き Area（面積平均）アルゴリズムを用いて画像を高品質縮小した HTMLCanvasElement を生成します。
+ * 元画像の高周波ドット（網点・ハーフトーン等）とサンプリング格子の干渉を数学的に遮断し、
+ * ドットの周期パターンが四角いブロック模様（モアレ）に変形するのを防止します。
  * 
  * 2パス分離可能フィルタ（Separable 2-Pass Filter）と重み事前計算により、高解像度画像でも極めて高速に動作します。
  * 
@@ -187,9 +291,14 @@ export const resizeWithAreaAverage = (
     srcImageData = helperCtx.getImageData(0, 0, origW, origH);
   }
 
-  const srcData = srcImageData.data;
+  // 縮小率に応じた適応型アンチエイリアシング前処理
+  const scale = Math.max(origW / tW, origH / tH);
+  const sigma = Math.max(0, (scale - 1.0) * 0.45);
+  const srcData = sigma >= 0.1
+    ? applyAdaptiveLowPassFilter(srcImageData.data, origW, origH, sigma)
+    : srcImageData.data;
 
-  // Pass 1: 水平方向（X軸）の面積平均縮小 (origW -> tW, origH 維持)
+  // Pass 1: 水平方向（X軸）の窓関数付き面積平均縮小 (origW -> tW, origH 維持)
   const weightsX = precomputeAreaWeights(origW, tW);
   const interBuf = new Float32Array(tW * origH * 4);
 
@@ -226,7 +335,7 @@ export const resizeWithAreaAverage = (
     }
   }
 
-  // Pass 2: 垂直方向（Y軸）の面積平均縮小 (tW 維持, origH -> tH)
+  // Pass 2: 垂直方向（Y軸）の窓関数付き面積平均縮小 (tW 維持, origH -> tH)
   const weightsY = precomputeAreaWeights(origH, tH);
   const resultCanvas = document.createElement('canvas');
   resultCanvas.width = tW;

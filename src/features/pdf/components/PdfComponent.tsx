@@ -6,16 +6,14 @@ import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSe
 import { restrictToFirstScrollableAncestor } from '@dnd-kit/modifiers';
 import { SortableContext, arrayMove, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { compressImage, fileToDataUrl } from '../../../shared/utils/imageUtils';
+import { compressImage } from '../../../shared/utils/imageUtils';
 import { isMobileDevice } from '../../../shared/utils/deviceUtils';
 import { usePdfGenerator } from '../hooks/usePdfGenerator';
 import { usePdfExtractor } from '../hooks/usePdfExtractor';
-import { PDF_CONFIG } from '../../../shared/constants/Constants';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import SidebarTray from '../../gallery/components/SidebarTray';
 import { GalleryContext } from '../../gallery/context/GalleryContext';
-import { convertToWebP } from '../../../shared/utils/webpConverter';
 import { GalleryImage } from '../../gallery/types/gallery';
 import { useToast } from '../../../shared/context/ToastContext';
 
@@ -139,19 +137,9 @@ export default function PdfComponent() {
           imageFiles.map(async (file, idx) => {
             const targetId = placeholders[idx].id;
             try {
-              // 1. ファイルをDataURLに読み込む
-              const originalDataUrl = await fileToDataUrl(file);
-
-              // 2. WebP（品質85）に変換（高品質・最小サイズ化）
-              const webpDataUrl = await convertToWebP(originalDataUrl, {
-                quality: PDF_CONFIG.DEFAULT_WEBP_QUALITY,
-              });
-
-              // 3. PDF埋め込み用にBlob経由でJPEG化
-              const res = await fetch(webpDataUrl);
-              const blob = await res.blob();
-              const webpFile = new File([blob], file.name, { type: 'image/webp' });
-              const finalJpegDataUrl = await compressImage(webpFile);
+              // 元画像から直接高品質アンチエイリアスリサイズ＆JPEG圧縮を実行
+              // （縮小前の非可逆WebP変換によるブロックノイズ・モアレ歪みの混入を排除）
+              const finalJpegDataUrl = await compressImage(file);
 
               // 変換が完了した画像からリアルタイムにプレビュー表示へ更新
               setImages(prev =>
