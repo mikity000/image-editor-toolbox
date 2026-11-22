@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import { saveAs } from 'file-saver';
-import { PDF_CONFIG } from '../../../shared/constants/Constants';
+import { PDF_CONFIG, IMAGE_CONFIG } from '../../../shared/constants/Constants';
+import { loadImageElement, createAntialiasedCanvas } from '../../../shared/utils/imageUtils';
 
 export interface PdfImageItem {
   dataUrl: string;
@@ -44,6 +45,23 @@ export function usePdfGenerator(): UsePdfGeneratorReturn {
             image = await pdfDoc.embedJpg(imageBytes);
           } catch {
             image = await pdfDoc.embedPng(imageBytes);
+          }
+
+          // 万が一 最大幅 を超える巨大画像が渡された場合の Area（面積平均）フォールバック
+          if (image.width > IMAGE_CONFIG.MAX_COMPRESS_DIMENSION || image.height > IMAGE_CONFIG.MAX_COMPRESS_DIMENSION) {
+            try {
+              const imgEl = await loadImageElement(imageItem.dataUrl);
+              const scale = Math.min(IMAGE_CONFIG.MAX_COMPRESS_DIMENSION / image.width, IMAGE_CONFIG.MAX_COMPRESS_DIMENSION / image.height);
+              const targetW = Math.max(1, Math.round(image.width * scale));
+              const targetH = Math.max(1, Math.round(image.height * scale));
+              const antialiasedCanvas = createAntialiasedCanvas(imgEl, targetW, targetH);
+              const resizedDataUrl = antialiasedCanvas.toDataURL('image/jpeg', 1.0);
+              const resizedRes = await fetch(resizedDataUrl);
+              const resizedBytes = await resizedRes.arrayBuffer();
+              image = await pdfDoc.embedJpg(resizedBytes);
+            } catch (resizeErr) {
+              console.warn('PDF生成時のArea縮小フォールバックに失敗しました:', resizeErr);
+            }
           }
 
           const scaleFactor = PAGE_WIDTH_A4 / image.width;

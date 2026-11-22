@@ -18,6 +18,7 @@ export const IMAGE_CONFIG = Object.freeze({
   WEBP_WORKER_TIMEOUT_MS: 15000, // Web Worker処理（エンコード実行）のタイムアウト（ms）
   MAX_WEBP_WORKERS: 4, // WebP変換用Web Workerプールの最大数
   MAX_EXPORT_PIXELS: 4096, // エクスポート時の最大解像度ピクセル
+  MAX_COMPRESS_DIMENSION: 1920, // 画像圧縮・PDF埋め込み時に適用する最大幅・高さ (px)
 } as const);
 
 /**
